@@ -16,7 +16,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Apache.Calcite.Data" Version="0.0.5-pre.44" />
+        <PackageReference Include="Apache.Calcite.Data" Version="0.0.5-pre.49" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.2" />
     </ItemGroup>
 

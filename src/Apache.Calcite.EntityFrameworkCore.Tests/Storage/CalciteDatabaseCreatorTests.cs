@@ -19,18 +19,19 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Storage
     public class CalciteDatabaseCreatorTests
     {
 
-        static string BuildConnectionString(string schema)
-            => $"schema={schema};conformance=LENIENT;parserFactory=org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY";
+        const string Schema = "adhoc";
 
-        static CalciteConnection CreateConnection(string schema)
+        static CalciteConnection CreateConnection()
         {
-            return new CalciteConnection(BuildConnectionString(schema));
+            var str = new CalciteConnectionStringBuilder();
+            str.Model = $"inline:{{\"version\":\"1.0\",\"defaultSchema\":\"{Schema}\",\"schemas\":[{{\"name\":\"{Schema}\"}}]}}";
+            str.ParserFactory = "org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY";
+            return new CalciteConnection(str.ToString());
         }
 
         static (CalciteConnection Connection, HiLoDbContext Context, IRelationalDatabaseCreator Creator) CreateContextAndCreator()
         {
-            var schema = "S" + Guid.NewGuid().ToString("N");
-            var conn = CreateConnection(schema);
+            var conn = CreateConnection();
             var ctx = new HiLoDbContext(conn);
             var creator = (IRelationalDatabaseCreator)ctx.GetService<IDatabaseCreator>();
             return (conn, ctx, creator);
@@ -44,9 +45,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Storage
             using (ctx)
             {
                 Assert.NotNull(creator);
-                Assert.Equal(
-                    "Apache.Calcite.EntityFrameworkCore.Storage.Internal.CalciteDatabaseCreator",
-                    creator.GetType().FullName);
+                Assert.Equal("Apache.Calcite.EntityFrameworkCore.Storage.Internal.CalciteDatabaseCreator", creator.GetType().FullName);
             }
         }
 
@@ -82,8 +81,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Storage
                 // No DDL has been executed against this Calcite root schema, so HasTables must return
                 // false. If this returns true, EnsureCreated will short-circuit and never create our
                 // model's tables.
-                Assert.False(creator.HasTables(),
-                    "HasTables on a brand new Calcite connection must be false (only system tables exist).");
+                Assert.False(creator.HasTables(), "HasTables on a brand new Calcite connection must be false (only system tables exist).");
             }
         }
 
@@ -94,8 +92,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Storage
             using (conn)
             using (ctx)
             {
-                Assert.False(await creator.HasTablesAsync(),
-                    "HasTablesAsync on a brand new Calcite connection must be false (only system tables exist).");
+                Assert.False(await creator.HasTablesAsync(), "HasTablesAsync on a brand new Calcite connection must be false (only system tables exist).");
             }
         }
 
@@ -106,18 +103,13 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Storage
             using (conn)
             using (ctx)
             {
-                // Sanity: confirm the metadata schema itself contains rows so we know the underlying
-                // query is reachable. HasTables must still report false because those rows are SYSTEM.
+                // Sanity: confirm GetSchema returns rows (including system tables) so we know the
+                // underlying schema API is reachable. HasTables must still report false because
+                // those rows are SYSTEM TABLE, not TABLE.
                 conn.Open();
-                using (var cmd = conn.CreateCommand())
-                {
-                    cmd.CommandText = "SELECT COUNT(*) FROM \"metadata\".\"TABLES\"";
-                    var total = Convert.ToInt64(cmd.ExecuteScalar());
-                    Assert.True(total > 0, "metadata.TABLES should expose at least the Calcite system tables.");
-                }
-
-                Assert.False(creator.HasTables(),
-                    "HasTables must filter out SYSTEM TABLE rows in metadata.TABLES.");
+                var dt = conn.GetSchema("Tables");
+                Assert.True(dt.Rows.Count > 0, "GetSchema(\"Tables\") should expose at least the Calcite system tables.");
+                Assert.False(creator.HasTables(), "HasTables must filter out SYSTEM TABLE rows in metadata.TABLES.");
             }
         }
 
@@ -126,17 +118,18 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Storage
             if (conn.State != System.Data.ConnectionState.Open)
                 conn.Open();
 
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText =
-                "SELECT \"tableSchem\", \"tableName\" FROM \"metadata\".\"TABLES\" WHERE \"tableType\" = 'TABLE'";
-
             var found = new System.Collections.Generic.List<string>();
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
+
+            var dt = conn.GetSchema("Tables");
+            foreach (System.Data.DataRow row in dt.Rows)
             {
-                var s = reader.IsDBNull(0) ? "<null>" : reader.GetString(0);
-                var n = reader.IsDBNull(1) ? "<null>" : reader.GetString(1);
-                found.Add($"{s}.{n}");
+                var tableType = row["TABLE_TYPE"] as string;
+                if (tableType != "TABLE")
+                    continue;
+
+                var schema = row["TABLE_SCHEMA"] as string ?? "<null>";
+                var name = row["TABLE_NAME"] as string ?? "<null>";
+                found.Add($"{schema}.{name}");
             }
 
             return found;
@@ -151,8 +144,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Storage
             {
                 var script = creator.GenerateCreateScript();
 
-                Assert.False(string.IsNullOrWhiteSpace(script),
-                    "GenerateCreateScript should produce DDL for the model.");
+                Assert.False(string.IsNullOrWhiteSpace(script), "GenerateCreateScript should produce DDL for the model.");
                 Assert.Contains("CalciteSequence", script);
                 Assert.Contains("PRODUCTS", script);
             }
@@ -165,18 +157,17 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Storage
             using (conn)
             using (ctx)
             {
-                Assert.False(creator.HasTables(),
-                    "Pre-condition: no user tables should exist before CreateTables.");
+                Assert.False(creator.HasTables(), "Pre-condition: no user tables should exist before CreateTables.");
 
                 creator.CreateTables();
 
                 var tables = ListUserTables(conn);
                 Assert.True(
                     tables.Exists(t => t.EndsWith(".CalciteSequence", StringComparison.Ordinal)),
-                    $"CreateTables should create the CalciteSequence backing table. metadata.TABLES (TABLE rows): [{string.Join(", ", tables)}]");
+                    $"CreateTables should create the CalciteSequence backing table. GetSchema tables: [{string.Join(", ", tables)}]");
                 Assert.True(
                     tables.Exists(t => t.EndsWith(".PRODUCTS", StringComparison.Ordinal)),
-                    $"CreateTables should create the PRODUCTS table. metadata.TABLES (TABLE rows): [{string.Join(", ", tables)}]");
+                    $"CreateTables should create the PRODUCTS table. GetSchema tables: [{string.Join(", ", tables)}]");
             }
         }
 
@@ -187,18 +178,17 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Storage
             using (conn)
             using (ctx)
             {
-                Assert.False(await creator.HasTablesAsync(),
-                    "Pre-condition: no user tables should exist before CreateTablesAsync.");
+                Assert.False(await creator.HasTablesAsync(), "Pre-condition: no user tables should exist before CreateTablesAsync.");
 
                 await creator.CreateTablesAsync();
 
                 var tables = ListUserTables(conn);
                 Assert.True(
                     tables.Exists(t => t.EndsWith(".CalciteSequence", StringComparison.Ordinal)),
-                    $"CreateTablesAsync should create the CalciteSequence backing table. metadata.TABLES (TABLE rows): [{string.Join(", ", tables)}]");
+                    $"CreateTablesAsync should create the CalciteSequence backing table. GetSchema tables: [{string.Join(", ", tables)}]");
                 Assert.True(
                     tables.Exists(t => t.EndsWith(".PRODUCTS", StringComparison.Ordinal)),
-                    $"CreateTablesAsync should create the PRODUCTS table. metadata.TABLES (TABLE rows): [{string.Join(", ", tables)}]");
+                    $"CreateTablesAsync should create the PRODUCTS table. GetSchema tables: [{string.Join(", ", tables)}]");
             }
         }
 
@@ -211,8 +201,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Storage
             {
                 Assert.False(creator.HasTables());
                 creator.CreateTables();
-                Assert.True(creator.HasTables(),
-                    "After CreateTables, HasTables must report true so EnsureCreated short-circuits subsequent calls.");
+                Assert.True(creator.HasTables(), "After CreateTables, HasTables must report true so EnsureCreated short-circuits subsequent calls.");
             }
         }
 

@@ -114,6 +114,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Extensions
                 .TryAdd<IProviderConventionSetBuilder, CalciteConventionSetBuilder>()
                 .TryAdd<IUpdateSqlGenerator, CalciteUpdateSqlGenerator>()
                 .TryAdd<IModificationCommandBatchFactory, CalciteModificationCommandBatchFactory>()
+                .TryAdd<IBatchExecutor, CalciteBatchExecutor>()
                 .TryAdd<IValueGeneratorSelector, CalciteValueGeneratorSelector>()
                 .TryAdd<IRelationalConnection>(p => p.GetRequiredService<ICalciteConnection>())
                 .TryAdd<ICompiledQueryCacheKeyGenerator, CalciteCompiledQueryCacheKeyGenerator>()

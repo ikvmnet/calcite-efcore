@@ -2,6 +2,7 @@
 using System.Data;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Transactions;
 
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Internal;
@@ -30,9 +31,27 @@ namespace Apache.Calcite.EntityFrameworkCore.Migrations.Internal
         }
 
         /// <inheritdoc/>
-        public override int ExecuteNonQuery(IReadOnlyList<MigrationCommand> migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, bool commitTransaction, IsolationLevel? isolationLevel = null)
+        public override int ExecuteNonQuery(IReadOnlyList<MigrationCommand> migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, bool commitTransaction, System.Data.IsolationLevel? isolationLevel = null)
         {
-            return base.ExecuteNonQuery(migrationCommands, connection, executionState, commitTransaction, isolationLevel);
+            using (new TransactionScope(TransactionScopeOption.Suppress))
+            {
+                connection.Open();
+                try
+                {
+                    var result = 0;
+                    for (var i = executionState.LastCommittedCommandIndex; i < migrationCommands.Count; i++)
+                    {
+                        result = migrationCommands[i].ExecuteNonQuery(connection, null);
+                        executionState.LastCommittedCommandIndex = i + 1;
+                        executionState.AnyOperationPerformed = true;
+                    }
+                    return result;
+                }
+                finally
+                {
+                    connection.Close();
+                }
+            }
         }
 
         /// <inheritdoc/>
@@ -40,11 +59,31 @@ namespace Apache.Calcite.EntityFrameworkCore.Migrations.Internal
         {
             return base.ExecuteNonQueryAsync(migrationCommands, connection, cancellationToken);
         }
-
+            
         /// <inheritdoc/>
-        public override Task<int> ExecuteNonQueryAsync(IReadOnlyList<MigrationCommand> migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, bool commitTransaction, IsolationLevel? isolationLevel = null, CancellationToken cancellationToken = default)
+        public override async Task<int> ExecuteNonQueryAsync(IReadOnlyList<MigrationCommand> migrationCommands, IRelationalConnection connection, MigrationExecutionState executionState, bool commitTransaction, System.Data.IsolationLevel? isolationLevel = null, CancellationToken cancellationToken = default)
         {
-            return base.ExecuteNonQueryAsync(migrationCommands, connection, executionState, commitTransaction, isolationLevel, cancellationToken);
+            using (new TransactionScope(TransactionScopeOption.Suppress, TransactionScopeAsyncFlowOption.Enabled))
+            {
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+                try
+                {
+                    var result = 0;
+                    for (var i = executionState.LastCommittedCommandIndex; i < migrationCommands.Count; i++)
+                    {
+                        result = await migrationCommands[i].ExecuteNonQueryAsync(connection, null, cancellationToken).ConfigureAwait(false);
+                        executionState.LastCommittedCommandIndex = i + 1;
+                        executionState.AnyOperationPerformed = true;
+                    }
+
+                    return result;
+                }
+                finally
+                {
+                    await connection.CloseAsync().ConfigureAwait(false);
+                }
+            }
         }
 
     }

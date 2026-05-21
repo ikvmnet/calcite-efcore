@@ -38,7 +38,13 @@ namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities
 
         static string BuildConnectionString(string name)
         {
-            return $"schema=adhoc;conformance=LENIENT;parserFactory=org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY";
+            return new CalciteConnectionStringBuilder()
+            {
+                Model = "inline:{\"version\":\"1.0\",\"schemas\":[{\"name\":\"adhoc\"}]}",
+                Conformance = "DEFAULT",
+                ParserFactory = "org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY",
+                Schema = "adhoc",
+            }.ConnectionString;
         }
 
         readonly string? _initScript;

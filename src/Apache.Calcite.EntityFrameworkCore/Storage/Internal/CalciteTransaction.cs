@@ -1,52 +1,29 @@
 ﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Data.Common;
 
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
 {
 
-    public class CalciteTransaction : IDbContextTransaction
+    public class CalciteTransaction : RelationalTransaction
     {
 
-        /// <inheritdoc/>
-        public virtual Guid TransactionId { get; } = Guid.NewGuid();
-
-        /// <inheritdoc/>
-        public virtual void Commit()
+        /// <summary>
+        /// Initializes a new instance.
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="transaction"></param>
+        /// <param name="transactionId"></param>
+        /// <param name="logger"></param>
+        /// <param name="transactionOwned"></param>
+        /// <param name="sqlGenerationHelper"></param>
+        public CalciteTransaction(IRelationalConnection connection, DbTransaction transaction, Guid transactionId, IDiagnosticsLogger<DbLoggerCategory.Database.Transaction> logger, bool transactionOwned, ISqlGenerationHelper sqlGenerationHelper) :
+            base(connection, transaction, transactionId, logger, transactionOwned, sqlGenerationHelper)
         {
 
-        }
-
-        /// <inheritdoc/>
-        public virtual Task CommitAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
-
-        /// <inheritdoc/>
-        public virtual void Rollback()
-        {
-
-        }
-
-        /// <inheritdoc/>
-        public virtual Task RollbackAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.CompletedTask;
-        }
-
-        /// <inheritdoc/>
-        public virtual void Dispose()
-        {
-
-        }
-
-        /// <inheritdoc/>
-        public virtual ValueTask DisposeAsync()
-        {
-            return default;
         }
 
     }

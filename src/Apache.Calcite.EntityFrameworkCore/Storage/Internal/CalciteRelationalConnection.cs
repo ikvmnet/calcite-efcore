@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -7,12 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 
+using Apache.Calcite.Data;
 using Apache.Calcite.EntityFrameworkCore.Diagnostics.Internal;
 using Apache.Calcite.EntityFrameworkCore.Infrastructure.Internal;
-
-using Apache.Calcite.Data;
-
-using java.lang;
+using Apache.Calcite.EntityFrameworkCore.Properties;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -24,8 +21,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
 
     public class CalciteRelationalConnection : RelationalConnection, ICalciteConnection
     {
-
-        static readonly CalciteTransaction FakeTransaction = new();
 
         /// <summary>
         /// Initializes the static instance.
@@ -103,52 +98,49 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
         /// <inheritdoc/>
         public override IDbContextTransaction BeginTransaction()
         {
-            Dependencies.TransactionLogger.TransactionIgnoredWarning();
-            return FakeTransaction;
+            throw new NotSupportedException(CalciteStrings.LogTransactionsNotSupported);
         }
 
         /// <inheritdoc/>
         public override IDbContextTransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
-            return BeginTransaction();
+            throw new NotSupportedException(CalciteStrings.LogTransactionsNotSupported);
         }
 
         /// <inheritdoc/>
         public override Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(BeginTransaction());
+            throw new NotSupportedException(CalciteStrings.LogTransactionsNotSupported);
         }
 
         /// <inheritdoc/>
         public override Task<IDbContextTransaction> BeginTransactionAsync(System.Data.IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(BeginTransaction());
+            throw new NotSupportedException(CalciteStrings.LogTransactionsNotSupported);
         }
 
         /// <inheritdoc/>
         public override void CommitTransaction()
         {
-            Dependencies.TransactionLogger.TransactionIgnoredWarning();
+            throw new NotSupportedException(CalciteStrings.LogTransactionsNotSupported);
         }
 
         /// <inheritdoc/>
         public override Task CommitTransactionAsync(CancellationToken cancellationToken = default)
         {
-            CommitTransaction();
-            return Task.CompletedTask;
+            throw new NotSupportedException(CalciteStrings.LogTransactionsNotSupported);
         }
 
         /// <inheritdoc/>
         public override void RollbackTransaction()
         {
-            Dependencies.TransactionLogger.TransactionIgnoredWarning();
+            throw new NotSupportedException(CalciteStrings.LogTransactionsNotSupported);
         }
 
         /// <inheritdoc/>
         public override Task RollbackTransactionAsync(CancellationToken cancellationToken = default)
         {
-            RollbackTransaction();
-            return Task.CompletedTask;
+            throw new NotSupportedException(CalciteStrings.LogTransactionsNotSupported);
         }
 
     }

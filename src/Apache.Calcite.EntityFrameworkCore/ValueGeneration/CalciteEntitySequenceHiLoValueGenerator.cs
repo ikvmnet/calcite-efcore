@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Data;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,11 +19,29 @@ namespace Apache.Calcite.EntityFrameworkCore.ValueGeneration
     public class CalciteEntitySequenceHiLoValueGenerator<TValue> : HiLoValueGenerator<TValue>
     {
 
+        interface IEntitySequenceInvoker
+        {
+
+            long GetNextValue();
+
+            Task<long> GetNextValueAsync(CancellationToken cancellationToken);
+
+        }
+
+        sealed class EntitySequenceInvoker<TEntity>(CalciteEntitySequenceHiLoValueGenerator<TValue> generator) : IEntitySequenceInvoker
+            where TEntity : class
+        {
+
+            public long GetNextValue() => generator.GetNextValueCore<TEntity>();
+
+            public Task<long> GetNextValueAsync(CancellationToken cancellationToken) => generator.GetNextValueCoreAsync<TEntity>(cancellationToken);
+
+        }
+
         readonly ICalciteEntitySequence _sequence;
         readonly ICurrentDbContext _currentDbContext;
         readonly IRelationalCommandDiagnosticsLogger _commandLogger;
-        readonly MethodInfo _getNextSyncMethod;
-        readonly MethodInfo _getNextAsyncMethod;
+        readonly IEntitySequenceInvoker _invoker;
 
         /// <summary>
         /// Initializes a new instance.
@@ -40,44 +56,32 @@ namespace Apache.Calcite.EntityFrameworkCore.ValueGeneration
             _currentDbContext = currentDbContext;
             _commandLogger = commandLogger;
 
-            var entityClrType = _sequence.EntityType.ClrType;
-
-            _getNextSyncMethod = typeof(CalciteEntitySequenceHiLoValueGenerator<TValue>)
-                .GetMethod(nameof(GetNextValueCore), BindingFlags.NonPublic | BindingFlags.Instance)!
-                .MakeGenericMethod(entityClrType);
-
-            _getNextAsyncMethod = typeof(CalciteEntitySequenceHiLoValueGenerator<TValue>)
-                .GetMethod(nameof(GetNextValueCoreAsync), BindingFlags.NonPublic | BindingFlags.Instance)!
-                .MakeGenericMethod(entityClrType);
+            var invokerType = typeof(EntitySequenceInvoker<>).MakeGenericType(typeof(TValue), _sequence.EntityType.ClrType);
+            _invoker = (IEntitySequenceInvoker)Activator.CreateInstance(invokerType, this)!;
         }
 
         /// <inheritdoc/>
         protected override long GetNewLowValue()
-            => (long)_getNextSyncMethod.Invoke(this, null)!;
+        {
+            return _invoker.GetNextValue();
+        }
 
         /// <inheritdoc/>
         protected override async Task<long> GetNewLowValueAsync(CancellationToken cancellationToken = default)
-            => await ((Task<long>)_getNextAsyncMethod.Invoke(this, [cancellationToken])!).ConfigureAwait(false);
+        {
+            return await _invoker.GetNextValueAsync(cancellationToken).ConfigureAwait(false);
+        }
 
         /// <summary>
         /// Gets the next low value by atomically incrementing the entity sequence row
-        /// and reading back the new value within a serializable transaction.
+        /// and reading back the new value.
         /// </summary>
         private long GetNextValueCore<TEntity>() where TEntity : class
         {
             var context = _currentDbContext.Context;
             var query = BuildFilteredQuery<TEntity>(context);
-
-            using var transaction = context.Database.CurrentTransaction is null
-                ? context.Database.BeginTransaction(IsolationLevel.Serializable)
-                : null;
-
             query.ExecuteUpdate(BuildSetPropertyAction<TEntity>());
-            var newValue = query.Select(BuildValueSelector<TEntity>()).Single();
-
-            transaction?.Commit();
-
-            return newValue;
+            return query.Select(BuildValueSelector<TEntity>()).Single();
         }
 
         /// <summary>
@@ -87,32 +91,14 @@ namespace Apache.Calcite.EntityFrameworkCore.ValueGeneration
         {
             var context = _currentDbContext.Context;
             var query = BuildFilteredQuery<TEntity>(context);
-
-            var transaction = context.Database.CurrentTransaction is null
-                ? await context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken).ConfigureAwait(false)
-                : null;
-
-            try
-            {
-                await query.ExecuteUpdateAsync(BuildSetPropertyAction<TEntity>(), cancellationToken).ConfigureAwait(false);
-                var newValue = await query.Select(BuildValueSelector<TEntity>()).SingleAsync(cancellationToken).ConfigureAwait(false);
-
-                if (transaction is not null)
-                    await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-
-                return newValue;
-            }
-            finally
-            {
-                if (transaction is not null)
-                    await transaction.DisposeAsync().ConfigureAwait(false);
-            }
+            await query.ExecuteUpdateAsync(BuildSetPropertyAction<TEntity>(), cancellationToken).ConfigureAwait(false);
+            return await query.Select(BuildValueSelector<TEntity>()).SingleAsync(cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Builds an <see cref="IQueryable{TEntity}"/> filtered to the sequence row by its primary key value.
         /// </summary>
-        private IQueryable<TEntity> BuildFilteredQuery<TEntity>(DbContext context) where TEntity : class
+        IQueryable<TEntity> BuildFilteredQuery<TEntity>(DbContext context) where TEntity : class
         {
             IQueryable<TEntity> query = context.Set<TEntity>();
 
@@ -125,15 +111,13 @@ namespace Apache.Calcite.EntityFrameworkCore.ValueGeneration
         /// <summary>
         /// Builds <c>e =&gt; e.&lt;PrimaryKeyProperty&gt; == keyValue</c>.
         /// </summary>
-        private Expression<Func<TEntity, bool>> BuildKeyEqualsExpression<TEntity>(object keyValue)
+        Expression<Func<TEntity, bool>> BuildKeyEqualsExpression<TEntity>(object keyValue)
         {
             var keyProperty = _sequence.EntityType.FindPrimaryKey()?.Properties.Single()
-                ?? throw new InvalidOperationException(
-                    $"Entity sequence backing entity '{_sequence.EntityType.DisplayName()}' must have a single primary key property.");
+                ?? throw new InvalidOperationException($"Entity sequence backing entity '{_sequence.EntityType.DisplayName()}' must have a single primary key property.");
 
             var clrProperty = typeof(TEntity).GetProperty(keyProperty.Name)
-                ?? throw new InvalidOperationException(
-                    $"Property '{keyProperty.Name}' was not found on '{typeof(TEntity)}'.");
+                ?? throw new InvalidOperationException($"Property '{keyProperty.Name}' was not found on '{typeof(TEntity)}'.");
 
             var parameter = Expression.Parameter(typeof(TEntity), "e");
             var member = Expression.MakeMemberAccess(parameter, clrProperty);
@@ -144,7 +128,7 @@ namespace Apache.Calcite.EntityFrameworkCore.ValueGeneration
         /// <summary>
         /// Builds <c>e => (long)e.ValueProperty</c>.
         /// </summary>
-        private Expression<Func<TEntity, long>> BuildValueSelector<TEntity>()
+        Expression<Func<TEntity, long>> BuildValueSelector<TEntity>()
         {
             var param = Expression.Parameter(typeof(TEntity), "e");
             var property = typeof(TEntity).GetProperty(_sequence.ValueProperty!.Name)!;
@@ -157,7 +141,7 @@ namespace Apache.Calcite.EntityFrameworkCore.ValueGeneration
         /// <c>SetProperty(e => e.ValueProp, e => (TProp)((long)e.ValueProp + incrementBy))</c>
         /// on the <see cref="UpdateSettersBuilder{TEntity}"/>
         /// </summary>
-        private Action<UpdateSettersBuilder<TEntity>> BuildSetPropertyAction<TEntity>() where TEntity : class
+        Action<UpdateSettersBuilder<TEntity>> BuildSetPropertyAction<TEntity>() where TEntity : class
         {
             var property = typeof(TEntity).GetProperty(_sequence.ValueProperty!.Name)!;
             var propertyType = property.PropertyType;

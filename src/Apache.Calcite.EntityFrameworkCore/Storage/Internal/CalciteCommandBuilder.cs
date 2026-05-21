@@ -42,6 +42,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
         public override IReadOnlyList<IRelationalParameter> Parameters => _parameters;
 
         /// <inheritdoc />
+        /// <remarks>
+        /// Overridden to ensure parameters are inserted into the collection in the order they are added.
+        /// This is critical for Calcite which expects positional parameters.
+        /// </remarks>
         public override IRelationalCommandBuilder AddParameter(IRelationalParameter parameter)
         {
             _parameters.Add(parameter);
