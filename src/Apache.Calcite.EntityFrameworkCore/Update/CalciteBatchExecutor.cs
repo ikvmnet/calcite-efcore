@@ -20,6 +20,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Update
             using (new TransactionScope(TransactionScopeOption.Suppress))
             {
                 connection.Open();
+
                 try
                 {
                     foreach (var batch in commandBatches)
@@ -38,16 +39,14 @@ namespace Apache.Calcite.EntityFrameworkCore.Update
         }
 
         /// <inheritdoc/>
-        public async Task<int> ExecuteAsync(
-            IEnumerable<ModificationCommandBatch> commandBatches,
-            IRelationalConnection connection,
-            CancellationToken cancellationToken = default)
+        public async Task<int> ExecuteAsync(IEnumerable<ModificationCommandBatch> commandBatches, IRelationalConnection connection, CancellationToken cancellationToken = default)
         {
             var rowsAffected = 0;
 
             using (new TransactionScope(TransactionScopeOption.Suppress, TransactionScopeAsyncFlowOption.Enabled))
             {
                 await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
                 try
                 {
                     foreach (var batch in commandBatches)

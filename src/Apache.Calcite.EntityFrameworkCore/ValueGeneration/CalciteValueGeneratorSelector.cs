@@ -100,11 +100,25 @@ namespace Apache.Calcite.EntityFrameworkCore.ValueGeneration
 
         /// <inheritdoc />
         protected override ValueGenerator? FindForType(IProperty property, ITypeBase typeBase, Type clrType)
-            => property.ClrType.UnwrapNullableType() == typeof(Guid)
-                ? property.ValueGenerated == ValueGenerated.Never || property.GetDefaultValueSql() != null
+        {
+            if (property.ClrType.UnwrapNullableType() == typeof(Guid))
+            {
+                return property.ValueGenerated == ValueGenerated.Never || property.GetDefaultValueSql() != null
                     ? new TemporaryGuidValueGenerator()
-                    : new SequentialGuidValueGenerator()
-                : base.FindForType(property, typeBase, clrType);
+                    : new SequentialGuidValueGenerator();
+            }
+
+            if (property.ValueGenerated == ValueGenerated.OnAdd
+                && (clrType == typeof(int) || clrType == typeof(long) || clrType == typeof(short)))
+            {
+                throw new NotSupportedException(
+                    $"Property '{property.Name}' on entity '{property.DeclaringType.DisplayName()}' is configured as '{nameof(ValueGenerated.OnAdd)}' for a numeric type, " +
+                    $"but the Calcite provider does not support store-generated keys. " +
+                    $"Configure an explicit client-side value generator (e.g. UseHiLoEntitySequence) or set '{nameof(ValueGenerated.Never)}'.");
+            }
+
+            return base.FindForType(property, typeBase, clrType);
+        }
 
     }
 

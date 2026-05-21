@@ -23,11 +23,18 @@ namespace Apache.Calcite.EntityFrameworkCore.Update
         }
 
         /// <inheritdoc/>
-        protected override void AppendInsertCommand(StringBuilder commandStringBuilder, string name, string? schema, IReadOnlyList<IColumnModification> writeOperations, IReadOnlyList<IColumnModification> readOperations)
+        public override ResultSetMapping AppendInsertOperation(StringBuilder commandStringBuilder, IReadOnlyModificationCommand command, int commandPosition, out bool requiresTransaction)
         {
-            AppendInsertCommandHeader(commandStringBuilder, name, schema, writeOperations);
+            var writeOperations = command.ColumnModifications.Where(o => o.IsWrite).ToList();
+
+            requiresTransaction = false;
+
+            AppendInsertCommandHeader(commandStringBuilder, command.TableName, command.Schema, writeOperations);
             AppendValuesHeader(commandStringBuilder, writeOperations);
-            AppendValues(commandStringBuilder, name, schema, writeOperations);
+            AppendValues(commandStringBuilder, command.TableName, command.Schema, writeOperations);
+            commandStringBuilder.AppendLine(SqlGenerationHelper.StatementTerminator);
+
+            return ResultSetMapping.NoResults;
         }
 
         /// <inheritdoc/>
@@ -35,25 +42,28 @@ namespace Apache.Calcite.EntityFrameworkCore.Update
         {
             var writeOperations = command.ColumnModifications.Where(o => o.IsWrite).ToList();
             var conditionOperations = command.ColumnModifications.Where(o => o.IsCondition).ToList();
-            var readOperations = command.ColumnModifications.Where(o => o.IsRead).ToList();
 
             requiresTransaction = false;
 
-            AppendUpdateCommand(commandStringBuilder, command.TableName, command.Schema, writeOperations, readOperations, conditionOperations);
+            AppendUpdateCommandHeader(commandStringBuilder, command.TableName, command.Schema, writeOperations);
+            AppendWhereClause(commandStringBuilder, conditionOperations);
+            commandStringBuilder.AppendLine(SqlGenerationHelper.StatementTerminator);
 
-            return readOperations.Count > 0
-                ? ResultSetMapping.LastInResultSet
-                : ResultSetMapping.NoResults;
+            return ResultSetMapping.NoResults;
         }
 
         /// <inheritdoc/>
-        protected override void AppendUpdateCommand(StringBuilder commandStringBuilder, string name, string? schema, IReadOnlyList<IColumnModification> writeOperations, IReadOnlyList<IColumnModification> readOperations, IReadOnlyList<IColumnModification> conditionOperations, bool appendReturningOneClause = false)
+        public override ResultSetMapping AppendDeleteOperation(StringBuilder commandStringBuilder, IReadOnlyModificationCommand command, int commandPosition, out bool requiresTransaction)
         {
-            if (appendReturningOneClause)
-                throw new InvalidOperationException();
+            var conditionOperations = command.ColumnModifications.Where(o => o.IsCondition).ToList();
 
-            AppendUpdateCommandHeader(commandStringBuilder, name, schema, writeOperations);
+            requiresTransaction = false;
+
+            AppendDeleteCommandHeader(commandStringBuilder, command.TableName, command.Schema);
             AppendWhereClause(commandStringBuilder, conditionOperations);
+            commandStringBuilder.AppendLine(SqlGenerationHelper.StatementTerminator);
+
+            return ResultSetMapping.NoResults;
         }
 
     }
