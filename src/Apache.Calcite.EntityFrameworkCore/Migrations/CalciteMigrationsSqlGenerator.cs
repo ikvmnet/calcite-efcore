@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -80,6 +81,22 @@ namespace Apache.Calcite.EntityFrameworkCore.Migrations
         protected override void Generate(DropIndexOperation operation, IModel? model, MigrationCommandListBuilder builder, bool terminate = true)
         {
             throw new NotSupportedException();
+        }
+
+        /// <inheritdoc />
+        protected override void Generate(InsertDataOperation operation, IModel? model, MigrationCommandListBuilder builder, bool terminate = true)
+        {
+            foreach (var modificationCommand in GenerateModificationCommands(operation, model))
+            {
+                var sqlBuilder = new StringBuilder();
+                SqlGenerator.AppendInsertOperation(sqlBuilder, modificationCommand, 0);
+                builder.Append(sqlBuilder.ToString());
+
+                if (terminate)
+                {
+                    EndStatement(builder);
+                }
+            }
         }
 
     }
