@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore.Query;
+﻿using Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators;
+
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
@@ -16,7 +18,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
             base(dependencies)
         {
             var sqlExpressionFactory = (CalciteSqlExpressionFactory)dependencies.SqlExpressionFactory;
-            AddTranslators([]);
+            AddTranslators(
+            [
+                new CalciteStringMemberTranslator(sqlExpressionFactory),
+            ]);
         }
 
     }

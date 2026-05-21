@@ -1,5 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore.Query;
 
+using Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators;
+
 namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
 {
 
@@ -17,6 +19,19 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
             AddTranslators(
             [
                 new CalciteStringMethodTranslator(sqlExpressionFactory),
+                new CalciteBoolMethodTranslator(sqlExpressionFactory),
+                new CalciteByteMethodTranslator(sqlExpressionFactory),
+                new CalciteSByteMethodTranslator(sqlExpressionFactory),
+                new CalciteInt16MethodTranslator(sqlExpressionFactory),
+                new CalciteUInt16MethodTranslator(sqlExpressionFactory),
+                new CalciteInt32MethodTranslator(sqlExpressionFactory),
+                new CalciteUInt32MethodTranslator(sqlExpressionFactory),
+                new CalciteInt64MethodTranslator(sqlExpressionFactory),
+                new CalciteUInt64MethodTranslator(sqlExpressionFactory),
+                new CalciteSingleMethodTranslator(sqlExpressionFactory),
+                new CalciteDoubleMethodTranslator(sqlExpressionFactory),
+                new CalciteDecimalMethodTranslator(sqlExpressionFactory),
+                new CalciteCharMethodTranslator(sqlExpressionFactory),
             ]);
         }
 
