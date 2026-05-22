@@ -148,6 +148,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         }
 
         /// <inheritdoc/>
+        /// <remarks>
+        /// Overridden to call <see cref="VisitPredicate"/> for the WHERE clause, which emits
+        /// <c>IS TRUE</c> when the predicate is a bare boolean <see cref="ColumnExpression"/>.
+        /// Calcite requires this because it does not coerce a boolean column to a boolean condition.
+        /// </remarks>
         protected override Expression VisitSelect(SelectExpression selectExpression)
         {
             IDisposable? subQueryIndent = null;
@@ -183,7 +188,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
                 if (selectExpression.Having != null)
                 {
                     Sql.AppendLine().Append("HAVING ");
-
                     Visit(selectExpression.Having);
                 }
 
@@ -211,20 +215,19 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         }
 
         /// <summary>
-        /// Visits the predicate expression.
+        /// Visits the WHERE predicate. Appends <c>IS TRUE</c> when the predicate is a bare boolean
+        /// <see cref="ColumnExpression"/>, which Calcite requires for boolean column conditions.
         /// </summary>
-        /// <param name="node"></param>
-        /// <returns></returns>
         public Expression VisitPredicate(Expression node)
         {
-            if (node is ColumnExpression column && column.Type == typeof(bool))
+            if (node is ColumnExpression { Type: var t } && t == typeof(bool))
             {
                 Visit(node);
-                Sql.Append(" IS TRUE ");
+                Sql.Append(" IS TRUE");
                 return node;
             }
 
-            return base.Visit(node);
+            return Visit(node)!;
         }
 
         /// <inheritdoc/>
@@ -376,64 +379,84 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         }
 
         /// <inheritdoc/>
+        protected override Expression VisitSqlFunction(SqlFunctionExpression sqlFunctionExpression) => sqlFunctionExpression.Name switch
+        {
+            "__position" when sqlFunctionExpression.Arguments is { Count: >= 2 } => VisitPositionFunction(sqlFunctionExpression),
+            "__trim_char" when sqlFunctionExpression.Arguments is { Count: 3 } => VisitTrimCharFunction(sqlFunctionExpression),
+            _ => base.VisitSqlFunction(sqlFunctionExpression)
+        };
+
+        /// <summary>
+        /// Emits <c>POSITION(needle IN haystack)</c> or <c>POSITION(needle IN haystack FROM start)</c>.
+        /// Arguments: [needle, haystack] or [needle, haystack, start].
+        /// </summary>
+        Expression VisitPositionFunction(SqlFunctionExpression sqlFunctionExpression)
+        {
+            var args = sqlFunctionExpression.Arguments;
+            Sql.Append("POSITION(");
+            Visit(args[0]);
+            Sql.Append(" IN ");
+            Visit(args[1]);
+            if (args.Count == 3)
+            {
+                Sql.Append(" FROM ");
+                Visit(args[2]);
+            }
+            Sql.Append(")");
+            return sqlFunctionExpression;
+        }
+
+        /// <summary>
+        /// Emits <c>TRIM(flag 'char' FROM str)</c>.
+        /// Arguments: [flagFragment, charExpr, strExpr].
+        /// </summary>
+        Expression VisitTrimCharFunction(SqlFunctionExpression sqlFunctionExpression)
+        {
+            var args = sqlFunctionExpression.Arguments;
+            Sql.Append("TRIM(");
+            Visit(args[0]); // e.g. SqlFragmentExpression "BOTH"
+            Sql.Append(" ");
+            Visit(args[1]); // char literal
+            Sql.Append(" FROM ");
+            Visit(args[2]); // string instance
+            Sql.Append(")");
+            return sqlFunctionExpression;
+        }
+
+        /// <inheritdoc/>
         protected override Expression VisitSqlParameter(SqlParameterExpression sqlParameterExpression)
         {
             var name = sqlParameterExpression.Name;
             Sql.AddParameter(sqlParameterExpression.InvariantName, (++paramId).ToString(), sqlParameterExpression.TypeMapping!, sqlParameterExpression.IsNullable);
-            Sql.Append(Dependencies.SqlGenerationHelper.GenerateParameterNamePlaceholder(name));
+
+            // Calcite cannot infer the type of untyped parameters (they appear as <UNKNOWN>) when they
+            // participate in arithmetic or are passed to typed built-in functions such as POSITION…FROM
+            // or SUBSTRING. Wrapping typed parameters in an explicit CAST tells the validator the type.
+            // The full storeType (e.g. "VARCHAR(100)", "DECIMAL(28, 4)", "INTEGER") is used directly
+            // so that size, precision, and scale are preserved.
+            var storeType = sqlParameterExpression.TypeMapping?.StoreType;
+            if (storeType is not null)
+            {
+                Sql.Append("CAST(");
+                Sql.Append(Dependencies.SqlGenerationHelper.GenerateParameterNamePlaceholder(name));
+                Sql.Append(" AS ");
+                Sql.Append(storeType);
+                Sql.Append(")");
+            }
+            else
+            {
+                Sql.Append(Dependencies.SqlGenerationHelper.GenerateParameterNamePlaceholder(name));
+            }
+
             return sqlParameterExpression;
         }
 
         /// <inheritdoc/>
         protected override bool TryGetOperatorInfo(SqlExpression expression, out int precedence, out bool isAssociative)
         {
-            (precedence, isAssociative) = expression switch
-            {
-                SqlBinaryExpression sqlBinaryExpression => sqlBinaryExpression.OperatorType switch
-                {
-                    ExpressionType.Multiply => (900, true),
-                    ExpressionType.Divide => (900, false),
-                    ExpressionType.Modulo => (900, false),
-                    ExpressionType.Add => (700, true),
-                    ExpressionType.Subtract => (700, false),
-                    ExpressionType.And => (700, true),
-                    ExpressionType.Or => (700, true),
-                    ExpressionType.ExclusiveOr => (700, true),
-                    ExpressionType.LeftShift => (700, true),
-                    ExpressionType.RightShift => (700, true),
-                    ExpressionType.LessThan => (500, false),
-                    ExpressionType.LessThanOrEqual => (500, false),
-                    ExpressionType.GreaterThan => (500, false),
-                    ExpressionType.GreaterThanOrEqual => (500, false),
-                    ExpressionType.Equal => (500, false),
-                    ExpressionType.NotEqual => (500, false),
-                    ExpressionType.AndAlso => (200, true),
-                    ExpressionType.OrElse => (100, true),
-                    _ => default,
-                },
-
-                SqlUnaryExpression sqlUnaryExpression => sqlUnaryExpression.OperatorType switch
-                {
-                    ExpressionType.Convert => (1300, false),
-                    ExpressionType.OnesComplement => (1200, false),
-                    ExpressionType.Not when sqlUnaryExpression.Type != typeof(bool) => (1200, false),
-                    ExpressionType.Negate => (1100, false),
-                    ExpressionType.Equal => (500, false), // IS NULL
-                    ExpressionType.NotEqual => (500, false), // IS NOT NULL
-                    ExpressionType.Not when sqlUnaryExpression.Type == typeof(bool) => (300, false),
-                    _ => default,
-                },
-
-                CollateExpression => (900, false),
-                LikeExpression => (350, false),
-                AtTimeZoneExpression => (1200, false),
-
-                JsonScalarExpression => (9999, false),
-
-                _ => default,
-            };
-
-            return precedence != default;
+            precedence = default;
+            isAssociative = default;
+            return false;
         }
 
         /// <summary>

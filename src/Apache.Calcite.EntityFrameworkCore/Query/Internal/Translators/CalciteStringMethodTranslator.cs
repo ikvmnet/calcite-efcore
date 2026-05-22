@@ -34,17 +34,29 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
         static readonly MethodInfo ReplaceMethodInfo
             = typeof(string).GetRuntimeMethod(nameof(string.Replace), [typeof(string), typeof(string)])!;
 
+        static readonly MethodInfo ReplaceCharMethodInfo
+            = typeof(string).GetRuntimeMethod(nameof(string.Replace), [typeof(char), typeof(char)])!;
+
         static readonly MethodInfo ToStringMethodInfo
             = typeof(string).GetRuntimeMethod(nameof(string.ToString), [])!;
 
         static readonly MethodInfo TrimMethodInfo
             = typeof(string).GetRuntimeMethod(nameof(string.Trim), [])!;
 
+        static readonly MethodInfo TrimCharMethodInfo
+            = typeof(string).GetRuntimeMethod(nameof(string.Trim), [typeof(char)])!;
+
         static readonly MethodInfo TrimStartMethodInfo
             = typeof(string).GetRuntimeMethod(nameof(string.TrimStart), [])!;
 
+        static readonly MethodInfo TrimStartCharMethodInfo
+            = typeof(string).GetRuntimeMethod(nameof(string.TrimStart), [typeof(char)])!;
+
         static readonly MethodInfo TrimEndMethodInfo
             = typeof(string).GetRuntimeMethod(nameof(string.TrimEnd), [])!;
+
+        static readonly MethodInfo TrimEndCharMethodInfo
+            = typeof(string).GetRuntimeMethod(nameof(string.TrimEnd), [typeof(char)])!;
 
         static readonly MethodInfo ToLowerMethodInfo
             = typeof(string).GetRuntimeMethod(nameof(string.ToLower), [])!;
@@ -55,8 +67,20 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
         static readonly MethodInfo IndexOfMethodInfo
             = typeof(string).GetRuntimeMethod(nameof(string.IndexOf), [typeof(string)])!;
 
+        static readonly MethodInfo IndexOfCharMethodInfo
+            = typeof(string).GetRuntimeMethod(nameof(string.IndexOf), [typeof(char)])!;
+
         static readonly MethodInfo IndexOfFromMethodInfo
             = typeof(string).GetRuntimeMethod(nameof(string.IndexOf), [typeof(string), typeof(int)])!;
+
+        static readonly MethodInfo IndexOfCharFromMethodInfo
+            = typeof(string).GetRuntimeMethod(nameof(string.IndexOf), [typeof(char), typeof(int)])!;
+
+        static readonly MethodInfo SubstringMethodInfo
+            = typeof(string).GetRuntimeMethod(nameof(string.Substring), [typeof(int)])!;
+
+        static readonly MethodInfo SubstringWithLengthMethodInfo
+            = typeof(string).GetRuntimeMethod(nameof(string.Substring), [typeof(int), typeof(int)])!;
 
         static readonly MethodInfo IsNullOrEmptyMethodInfo
             = typeof(string).GetRuntimeMethod(nameof(string.IsNullOrEmpty), [typeof(string)])!;
@@ -120,17 +144,29 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
             if (Equals(method, ReplaceMethodInfo))
                 return TranslateReplace(instance, arguments);
 
+            if (Equals(method, ReplaceCharMethodInfo))
+                return TranslateReplaceChar(instance, arguments);
+
             if (Equals(method, ToStringMethodInfo))
                 return TranslateToString(instance);
 
             if (Equals(method, TrimMethodInfo))
                 return TranslateTrim(instance);
 
+            if (Equals(method, TrimCharMethodInfo))
+                return TranslateTrimChar(instance, arguments[0], "BOTH");
+
             if (Equals(method, TrimStartMethodInfo))
                 return TranslateTrimStart(instance);
 
+            if (Equals(method, TrimStartCharMethodInfo))
+                return TranslateTrimChar(instance, arguments[0], "LEADING");
+
             if (Equals(method, TrimEndMethodInfo))
                 return TranslateTrimEnd(instance);
+
+            if (Equals(method, TrimEndCharMethodInfo))
+                return TranslateTrimChar(instance, arguments[0], "TRAILING");
 
             if (Equals(method, ToLowerMethodInfo))
                 return TranslateToLower(instance);
@@ -141,8 +177,20 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
             if (Equals(method, IndexOfMethodInfo))
                 return TranslateIndexOf(instance, arguments);
 
+            if (Equals(method, IndexOfCharMethodInfo))
+                return TranslateIndexOfChar(instance, arguments);
+
             if (Equals(method, IndexOfFromMethodInfo))
                 return TranslateIndexOf(instance, arguments);
+
+            if (Equals(method, IndexOfCharFromMethodInfo))
+                return TranslateIndexOfChar(instance, arguments);
+
+            if (Equals(method, SubstringMethodInfo))
+                return TranslateSubstring(instance, arguments[0], null);
+
+            if (Equals(method, SubstringWithLengthMethodInfo))
+                return TranslateSubstring(instance, arguments[0], arguments[1]);
 
             return null;
         }
@@ -311,6 +359,30 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
             => instance;
 
         /// <summary>
+        /// Translates <see cref="string.Replace(char, char)"/> by converting both char arguments to
+        /// single-character strings and delegating to <c>REPLACE(instance, search, replacement)</c>.
+        /// </summary>
+        SqlExpression TranslateReplaceChar(SqlExpression instance, IReadOnlyList<SqlExpression> arguments)
+        {
+            SqlExpression search = arguments[0] is SqlConstantExpression { Value: char searchChar }
+                ? _sqlExpressionFactory.Constant(searchChar.ToString())
+                : _sqlExpressionFactory.Convert(arguments[0], typeof(string));
+
+            SqlExpression replacement = arguments[1] is SqlConstantExpression { Value: char replChar }
+                ? _sqlExpressionFactory.Constant(replChar.ToString())
+                : _sqlExpressionFactory.Convert(arguments[1], typeof(string));
+
+            var stringTypeMapping = instance.TypeMapping;
+            return _sqlExpressionFactory.Function(
+                "REPLACE",
+                [instance, search, replacement],
+                nullable: true,
+                argumentsPropagateNullability: [true, true, true],
+                typeof(string),
+                stringTypeMapping);
+        }
+
+        /// <summary>
         /// Translates <see cref="string.Trim()"/> into <c>TRIM(instance)</c>.
         /// </summary>
         SqlExpression TranslateTrim(SqlExpression instance)
@@ -347,6 +419,27 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
                 instance.TypeMapping);
 
         /// <summary>
+        /// Translates <see cref="string.Trim(char)"/>, <see cref="string.TrimStart(char)"/>,
+        /// <see cref="string.TrimEnd(char)"/> into <c>TRIM(BOTH/LEADING/TRAILING 'c' FROM instance)</c>.
+        /// The sentinel function name <c>__trim_char</c> is detected by the SQL generator to emit
+        /// the correct keyword syntax.
+        /// </summary>
+        SqlExpression TranslateTrimChar(SqlExpression instance, SqlExpression charArg, string flag)
+        {
+            SqlExpression charStr = charArg is SqlConstantExpression { Value: char charVal }
+                ? _sqlExpressionFactory.Constant(charVal.ToString())
+                : _sqlExpressionFactory.Convert(charArg, typeof(string));
+
+            return _sqlExpressionFactory.Function(
+                "__trim_char",
+                [_sqlExpressionFactory.Fragment(flag), charStr, instance],
+                nullable: true,
+                argumentsPropagateNullability: [false, true, true],
+                typeof(string),
+                instance.TypeMapping);
+        }
+
+        /// <summary>
         /// Translates <see cref="string.ToLower()"/> into <c>LOWER(instance)</c>.
         /// </summary>
         SqlExpression TranslateToLower(SqlExpression instance)
@@ -371,12 +464,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
                 instance.TypeMapping);
 
         /// <summary>
-        /// Translates <see cref="string.IndexOf(string)"/> into
-        /// <c>CASE WHEN POSITION(search IN instance) &gt; 0 THEN POSITION(search IN instance) - 1 ELSE -1 END</c>,
-        /// and <see cref="string.IndexOf(string, int)"/> into
-        /// <c>CASE WHEN POSITION(search IN SUBSTRING(instance, startIndex + 1)) &gt; 0
-        ///      THEN POSITION(search IN SUBSTRING(instance, startIndex + 1)) + startIndex - 1
-        ///      ELSE -1 END</c>.
+        /// Translates <see cref="string.IndexOf(string)"/> and <see cref="string.IndexOf(string, int)"/> into
+        /// <c>POSITION(search IN instance)</c> / <c>POSITION(search IN instance FROM start+1)</c>,
+        /// adjusted from 1-based SQL result to 0-based .NET result.
         /// </summary>
         SqlExpression TranslateIndexOf(SqlExpression instance, IReadOnlyList<SqlExpression> arguments)
         {
@@ -385,44 +475,80 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
             instance = _sqlExpressionFactory.ApplyTypeMapping(instance, stringTypeMapping);
             search = _sqlExpressionFactory.ApplyTypeMapping(search, stringTypeMapping);
 
-            SqlExpression haystack;
-            SqlExpression? startIndex = arguments.Count > 1 ? arguments[1] : null;
+            return BuildIndexOfExpression(instance, search, arguments.Count > 1 ? arguments[1] : null);
+        }
 
-            if (startIndex is not null)
-            {
-                // SUBSTRING(instance, startIndex + 1) — convert from 0-based .NET to 1-based SQL
-                var sqlStart = _sqlExpressionFactory.Add(startIndex, _sqlExpressionFactory.Constant(1));
-                haystack = _sqlExpressionFactory.Function(
-                    "SUBSTRING",
-                    [instance, sqlStart],
-                    nullable: true,
-                    argumentsPropagateNullability: [true, false],
-                    typeof(string),
-                    stringTypeMapping);
-            }
-            else
-            {
-                haystack = instance;
-            }
+        /// <summary>
+        /// Translates <see cref="string.IndexOf(char)"/> and <see cref="string.IndexOf(char, int)"/> by
+        /// converting the char argument to a single-character string, then using POSITION.
+        /// </summary>
+        SqlExpression TranslateIndexOfChar(SqlExpression instance, IReadOnlyList<SqlExpression> arguments)
+        {
+            SqlExpression search = arguments[0] is SqlConstantExpression { Value: char charVal }
+                ? _sqlExpressionFactory.Constant(charVal.ToString())
+                : _sqlExpressionFactory.Convert(arguments[0], typeof(string));
+
+            var stringTypeMapping = ExpressionExtensions.InferTypeMapping(instance, search);
+            instance = _sqlExpressionFactory.ApplyTypeMapping(instance, stringTypeMapping);
+            search = _sqlExpressionFactory.ApplyTypeMapping(search, stringTypeMapping);
+
+            return BuildIndexOfExpression(instance, search, arguments.Count > 1 ? arguments[1] : null);
+        }
+
+        /// <summary>
+        /// Builds <c>CASE WHEN POSITION(search IN instance [FROM sqlStart]) > 0
+        ///          THEN POSITION(search IN instance [FROM sqlStart]) + startIndex - 1
+        ///          ELSE -1 END</c>.
+        /// Uses the sentinel function name <c>__position</c> so the SQL generator emits
+        /// <c>POSITION(search IN instance)</c> rather than <c>POSITION(search, instance)</c>.
+        /// </summary>
+        SqlExpression BuildIndexOfExpression(SqlExpression instance, SqlExpression search, SqlExpression? startIndex)
+        {
+            var positionArgs = startIndex is not null
+                ? (IReadOnlyList<SqlExpression>)[search, instance, _sqlExpressionFactory.Add(startIndex, _sqlExpressionFactory.Constant(1))]
+                : (IReadOnlyList<SqlExpression>)[search, instance];
 
             var position = _sqlExpressionFactory.Function(
-                "POSITION",
-                [search, haystack],
+                "__position",
+                positionArgs,
                 nullable: true,
-                argumentsPropagateNullability: [true, true],
+                argumentsPropagateNullability: Enumerable.Repeat(true, positionArgs.Count).ToArray(),
                 typeof(int));
 
             var found = _sqlExpressionFactory.GreaterThan(position, _sqlExpressionFactory.Constant(0));
 
-            SqlExpression zeroBasedIndex = startIndex is not null
-                ? _sqlExpressionFactory.Subtract(
-                    _sqlExpressionFactory.Add(position, startIndex),
-                    _sqlExpressionFactory.Constant(1))
-                : _sqlExpressionFactory.Subtract(position, _sqlExpressionFactory.Constant(1));
+            // POSITION returns the absolute 1-based index, so converting to 0-based is always (position - 1)
+            // regardless of whether a FROM start offset was supplied.
+            var zeroBasedIndex = _sqlExpressionFactory.Subtract(position, _sqlExpressionFactory.Constant(1));
 
             return _sqlExpressionFactory.Case(
                 [new CaseWhenClause(found, zeroBasedIndex)],
                 elseResult: _sqlExpressionFactory.Constant(-1));
+        }
+
+        /// <summary>
+        /// Translates <see cref="string.Substring(int)"/> into <c>SUBSTRING(instance, startIndex + 1)</c>
+        /// and <see cref="string.Substring(int, int)"/> into <c>SUBSTRING(instance, startIndex + 1, length)</c>.
+        /// Converts from 0-based .NET indices to 1-based SQL indices.
+        /// </summary>
+        SqlExpression TranslateSubstring(SqlExpression instance, SqlExpression startIndex, SqlExpression? length)
+        {
+            // .NET is 0-based; SQL SUBSTRING is 1-based
+            var sqlStart = _sqlExpressionFactory.Add(startIndex, _sqlExpressionFactory.Constant(1));
+
+            var args = length is null
+                ? (IReadOnlyList<SqlExpression>)[instance, sqlStart]
+                : (IReadOnlyList<SqlExpression>)[instance, sqlStart, length];
+
+            var nullability = length is null ? new[] { true, false } : new[] { true, false, false };
+
+            return _sqlExpressionFactory.Function(
+                "SUBSTRING",
+                args,
+                nullable: true,
+                argumentsPropagateNullability: nullability,
+                typeof(string),
+                instance.TypeMapping);
         }
 
         /// <summary>
