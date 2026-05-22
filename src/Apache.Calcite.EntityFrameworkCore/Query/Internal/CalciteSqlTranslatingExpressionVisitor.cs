@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
@@ -109,11 +110,41 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
             {
                 case nameof(string.StartsWith) or nameof(string.EndsWith) when methodCallExpression.Object is not null && declaringType == typeof(string) && arguments is [Expression value] && (value.Type == typeof(string) || value.Type == typeof(char)):
                     return TranslateStartsEndsWith(methodCallExpression.Object, value, method.Name is nameof(string.StartsWith));
+
+                case nameof(string.Substring) when declaringType == typeof(string) && @object is not null && arguments is [Expression startIndex, Expression length]:
+                    return TranslateSubstring(@object, startIndex, length);
             }
 
             return QueryCompilationContext.NotTranslatedExpression;
 
         }
+        /// <summary>
+        /// Translates <see cref="string.Substring(int, int)"/> to <c>SUBSTR(str, start + 1, length)</c>.
+        /// Calcite's SUBSTR uses 1-based indexing; .NET's Substring uses 0-based.
+        /// </summary>
+        Expression TranslateSubstring(Expression instance, Expression startIndex, Expression length)
+        {
+            if (Visit(instance) is not SqlExpression translatedInstance
+                || Visit(startIndex) is not SqlExpression translatedStart
+                || Visit(length) is not SqlExpression translatedLength)
+            {
+                return QueryCompilationContext.NotTranslatedExpression;
+            }
+
+            // Convert 0-based .NET start index to 1-based SQL start index.
+            var oneBasedStart = _sqlExpressionFactory.Add(
+                translatedStart,
+                _sqlExpressionFactory.Constant(1));
+
+            return _sqlExpressionFactory.Function(
+                "SUBSTR",
+                [translatedInstance, oneBasedStart, translatedLength],
+                nullable: true,
+                argumentsPropagateNullability: [true, true, true],
+                typeof(string),
+                translatedInstance.TypeMapping);
+        }
+
         /// <summary>
         /// Translates the <see cref="string.StartsWith(string)"/>, <see cref="string.EndsWith(string)"/> expressions.
         /// </summary>
@@ -262,6 +293,36 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
             }
         }
 
-    }
+            /// <inheritdoc />
+            public override SqlExpression? GenerateGreatest(IReadOnlyList<SqlExpression> expressions, Type resultType)
+            {
+                var typeMapping = Microsoft.EntityFrameworkCore.Query.ExpressionExtensions.InferTypeMapping(expressions);
+                var typedExpressions = expressions.Select(e => _sqlExpressionFactory.ApplyTypeMapping(e, typeMapping)).ToList();
 
-}
+                return _sqlExpressionFactory.Function(
+                    "GREATEST",
+                    typedExpressions,
+                    nullable: true,
+                    argumentsPropagateNullability: Enumerable.Repeat(true, typedExpressions.Count).ToList(),
+                    resultType,
+                    typeMapping);
+            }
+
+            /// <inheritdoc />
+            public override SqlExpression? GenerateLeast(IReadOnlyList<SqlExpression> expressions, Type resultType)
+            {
+                var typeMapping = Microsoft.EntityFrameworkCore.Query.ExpressionExtensions.InferTypeMapping(expressions);
+                var typedExpressions = expressions.Select(e => _sqlExpressionFactory.ApplyTypeMapping(e, typeMapping)).ToList();
+
+                return _sqlExpressionFactory.Function(
+                    "LEAST",
+                    typedExpressions,
+                    nullable: true,
+                    argumentsPropagateNullability: Enumerable.Repeat(true, typedExpressions.Count).ToList(),
+                    resultType,
+                    typeMapping);
+            }
+
+        }
+
+    }

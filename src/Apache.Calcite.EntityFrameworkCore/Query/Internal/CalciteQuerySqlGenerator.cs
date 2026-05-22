@@ -245,6 +245,14 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         /// <inheritdoc/>
         protected override Expression VisitSqlUnary(SqlUnaryExpression node)
         {
+            if (node.OperatorType == ExpressionType.OnesComplement)
+            {
+                Sql.Append("BITNOT(");
+                Visit(node.Operand);
+                Sql.Append(")");
+                return node;
+            }
+
             return base.VisitSqlUnary(node);
         }
 
@@ -259,11 +267,63 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
                 return VisitAddStringSqlBinary(node);
             }
 
+            if (node.Type != typeof(bool))
+            {
+                var bitwiseFunc = node.OperatorType switch
+                {
+                    ExpressionType.And => "BITAND",
+                    ExpressionType.Or => "BITOR",
+                    ExpressionType.ExclusiveOr => "BITXOR",
+                    _ => null,
+                };
+
+                if (bitwiseFunc is not null)
+                    return VisitBitwiseBinaryFunction(node, bitwiseFunc);
+            }
+
             return base.VisitSqlBinary(node);
         }
 
         /// <summary>
+        /// Emits a Calcite two-argument bitwise scalar function call, e.g. <c>BITOR(left, right)</c>.
+        /// Parameters are wrapped in CAST so Calcite's validator can resolve the operand type.
+        /// </summary>
+        Expression VisitBitwiseBinaryFunction(SqlBinaryExpression node, string functionName)
+        {
+            Sql.Append(functionName);
+            Sql.Append("(");
+            VisitBitwiseFunctionOperand(node.Left);
+            Sql.Append(", ");
+            VisitBitwiseFunctionOperand(node.Right);
+            Sql.Append(")");
+            return node;
+        }
+
+        /// <summary>
+        /// Visits a single operand of a Calcite bitwise function.
+        /// Parameters are wrapped in <c>CAST(? AS storeType)</c> because Calcite's validator
+        /// cannot infer the type of an untyped placeholder inside <c>BITAND</c>/<c>BITOR</c>/<c>BITXOR</c>.
+        /// </summary>
+        void VisitBitwiseFunctionOperand(SqlExpression operand)
+        {
+            if (operand is SqlParameterExpression && operand.TypeMapping?.StoreType is string storeType)
+            {
+                Sql.Append("CAST(");
+                Visit(operand);
+                Sql.Append(" AS ");
+                Sql.Append(storeType);
+                Sql.Append(")");
+            }
+            else
+            {
+                Visit(operand);
+            }
+        }
+
+        /// <summary>
         /// Visits a string concatenation expression. Calcite uses the '||' syntax.
+        /// Parameters are wrapped in <c>CAST(? AS VARCHAR)</c> because Calcite's validator cannot infer
+        /// the type of an untyped placeholder on either side of <c>||</c>.
         /// </summary>
         /// <param name="node"></param>
         /// <returns></returns>
@@ -274,7 +334,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
             if (lRequiresParentheses)
                 Sql.Append("(");
 
-            Visit(node.Left);
+            VisitStringConcatOperand(node.Left);
 
             if (lRequiresParentheses)
                 Sql.Append(")");
@@ -286,12 +346,33 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
             if (rRequiresParentheses)
                 Sql.Append("(");
 
-            Visit(node.Right);
+            VisitStringConcatOperand(node.Right);
 
             if (rRequiresParentheses)
                 Sql.Append(")");
 
             return node;
+        }
+
+        /// <summary>
+        /// Visits a single operand of a Calcite string concatenation (<c>||</c>).
+        /// Parameters are wrapped in <c>CAST(? AS VARCHAR)</c> because Calcite's validator
+        /// cannot infer the type of an untyped placeholder inside <c>||</c>.
+        /// </summary>
+        void VisitStringConcatOperand(SqlExpression operand)
+        {
+            if (operand is SqlParameterExpression && operand.TypeMapping?.StoreType is string storeType)
+            {
+                Sql.Append("CAST(");
+                Visit(operand);
+                Sql.Append(" AS ");
+                Sql.Append(storeType);
+                Sql.Append(")");
+            }
+            else
+            {
+                Visit(operand);
+            }
         }
 
         /// <inheritdoc/>
@@ -328,7 +409,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
                     ExpressionType.NotEqual => (500, false),
                     ExpressionType.AndAlso => (200, true),
                     ExpressionType.OrElse => (100, true),
-
                     _ => default,
                 },
 
@@ -341,7 +421,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
                     ExpressionType.Equal => (500, false), // IS NULL
                     ExpressionType.NotEqual => (500, false), // IS NOT NULL
                     ExpressionType.Not when sqlUnaryExpression.Type == typeof(bool) => (300, false),
-
                     _ => default,
                 },
 

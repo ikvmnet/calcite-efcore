@@ -24,7 +24,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Storage
         static CalciteConnection CreateConnection()
         {
             var str = new CalciteConnectionStringBuilder();
-            str.Model = $"inline:{{\"version\":\"1.0\",\"defaultSchema\":\"{Schema}\",\"schemas\":[{{\"name\":\"{Schema}\"}}]}}";
+            str.Schema = Schema;
+            str.Model = $"inline:{{\"version\":\"1.0\",\"schemas\":[{{\"name\":\"{Schema}\"}}]}}";
             str.ParserFactory = "org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY";
             return new CalciteConnection(str.ToString());
         }

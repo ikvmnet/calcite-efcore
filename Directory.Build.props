@@ -49,7 +49,7 @@
         <CalciteVersion>1.42.0-SNAPSHOT</CalciteVersion>
         <AvaticaVersion>1.27.0</AvaticaVersion>
         <CalciteLocalMavenRepo>$(MSBuildThisFileDirectory)ext\maven-repo</CalciteLocalMavenRepo>
-        <MavenAdditionalRepositories>$(MavenAdditionalRepositories);calcite-local=file:///$([MSBuild]::NormalizePath('$(CalciteLocalMavenRepo)').Replace('\','/'))</MavenAdditionalRepositories>
+        <MavenAdditionalRepositories>$(MavenAdditionalRepositories);jboss=https://repository.jboss.org/nexus/content/groups/public;calcite-local=file:///$([MSBuild]::NormalizePath('$(CalciteLocalMavenRepo)').Replace('\','/'))</MavenAdditionalRepositories>
     </PropertyGroup>
 
     </Project>

@@ -33,7 +33,11 @@ namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities
         /// </summary>
         public static CalciteTestStore GetOrCreate(string name)
         {
-            return new(name, shared: true);
+            // Calcite is fully in-memory: each connection is an isolated instance, so there is nothing
+            // to share across fixture instances. Using shared: false ensures every fixture seeds its own
+            // store rather than relying on the global TestStoreIndex (which would skip initialization for
+            // subsequent fixture instances that hold a fresh, empty connection).
+            return new(name, shared: false);
         }
 
         static string BuildConnectionString(string name)
@@ -42,6 +46,7 @@ namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities
             {
                 Model = "inline:{\"version\":\"1.0\",\"schemas\":[{\"name\":\"adhoc\"}]}",
                 Conformance = "DEFAULT",
+                Fun = "all",
                 ParserFactory = "org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY",
                 Schema = "adhoc",
             }.ConnectionString;

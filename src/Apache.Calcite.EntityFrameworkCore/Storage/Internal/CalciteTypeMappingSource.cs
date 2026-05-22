@@ -45,6 +45,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
             ["REAL"] = [CalciteFloatTypeMapping.Default],
             ["DOUBLE"] = [CalciteDoubleTypeMapping.Default],
             ["DECIMAL"] = [CalciteDecimalTypeMapping.Default],
+            ["DECIMAL(28, 4)"] = [CalciteDecimalTypeMapping.Default],
             ["DATE"] = [CalciteDateOnlyTypeMapping.Default],
             ["TIME"] = [CalciteTimeOnlyTypeMapping.Default],
             ["TIMESTAMP"] = [CalciteDateTimeTypeMapping.Default],
