@@ -129,11 +129,32 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
 
                 case nameof(string.Substring) when declaringType == typeof(string) && @object is not null && arguments is [Expression startIndex, Expression length]:
                     return TranslateSubstring(@object, startIndex, length);
+
+                case nameof(object.Equals) when method.IsStatic && declaringType == typeof(object) && arguments.Count == 2:
+                    {
+                        // object.Equals(objA, objB) boxes both sides to object. Strip those Convert nodes before visiting
+                        // so the translator sees the original typed expressions (e.g. int?), then emit a SQL equality.
+                        var left = Visit(StripObjectConvert(arguments[0]));
+                        var right = Visit(StripObjectConvert(arguments[1]));
+                        if (left is SqlExpression leftSql && right is SqlExpression rightSql)
+                            return _sqlExpressionFactory.Equal(leftSql, rightSql);
+                        break;
+                    }
             }
 
             return QueryCompilationContext.NotTranslatedExpression;
 
         }
+        /// <summary>
+        /// Strips a <c>Convert(…, object)</c> or <c>ConvertChecked(…, object)</c> node, returning its operand.
+        /// Used so that <c>object.Equals((object)x, (object)y)</c> can be visited with the original typed expressions.
+        /// </summary>
+        static Expression StripObjectConvert(Expression expression)
+            => expression is UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } u
+                && u.Type == typeof(object)
+                    ? u.Operand
+                    : expression;
+
         /// <summary>
         /// Translates <see cref="string.Substring(int, int)"/> to <c>SUBSTR(str, start + 1, length)</c>.
         /// Calcite's SUBSTR uses 1-based indexing; .NET's Substring uses 0-based.

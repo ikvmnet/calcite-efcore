@@ -418,12 +418,27 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         }
 
         /// <inheritdoc/>
-        protected override Expression VisitSqlFunction(SqlFunctionExpression sqlFunctionExpression) => sqlFunctionExpression.Name switch
+        protected override Expression VisitSqlFunction(SqlFunctionExpression sqlFunctionExpression) => sqlFunctionExpression switch
         {
-            "__position" when sqlFunctionExpression.Arguments is { Count: >= 2 } => VisitPositionFunction(sqlFunctionExpression),
-            "__trim_char" when sqlFunctionExpression.Arguments is { Count: 3 } => VisitTrimCharFunction(sqlFunctionExpression),
-            _ => base.VisitSqlFunction(sqlFunctionExpression)
+            { Name: "COUNT", IsBuiltIn: true } => VisitCountFunction(sqlFunctionExpression),
+            { Name: "__position" } when sqlFunctionExpression.Arguments is { Count: >= 2 } => VisitPositionFunction(sqlFunctionExpression),
+            { Name: "__trim_char" } when sqlFunctionExpression.Arguments is { Count: 3 } => VisitTrimCharFunction(sqlFunctionExpression),
+            _ => base.VisitSqlFunction(sqlFunctionExpression),
         };
+
+        /// <summary>
+        /// Emits <c>CAST(COUNT(…) AS INTEGER)</c>.
+        /// Calcite always returns <c>BIGINT</c> for <c>COUNT</c>, but EF Core's <c>Count()</c> operator shapes the
+        /// result as <see cref="int"/>. Without the cast the JDBC reader returns a <c>long</c> and the shaper throws
+        /// an <see cref="System.InvalidCastException"/>.
+        /// </summary>
+        protected virtual Expression VisitCountFunction(SqlFunctionExpression sqlFunctionExpression)
+        {
+            Sql.Append("CAST(");
+            base.VisitSqlFunction(sqlFunctionExpression);
+            Sql.Append(" AS INTEGER)");
+            return sqlFunctionExpression;
+        }
 
         /// <summary>
         /// Emits <c>POSITION(needle IN haystack)</c> or <c>POSITION(needle IN haystack FROM start)</c>.
@@ -460,6 +475,55 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
             Visit(args[2]); // string instance
             Sql.Append(")");
             return sqlFunctionExpression;
+        }
+
+        /// <inheritdoc/>
+        /// <remarks>
+        /// Overridden to emit a bare parameter placeholder (no <c>CAST</c>) when rendering the
+        /// LIMIT / OFFSET value.  Calcite's SQL parser rejects <c>CAST(? AS INTEGER)</c> in
+        /// <c>FETCH FIRST … ROWS ONLY</c> / <c>OFFSET … ROWS</c> positions; only a bare
+        /// <c>?</c> or an integer literal is accepted there.
+        /// </remarks>
+        protected override void GenerateLimitOffset(SelectExpression selectExpression)
+        {
+            if (selectExpression.Offset != null)
+            {
+                Sql.AppendLine().Append("OFFSET ");
+                VisitLimitOffsetValue(selectExpression.Offset);
+                Sql.Append(" ROWS");
+
+                if (selectExpression.Limit != null)
+                {
+                    Sql.Append(" FETCH NEXT ");
+                    VisitLimitOffsetValue(selectExpression.Limit);
+                    Sql.Append(" ROWS ONLY");
+                }
+            }
+            else if (selectExpression.Limit != null)
+            {
+                Sql.AppendLine().Append("FETCH FIRST ");
+                VisitLimitOffsetValue(selectExpression.Limit);
+                Sql.Append(" ROWS ONLY");
+            }
+        }
+
+        /// <summary>
+        /// Visits a LIMIT or OFFSET value expression.  <see cref="SqlParameterExpression"/> nodes are
+        /// registered and emitted as a bare <c>?</c> placeholder — without the <c>CAST(? AS type)</c>
+        /// wrapper used elsewhere — because Calcite's parser does not accept <c>CAST</c> in a
+        /// <c>FETCH</c> / <c>OFFSET</c> row-count position.
+        /// </summary>
+        void VisitLimitOffsetValue(SqlExpression expression)
+        {
+            if (expression is SqlParameterExpression param)
+            {
+                Sql.AddParameter(param.InvariantName, (++paramId).ToString(), param.TypeMapping!, param.IsNullable);
+                Sql.Append(Dependencies.SqlGenerationHelper.GenerateParameterNamePlaceholder(param.Name));
+            }
+            else
+            {
+                Visit(expression);
+            }
         }
 
         /// <inheritdoc/>

@@ -1,3 +1,5 @@
+using System;
+
 using Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities;
 
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +14,15 @@ public class MusicStoreCalciteTest(MusicStoreCalciteTest.MusicStoreCalciteFixtur
     {
 
         protected override ITestStoreFactory TestStoreFactory => CalciteTestStoreFactory.Instance;
+
+        public override IDisposable BeginTransaction(DbContext context) => new NullTransaction();
+
+        sealed class NullTransaction : IDisposable
+        {
+
+            public void Dispose() { }
+
+        }
 
     }
 
