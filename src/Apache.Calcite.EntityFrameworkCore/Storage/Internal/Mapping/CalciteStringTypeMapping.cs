@@ -121,7 +121,8 @@ public class CalciteStringTypeMapping : StringTypeMapping
     /// <inheritdoc/>
     protected override string GenerateNonNullSqlLiteral(object value)
     {
-        return new NlsString((string)value, _charsetName, null).asSql(true, false, CalciteSqlDialect.DEFAULT);
+        var s = value is char c ? c.ToString() : (string)value;
+        return new NlsString(s, _charsetName, null).asSql(true, false, CalciteSqlDialect.DEFAULT);
     }
 
 }

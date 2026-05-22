@@ -22,6 +22,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
         static readonly MethodInfo ContainsMethodInfo
             = typeof(string).GetRuntimeMethod(nameof(string.Contains), [typeof(string)])!;
 
+        static readonly MethodInfo ContainsCharMethodInfo
+            = typeof(string).GetRuntimeMethod(nameof(string.Contains), [typeof(char)])!;
+
         static readonly MethodInfo StartsWithMethodInfo
             = typeof(string).GetRuntimeMethod(nameof(string.StartsWith), [typeof(string)])!;
 
@@ -104,6 +107,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
 
             if (Equals(method, ContainsMethodInfo))
                 return TranslateContains(instance, arguments);
+
+            if (Equals(method, ContainsCharMethodInfo))
+                return TranslateContainsChar(instance, arguments);
 
             if (Equals(method, StartsWithMethodInfo))
                 return TranslateStartsWith(instance, arguments);
@@ -218,9 +224,31 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
         /// <summary>
         /// Translates <see cref="string.Contains(string)"/> into <c>instance LIKE ('%' || search || '%')</c>.
         /// </summary>
+        /// <summary>
+        /// Translates <see cref="string.Contains(string)"/> into <c>instance LIKE ('%' || search || '%')</c>.
+        /// </summary>
         SqlExpression TranslateContains(SqlExpression instance, IReadOnlyList<SqlExpression> arguments)
         {
             var search = arguments[0];
+            var stringTypeMapping = ExpressionExtensions.InferTypeMapping(instance, search);
+            instance = _sqlExpressionFactory.ApplyTypeMapping(instance, stringTypeMapping);
+            search = _sqlExpressionFactory.ApplyTypeMapping(search, stringTypeMapping);
+            var percent = _sqlExpressionFactory.Constant("%", stringTypeMapping);
+            var pattern = _sqlExpressionFactory.Add(_sqlExpressionFactory.Add(percent, search), percent);
+            return _sqlExpressionFactory.Like(instance, pattern);
+        }
+
+        /// <summary>
+        /// Translates <see cref="string.Contains(char)"/> into <c>instance LIKE ('%' || charAsString || '%')</c>.
+        /// The <c>char</c> argument is normalized to a <c>string</c> constant or cast so the LIKE pattern
+        /// stays entirely in the string domain.
+        /// </summary>
+        SqlExpression TranslateContainsChar(SqlExpression instance, IReadOnlyList<SqlExpression> arguments)
+        {
+            SqlExpression search = arguments[0] is SqlConstantExpression { Value: char charVal }
+                ? _sqlExpressionFactory.Constant(charVal.ToString())
+                : _sqlExpressionFactory.Convert(arguments[0], typeof(string));
+
             var stringTypeMapping = ExpressionExtensions.InferTypeMapping(instance, search);
             instance = _sqlExpressionFactory.ApplyTypeMapping(instance, stringTypeMapping);
             search = _sqlExpressionFactory.ApplyTypeMapping(search, stringTypeMapping);
