@@ -83,10 +83,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
                 if (Visit(node.Left) is not SqlExpression left || Visit(node.Right) is not SqlExpression right)
                     return QueryCompilationContext.NotTranslatedExpression;
 
-                var calciteOp = node.NodeType == ExpressionType.LeftShift
-                    ? CalciteExpressionType.LeftShift
-                    : CalciteExpressionType.RightShift;
-
+                var calciteOp = node.NodeType == ExpressionType.LeftShift ? CalciteExpressionType.LeftShift : CalciteExpressionType.RightShift;
                 return _calciteFactory.CalciteBinary(calciteOp, left, right, node.Type);
             }
 
@@ -99,7 +96,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
                 {
                     case { OperatorType: ExpressionType.Modulo }:
                         return Dependencies.SqlExpressionFactory.Function(
-                            "mod",
+                            "MOD",
                             [translatedNode.Left, translatedNode.Right],
                             nullable: true,
                             argumentsPropagateNullability: [false, false],
@@ -312,36 +309,36 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
             }
         }
 
-            /// <inheritdoc />
-            public override SqlExpression? GenerateGreatest(IReadOnlyList<SqlExpression> expressions, Type resultType)
-            {
-                var typeMapping = Microsoft.EntityFrameworkCore.Query.ExpressionExtensions.InferTypeMapping(expressions);
-                var typedExpressions = expressions.Select(e => _sqlExpressionFactory.ApplyTypeMapping(e, typeMapping)).ToList();
+        /// <inheritdoc />
+        public override SqlExpression? GenerateGreatest(IReadOnlyList<SqlExpression> expressions, Type resultType)
+        {
+            var typeMapping = Microsoft.EntityFrameworkCore.Query.ExpressionExtensions.InferTypeMapping(expressions);
+            var typedExpressions = expressions.Select(e => _sqlExpressionFactory.ApplyTypeMapping(e, typeMapping)).ToList();
 
-                return _sqlExpressionFactory.Function(
-                    "GREATEST",
-                    typedExpressions,
-                    nullable: true,
-                    argumentsPropagateNullability: Enumerable.Repeat(true, typedExpressions.Count).ToList(),
-                    resultType,
-                    typeMapping);
-            }
+            return _sqlExpressionFactory.Function(
+                "GREATEST",
+                typedExpressions,
+                nullable: true,
+                argumentsPropagateNullability: Enumerable.Repeat(true, typedExpressions.Count).ToList(),
+                resultType,
+                typeMapping);
+        }
 
-            /// <inheritdoc />
-            public override SqlExpression? GenerateLeast(IReadOnlyList<SqlExpression> expressions, Type resultType)
-            {
-                var typeMapping = Microsoft.EntityFrameworkCore.Query.ExpressionExtensions.InferTypeMapping(expressions);
-                var typedExpressions = expressions.Select(e => _sqlExpressionFactory.ApplyTypeMapping(e, typeMapping)).ToList();
+        /// <inheritdoc />
+        public override SqlExpression? GenerateLeast(IReadOnlyList<SqlExpression> expressions, Type resultType)
+        {
+            var typeMapping = Microsoft.EntityFrameworkCore.Query.ExpressionExtensions.InferTypeMapping(expressions);
+            var typedExpressions = expressions.Select(e => _sqlExpressionFactory.ApplyTypeMapping(e, typeMapping)).ToList();
 
-                return _sqlExpressionFactory.Function(
-                    "LEAST",
-                    typedExpressions,
-                    nullable: true,
-                    argumentsPropagateNullability: Enumerable.Repeat(true, typedExpressions.Count).ToList(),
-                    resultType,
-                    typeMapping);
-            }
-
+            return _sqlExpressionFactory.Function(
+                "LEAST",
+                typedExpressions,
+                nullable: true,
+                argumentsPropagateNullability: Enumerable.Repeat(true, typedExpressions.Count).ToList(),
+                resultType,
+                typeMapping);
         }
 
     }
+
+}

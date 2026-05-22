@@ -17,13 +17,5 @@ public class BitwiseOperatorTranslationsCalciteTest : BitwiseOperatorTranslation
         Fixture.TestSqlLoggerFactory.SetTestOutputHelper(testOutputHelper);
     }
 
-    // Calcite does not support the bitwise complement operator (~); use BITNOT() instead.
-    [Fact(Skip = "Calcite does not support the ~ complement operator")]
-    public override Task Complement() => base.Complement();
-
-    // Calcite has no shift operators; emulate with POWER(2, n) multiplication/division.
-    public override Task Left_shift() => base.Left_shift();
-    public override Task Right_shift() => base.Right_shift();
-
 }
 

@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 
 using Apache.Calcite.EntityFrameworkCore.Infrastructure.Internal;
-
 using Apache.Calcite.EntityFrameworkCore.Query.Expressions.Internal;
 
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -314,17 +313,24 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         /// <inheritdoc/>
         protected override Expression VisitSqlUnary(SqlUnaryExpression node)
         {
-            switch (node.OperatorType)
-            {
-                case ExpressionType.OnesComplement:
-                    Sql.Append("BITNOT(");
-                    Visit(node.Operand);
-                    Sql.Append(")");
-                    return node;
+            // The C# compiler emits ExpressionType.Not for ~ on integer types in expression trees.
+            // The base generator renders both Not and OnesComplement as ~, which Calcite does not accept.
+            // Intercept the integer-typed Not and render BITNOT(...) instead.
+            if (node.OperatorType == ExpressionType.Not && node.Type != typeof(bool))
+                return VisitBitwiseNot(node);
 
-                default:
-                    return base.VisitSqlUnary(node);
-            }
+            return base.VisitSqlUnary(node);
+        }
+
+        /// <summary>
+        /// Emits <c>BITNOT(operand)</c>.
+        /// </summary>
+        protected virtual Expression VisitBitwiseNot(SqlUnaryExpression node)
+        {
+            Sql.Append("BITNOT(");
+            Visit(node.Operand);
+            Sql.Append(")");
+            return node;
         }
 
         /// <inheritdoc/>
