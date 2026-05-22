@@ -17,6 +17,12 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
 
         }
 
+        /// <inheritdoc/>
+        protected override System.Linq.Expressions.Expression ProcessSqlNullability(System.Linq.Expressions.Expression queryExpression, ParametersCacheDecorator parametersDecorator)
+        {
+            return new CalciteSqlNullabilityProcessor(Dependencies, Parameters).Process(queryExpression, parametersDecorator);
+        }
+
     }
 
 }

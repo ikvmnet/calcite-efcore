@@ -6,6 +6,8 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 
+using Apache.Calcite.EntityFrameworkCore.Query.Expressions.Internal;
+
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
@@ -54,6 +56,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
 
         readonly QueryCompilationContext _queryCompilationContext;
         readonly ISqlExpressionFactory _sqlExpressionFactory;
+        readonly CalciteSqlExpressionFactory _calciteFactory;
 
         /// <summary>
         /// Initializes a new instance.
@@ -66,11 +69,27 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         {
             _queryCompilationContext = queryCompilationContext;
             _sqlExpressionFactory = dependencies.SqlExpressionFactory;
+            _calciteFactory = (CalciteSqlExpressionFactory)dependencies.SqlExpressionFactory;
         }
 
         /// <inheritdoc />
         protected override Expression VisitBinary(BinaryExpression node)
         {
+            // Intercept shift operators before calling base, which does not translate them.
+            // Represent them as a CalciteBinaryExpression so the SQL generator can render them
+            // and the approach can be switched to native Calcite syntax once it is available.
+            if (node.NodeType is ExpressionType.LeftShift or ExpressionType.RightShift)
+            {
+                if (Visit(node.Left) is not SqlExpression left || Visit(node.Right) is not SqlExpression right)
+                    return QueryCompilationContext.NotTranslatedExpression;
+
+                var calciteOp = node.NodeType == ExpressionType.LeftShift
+                    ? CalciteExpressionType.LeftShift
+                    : CalciteExpressionType.RightShift;
+
+                return _calciteFactory.CalciteBinary(calciteOp, left, right, node.Type);
+            }
+
             if (base.VisitBinary(node) is not SqlExpression translation)
                 return QueryCompilationContext.NotTranslatedExpression;
 

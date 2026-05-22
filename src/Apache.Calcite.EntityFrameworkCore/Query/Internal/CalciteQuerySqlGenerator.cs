@@ -5,6 +5,8 @@ using System.Linq.Expressions;
 
 using Apache.Calcite.EntityFrameworkCore.Infrastructure.Internal;
 
+using Apache.Calcite.EntityFrameworkCore.Query.Expressions.Internal;
+
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
@@ -55,13 +57,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
                     GenerateTagsHeaderComment(selectExpression.Tags);
 
                     if (selectExpression.IsNonComposedFromSql())
-                    {
                         GenerateFromSql((FromSqlExpression)selectExpression.Tables[0]);
-                    }
                     else
-                    {
                         VisitSelect(selectExpression);
-                    }
 
                     break;
 
@@ -85,10 +83,83 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         [return: NotNullIfNotNull(nameof(node))]
         public override Expression? Visit(Expression? node)
         {
+            if (node is CalciteBinaryExpression calciteBinary)
+                return VisitCalciteBinary(calciteBinary);
+
             return base.Visit(node);
         }
 
-        private void GenerateFromSql(FromSqlExpression fromSqlExpression)
+        /// <summary>
+        /// Dispatches a <see cref="CalciteBinaryExpression"/> to the appropriate per-operator visit method.
+        /// </summary>
+        protected virtual Expression VisitCalciteBinary(CalciteBinaryExpression node) => node.OperatorType switch
+        {
+            CalciteExpressionType.LeftShift => VisitLeftShift(node),
+            CalciteExpressionType.RightShift => VisitRightShift(node),
+            _ => throw new ArgumentOutOfRangeException(nameof(node), node.OperatorType, "Unhandled CalciteExpressionType")
+        };
+
+        /// <summary>
+        /// Emits a left-shift expression.
+        /// Until Calcite supports native <c>&lt;&lt;</c> this is rendered as arithmetic emulation:
+        /// <c>CAST(CAST(x AS DOUBLE) * POWER(2, n) AS storeType)</c>.
+        /// </summary>
+        protected virtual Expression VisitLeftShift(CalciteBinaryExpression node)
+        {
+            var storeType = node.TypeMapping?.StoreType;
+            if (storeType is not null)
+                Sql.Append("CAST(");
+
+            Sql.Append("CAST(");
+            Visit(node.Left);
+            Sql.Append(" AS DOUBLE) * POWER(2, ");
+            Visit(node.Right);
+            Sql.Append(")");
+
+            if (storeType is not null)
+            {
+                Sql.Append(" AS ");
+                Sql.Append(storeType);
+                Sql.Append(")");
+            }
+
+            return node;
+        }
+
+        /// <summary>
+        /// Emits a right-shift expression.
+        /// Until Calcite supports native <c>&gt;&gt;</c> this is rendered as arithmetic emulation:
+        /// <c>CAST(FLOOR(CAST(x AS DOUBLE) / POWER(2, n)) AS storeType)</c>.
+        /// </summary>
+        protected virtual Expression VisitRightShift(CalciteBinaryExpression node)
+        {
+            var storeType = node.TypeMapping?.StoreType;
+            if (storeType is not null)
+                Sql.Append("CAST(");
+
+            Sql.Append("FLOOR(CAST(");
+            Visit(node.Left);
+            Sql.Append(" AS DOUBLE) / POWER(2, ");
+            Visit(node.Right);
+            Sql.Append("))");
+
+            if (storeType is not null)
+            {
+                Sql.Append(" AS ");
+                Sql.Append(storeType);
+                Sql.Append(")");
+            }
+
+            return node;
+        }
+
+        /// <inheritdoc cref="ICalciteExpressionVisitor.VisitCalciteBinary"/>
+        Expression ICalciteExpressionVisitor.VisitCalciteBinary(CalciteBinaryExpression node)
+        {
+            return VisitCalciteBinary(node);
+        }
+
+        void GenerateFromSql(FromSqlExpression fromSqlExpression)
         {
             var sql = fromSqlExpression.Sql;
             string[]? substitutions;
@@ -100,9 +171,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
                         var subParameters = compositeRelationalParameter.RelationalParameters;
                         substitutions = new string[subParameters.Count];
                         for (var i = 0; i < subParameters.Count; i++)
-                        {
                             substitutions[i] = Dependencies.SqlGenerationHelper.GenerateParameterNamePlaceholder(subParameters[i].InvariantName);
-                        }
 
                         Sql.AddParameter(compositeRelationalParameter);
 
@@ -220,11 +289,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         /// </summary>
         public Expression VisitPredicate(Expression node)
         {
-            if (node is ColumnExpression { Type: var t } && t == typeof(bool))
+            if (node is ColumnExpression col && col.Type == typeof(bool))
             {
-                Visit(node);
+                Visit(col);
                 Sql.Append(" IS TRUE");
-                return node;
+                return col;
             }
 
             return Visit(node)!;
@@ -233,13 +302,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         /// <inheritdoc/>
         protected override Expression VisitSqlConstant(SqlConstantExpression node)
         {
-            if (node.Type == typeof(bool))
+            if (node.Value is bool b)
             {
-                if (node.Value is bool b)
-                {
-                    Sql.Append(b ? "TRUE" : "FALSE");
-                    return node;
-                }
+                Sql.Append(b ? "TRUE" : "FALSE");
+                return node;
             }
 
             return base.VisitSqlConstant(node);
@@ -248,44 +314,53 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         /// <inheritdoc/>
         protected override Expression VisitSqlUnary(SqlUnaryExpression node)
         {
-            if (node.OperatorType == ExpressionType.OnesComplement)
+            switch (node.OperatorType)
             {
-                Sql.Append("BITNOT(");
-                Visit(node.Operand);
-                Sql.Append(")");
-                return node;
-            }
+                case ExpressionType.OnesComplement:
+                    Sql.Append("BITNOT(");
+                    Visit(node.Operand);
+                    Sql.Append(")");
+                    return node;
 
-            return base.VisitSqlUnary(node);
+                default:
+                    return base.VisitSqlUnary(node);
+            }
         }
 
         /// <inheritdoc/>
-        protected override Expression VisitSqlBinary(SqlBinaryExpression node)
+        protected override Expression VisitSqlBinary(SqlBinaryExpression node) => node switch
         {
-            if (node.OperatorType == ExpressionType.Add &&
-                node.Type == typeof(string) &&
-                node.Left.Type == typeof(string) &&
-                node.Right.Type == typeof(string))
-            {
-                return VisitAddStringSqlBinary(node);
-            }
+            { OperatorType: ExpressionType.Add } when node.Type == typeof(string) && node.Left.Type == typeof(string) && node.Right.Type == typeof(string) => VisitStringConcat(node),
+            { OperatorType: ExpressionType.ExclusiveOr } when node.Left.Type == typeof(bool) && node.Right.Type == typeof(bool) => VisitBooleanXor(node),
+            { OperatorType: ExpressionType.And } when node.Type != typeof(bool) => VisitBitwiseAnd(node),
+            { OperatorType: ExpressionType.Or } when node.Type != typeof(bool) => VisitBitwiseOr(node),
+            { OperatorType: ExpressionType.ExclusiveOr } when node.Type != typeof(bool) => VisitBitwiseXor(node),
+            _ => base.VisitSqlBinary(node)
+        };
 
-            if (node.Type != typeof(bool))
-            {
-                var bitwiseFunc = node.OperatorType switch
-                {
-                    ExpressionType.And => "BITAND",
-                    ExpressionType.Or => "BITOR",
-                    ExpressionType.ExclusiveOr => "BITXOR",
-                    _ => null,
-                };
-
-                if (bitwiseFunc is not null)
-                    return VisitBitwiseBinaryFunction(node, bitwiseFunc);
-            }
-
-            return base.VisitSqlBinary(node);
+        /// <summary>
+        /// Emits <c>BITXOR(CASE WHEN left THEN 1 ELSE 0 END, CASE WHEN right THEN 1 ELSE 0 END) = 1</c>.
+        /// Calcite's <c>^</c> operator does not accept boolean operands and <c>CAST(BOOLEAN AS INTEGER)</c>
+        /// is also unsupported, so each side is converted via a <c>CASE</c> expression.
+        /// </summary>
+        protected virtual Expression VisitBooleanXor(SqlBinaryExpression node)
+        {
+            Sql.Append("BITXOR(CASE WHEN ");
+            Visit(node.Left);
+            Sql.Append(" THEN 1 ELSE 0 END, CASE WHEN ");
+            Visit(node.Right);
+            Sql.Append(" THEN 1 ELSE 0 END) = 1");
+            return node;
         }
+
+        /// <summary>Emits <c>BITAND(left, right)</c>.</summary>
+        protected virtual Expression VisitBitwiseAnd(SqlBinaryExpression node) => VisitBitwiseBinaryFunction(node, "BITAND");
+
+        /// <summary>Emits <c>BITOR(left, right)</c>.</summary>
+        protected virtual Expression VisitBitwiseOr(SqlBinaryExpression node) => VisitBitwiseBinaryFunction(node, "BITOR");
+
+        /// <summary>Emits <c>BITXOR(left, right)</c>.</summary>
+        protected virtual Expression VisitBitwiseXor(SqlBinaryExpression node) => VisitBitwiseBinaryFunction(node, "BITXOR");
 
         /// <summary>
         /// Emits a Calcite two-argument bitwise scalar function call, e.g. <c>BITOR(left, right)</c>.
@@ -295,87 +370,45 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         {
             Sql.Append(functionName);
             Sql.Append("(");
-            VisitBitwiseFunctionOperand(node.Left);
+            Visit(node.Left);
             Sql.Append(", ");
-            VisitBitwiseFunctionOperand(node.Right);
+            Visit(node.Right);
             Sql.Append(")");
             return node;
         }
 
         /// <summary>
-        /// Visits a single operand of a Calcite bitwise function.
-        /// Parameters are wrapped in <c>CAST(? AS storeType)</c> because Calcite's validator
-        /// cannot infer the type of an untyped placeholder inside <c>BITAND</c>/<c>BITOR</c>/<c>BITXOR</c>.
-        /// </summary>
-        void VisitBitwiseFunctionOperand(SqlExpression operand)
-        {
-            if (operand is SqlParameterExpression && operand.TypeMapping?.StoreType is string storeType)
-            {
-                Sql.Append("CAST(");
-                Visit(operand);
-                Sql.Append(" AS ");
-                Sql.Append(storeType);
-                Sql.Append(")");
-            }
-            else
-            {
-                Visit(operand);
-            }
-        }
-
-        /// <summary>
-        /// Visits a string concatenation expression. Calcite uses the '||' syntax.
+        /// Emits a string concatenation expression using Calcite's <c>||</c> syntax.
         /// Parameters are wrapped in <c>CAST(? AS VARCHAR)</c> because Calcite's validator cannot infer
         /// the type of an untyped placeholder on either side of <c>||</c>.
         /// </summary>
-        /// <param name="node"></param>
-        /// <returns></returns>
-        Expression VisitAddStringSqlBinary(SqlBinaryExpression node)
+        protected virtual Expression VisitStringConcat(SqlBinaryExpression node)
         {
-            var lRequiresParentheses = RequiresParentheses(node, node.Left);
-
-            if (lRequiresParentheses)
-                Sql.Append("(");
-
-            VisitStringConcatOperand(node.Left);
-
-            if (lRequiresParentheses)
-                Sql.Append(")");
-
-            Sql.Append(" || ");
-
-            var rRequiresParentheses = RequiresParentheses(node, node.Right);
-
-            if (rRequiresParentheses)
-                Sql.Append("(");
-
-            VisitStringConcatOperand(node.Right);
-
-            if (rRequiresParentheses)
-                Sql.Append(")");
-
-            return node;
-        }
-
-        /// <summary>
-        /// Visits a single operand of a Calcite string concatenation (<c>||</c>).
-        /// Parameters are wrapped in <c>CAST(? AS VARCHAR)</c> because Calcite's validator
-        /// cannot infer the type of an untyped placeholder inside <c>||</c>.
-        /// </summary>
-        void VisitStringConcatOperand(SqlExpression operand)
-        {
-            if (operand is SqlParameterExpression && operand.TypeMapping?.StoreType is string storeType)
+            if (RequiresParentheses(node, node.Left))
             {
-                Sql.Append("CAST(");
-                Visit(operand);
-                Sql.Append(" AS ");
-                Sql.Append(storeType);
+                Sql.Append("(");
+                Visit(node.Left);
                 Sql.Append(")");
             }
             else
             {
-                Visit(operand);
+                Visit(node.Left);
             }
+
+            Sql.Append(" || ");
+
+            if (RequiresParentheses(node, node.Right))
+            {
+                Sql.Append("(");
+                Visit(node.Right);
+                Sql.Append(")");
+            }
+            else
+            {
+                Visit(node.Right);
+            }
+
+            return node;
         }
 
         /// <inheritdoc/>

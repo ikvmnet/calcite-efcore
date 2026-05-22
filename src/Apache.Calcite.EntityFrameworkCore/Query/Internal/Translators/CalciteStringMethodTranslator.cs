@@ -364,59 +364,64 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
         /// </summary>
         SqlExpression TranslateReplaceChar(SqlExpression instance, IReadOnlyList<SqlExpression> arguments)
         {
-            SqlExpression search = arguments[0] is SqlConstantExpression { Value: char searchChar }
+            var search = arguments[0] is SqlConstantExpression { Value: char searchChar }
                 ? _sqlExpressionFactory.Constant(searchChar.ToString())
                 : _sqlExpressionFactory.Convert(arguments[0], typeof(string));
 
-            SqlExpression replacement = arguments[1] is SqlConstantExpression { Value: char replChar }
+            var replacement = arguments[1] is SqlConstantExpression { Value: char replChar }
                 ? _sqlExpressionFactory.Constant(replChar.ToString())
                 : _sqlExpressionFactory.Convert(arguments[1], typeof(string));
 
-            var stringTypeMapping = instance.TypeMapping;
             return _sqlExpressionFactory.Function(
                 "REPLACE",
                 [instance, search, replacement],
                 nullable: true,
                 argumentsPropagateNullability: [true, true, true],
                 typeof(string),
-                stringTypeMapping);
+                instance.TypeMapping);
         }
 
         /// <summary>
         /// Translates <see cref="string.Trim()"/> into <c>TRIM(instance)</c>.
         /// </summary>
         SqlExpression TranslateTrim(SqlExpression instance)
-            => _sqlExpressionFactory.Function(
+        {
+            return _sqlExpressionFactory.Function(
                 "TRIM",
                 [instance],
                 nullable: true,
                 argumentsPropagateNullability: [true],
                 typeof(string),
                 instance.TypeMapping);
+        }
 
         /// <summary>
         /// Translates <see cref="string.TrimStart()"/> into <c>LTRIM(instance)</c>.
         /// </summary>
         SqlExpression TranslateTrimStart(SqlExpression instance)
-            => _sqlExpressionFactory.Function(
+        {
+            return _sqlExpressionFactory.Function(
                 "LTRIM",
                 [instance],
                 nullable: true,
                 argumentsPropagateNullability: [true],
                 typeof(string),
                 instance.TypeMapping);
+        }
 
         /// <summary>
         /// Translates <see cref="string.TrimEnd()"/> into <c>RTRIM(instance)</c>.
         /// </summary>
         SqlExpression TranslateTrimEnd(SqlExpression instance)
-            => _sqlExpressionFactory.Function(
+        {
+            return _sqlExpressionFactory.Function(
                 "RTRIM",
                 [instance],
                 nullable: true,
                 argumentsPropagateNullability: [true],
                 typeof(string),
                 instance.TypeMapping);
+        }
 
         /// <summary>
         /// Translates <see cref="string.Trim(char)"/>, <see cref="string.TrimStart(char)"/>,
@@ -426,7 +431,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
         /// </summary>
         SqlExpression TranslateTrimChar(SqlExpression instance, SqlExpression charArg, string flag)
         {
-            SqlExpression charStr = charArg is SqlConstantExpression { Value: char charVal }
+            var charStr = charArg is SqlConstantExpression { Value: char charVal }
                 ? _sqlExpressionFactory.Constant(charVal.ToString())
                 : _sqlExpressionFactory.Convert(charArg, typeof(string));
 
@@ -443,25 +448,29 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
         /// Translates <see cref="string.ToLower()"/> into <c>LOWER(instance)</c>.
         /// </summary>
         SqlExpression TranslateToLower(SqlExpression instance)
-            => _sqlExpressionFactory.Function(
+        {
+            return _sqlExpressionFactory.Function(
                 "LOWER",
                 [instance],
                 nullable: true,
                 argumentsPropagateNullability: [true],
                 typeof(string),
                 instance.TypeMapping);
+        }
 
         /// <summary>
         /// Translates <see cref="string.ToUpper()"/> into <c>UPPER(instance)</c>.
         /// </summary>
         SqlExpression TranslateToUpper(SqlExpression instance)
-            => _sqlExpressionFactory.Function(
+        {
+            return _sqlExpressionFactory.Function(
                 "UPPER",
                 [instance],
                 nullable: true,
                 argumentsPropagateNullability: [true],
                 typeof(string),
                 instance.TypeMapping);
+        }
 
         /// <summary>
         /// Translates <see cref="string.IndexOf(string)"/> and <see cref="string.IndexOf(string, int)"/> into
@@ -484,7 +493,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
         /// </summary>
         SqlExpression TranslateIndexOfChar(SqlExpression instance, IReadOnlyList<SqlExpression> arguments)
         {
-            SqlExpression search = arguments[0] is SqlConstantExpression { Value: char charVal }
+            var search = arguments[0] is SqlConstantExpression { Value: char charVal }
                 ? _sqlExpressionFactory.Constant(charVal.ToString())
                 : _sqlExpressionFactory.Convert(arguments[0], typeof(string));
 
