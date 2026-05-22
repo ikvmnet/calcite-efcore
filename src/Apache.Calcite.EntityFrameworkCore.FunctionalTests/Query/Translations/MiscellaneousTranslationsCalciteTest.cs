@@ -8,7 +8,7 @@ public class MiscellaneousTranslationsCalciteTest : MiscellaneousTranslationsRel
 {
 
     public MiscellaneousTranslationsCalciteTest(BasicTypesQueryCalciteFixture fixture, ITestOutputHelper testOutputHelper) :
-    base(fixture)
+        base(fixture)
     {
         Fixture.TestSqlLoggerFactory.Clear();
         Fixture.TestSqlLoggerFactory.SetTestOutputHelper(testOutputHelper);
