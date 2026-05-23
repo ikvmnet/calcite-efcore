@@ -1,0 +1,6 @@
+@Apache.Calcite.HotChocolateSample_HostAddress = http://localhost:5078
+
+GET {{Apache.Calcite.HotChocolateSample_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <IsPackable>false</IsPackable>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);MAVEN0012</NoWarn>
+        <MavenAdditionalRepositories>$(MavenAdditionalRepositories);redhat=https://maven.repository.redhat.com/ga/</MavenAdditionalRepositories>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="IKVM" Version="8.15.0" />
+        <PackageReference Include="IKVM.Maven.Sdk" Version="1.11.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.2" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+        <PackageReference Include="xunit" Version="2.9.3" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <MavenReference Include="org.apache.calcite:calcite-linq4j" Version="$(CalciteVersion)" />
+        <MavenReference Include="org.apache.calcite:calcite-core" Version="$(CalciteVersion)" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Apache.Calcite.EntityFrameworkCore.Adapter\Apache.Calcite.EntityFrameworkCore.Adapter.csproj" />
+        <ProjectReference Include="..\Apache.Calcite.EntityFrameworkCore\Apache.Calcite.EntityFrameworkCore.csproj" />
+    </ItemGroup>
+
+</Project>

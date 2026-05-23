@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="IKVM" Version="8.15.0" />
+        <PackageReference Include="IKVM.Java.Extensions" Version="8.15.0" />
+        <PackageReference Include="IKVM.Maven.Sdk" Version="1.11.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Apache.Calcite.Data" Version="0.0.5-pre.63" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.8" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.8" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Apache.Calcite.EntityFrameworkCore.Adapter\Apache.Calcite.EntityFrameworkCore.Adapter.csproj" />
+        <ProjectReference Include="..\Apache.Calcite.EntityFrameworkCore\Apache.Calcite.EntityFrameworkCore.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <MavenReference Include="org.apache.calcite:calcite-linq4j" Version="$(CalciteVersion)" />
+        <MavenReference Include="org.apache.calcite:calcite-core" Version="$(CalciteVersion)" />
+        <MavenReference Include="org.apache.calcite:calcite-server" Version="$(CalciteVersion)" />
+        <MavenReference Include="org.jooq:joou-java-6" Version="0.9.5" />
+    </ItemGroup>
+
+</Project>

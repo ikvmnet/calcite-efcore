@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net10.0</TargetFrameworks>
+        <Nullable>enable</Nullable>
+        <NoWarn>EF1001</NoWarn>
+        <PackageIconUrl>icon.png</PackageIconUrl>
+        <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+        <Description>Apache Calcite provider for Entity Framework Core.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="IKVM" Version="8.15.0" />
+        <PackageReference Include="IKVM.Java.Extensions" Version="8.15.0" />
+        <PackageReference Include="IKVM.Maven.Sdk" Version="1.11.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Apache.Calcite.Data" Version="0.0.5-pre.63" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <MavenReference Include="org.apache.calcite:calcite-linq4j" Version="$(CalciteVersion)" />
+        <MavenReference Include="org.apache.calcite:calcite-core" Version="$(CalciteVersion)" />
+        <MavenReference Include="org.jooq:joou-java-6" Version="0.9.5" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="." Visible="false" />
+        <None Include="..\..\README.md" Pack="true" PackagePath="." Visible="false" />
+        <None Include="..\..\icon.png" Pack="true" PackagePath="." Visible="false" />
+    </ItemGroup>
+
+</Project>
