@@ -15,12 +15,12 @@ public class MusicStoreCalciteTest(MusicStoreCalciteTest.MusicStoreCalciteFixtur
 
         protected override ITestStoreFactory TestStoreFactory => CalciteTestStoreFactory.Instance;
 
-        public override IDisposable BeginTransaction(DbContext context) => new NullTransaction();
+        public override IDisposable BeginTransaction(DbContext context) => new RollbackByClean(context);
 
-        sealed class NullTransaction : IDisposable
+        sealed class RollbackByClean(DbContext context) : IDisposable
         {
 
-            public void Dispose() { }
+            public void Dispose() => context.Database.EnsureClean();
 
         }
 
