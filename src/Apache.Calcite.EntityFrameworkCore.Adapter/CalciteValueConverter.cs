@@ -1,19 +1,15 @@
-namespace Apache.Calcite.EntityFrameworkCore.Adapter
+﻿namespace Apache.Calcite.EntityFrameworkCore.Adapter
 {
 
     /// <summary>
-    /// Converts CLR primitive values to Java-boxed equivalents that Calcite's in-memory
-    /// enumerable evaluator can consume without a type-conversion failure.
+    /// Converts CLR primitive values to Java-boxed equivalents that Calcite's in-memory enumerable evaluator can consume without a type-conversion failure.
     /// </summary>
     internal static class CalciteValueConverter
     {
 
         /// <summary>
-        /// Converts a CLR primitive value to a Java-compatible boxed object so that Calcite's
-        /// in-memory enumerable evaluator (<c>SqlFunctions.toInt</c>, <c>toBoolean</c>, etc.) can
-        /// process it without a type-conversion failure.
-        /// Unsigned integer types use joou boxed types, which Calcite uses to represent SQL
-        /// unsigned integer columns.
+        /// Converts a CLR primitive value to a Java-compatible boxed object so that Calcite's in-memory enumerable evaluator (<c>SqlFunctions.toInt</c>, <c>toBoolean</c>, etc.) can
+        /// process it without a type-conversion failure. Unsigned integer types use joou boxed types, which Calcite uses to represent SQL unsigned integer columns.
         /// </summary>
         internal static object? ToJavaObject(object? value) => value switch
         {
@@ -34,10 +30,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         };
 
         /// <summary>
-        /// Converts a CLR <see cref="decimal"/> to a <see cref="java.math.BigDecimal"/> without going
-        /// through string parsing. <c>decimal</c> is stored internally as a 96-bit unsigned integer
-        /// (unscaled value) plus a scale in the range 0–28, so we construct <c>BigDecimal</c> from a
-        /// <c>BigInteger</c> unscaled value and the scale directly.
+        /// Converts a CLR <see cref="decimal"/> to a <see cref="java.math.BigDecimal"/> without going through string parsing.
+        /// <c>decimal</c> is stored internally as a 96-bit unsigned integer (unscaled value) plus a scale in the range 0–28,
+        /// so we construct <c>BigDecimal</c> from a <c>BigInteger</c> unscaled value and the scale directly.
         /// </summary>
         internal static java.math.BigDecimal DecimalToBigDecimal(decimal value)
         {

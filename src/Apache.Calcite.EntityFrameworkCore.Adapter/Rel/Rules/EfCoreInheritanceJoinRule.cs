@@ -1,36 +1,29 @@
+﻿using System;
 using System.Collections.Generic;
 
-using Apache.Calcite.EntityFrameworkCore.Adapter.Rel;
-
 using java.lang;
-using java.util;
 
 using Microsoft.EntityFrameworkCore.Metadata;
 
 using org.apache.calcite.plan;
-using org.apache.calcite.rel;
 using org.apache.calcite.rel.core;
 using org.apache.calcite.rel.type;
-using org.apache.calcite.rex;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules
 {
 
     /// <summary>
-    /// Planner rule that collapses a join between an EF Core base-type table and one of its
-    /// derived-type tables into a single <see cref="EfCoreEntityScan"/> against the derived type.
+    /// Planner rule that collapses a join between an EF Core base-type table and one of its derived-type tables into a single <see cref="EfCoreEntityScan"/> against the derived type.
     ///
     /// <para>The rule matches the pattern produced by <see cref="EfCoreTable.toRel"/>:</para>
     /// <code>
     /// Join
-    ///   EfCoreProject(EfCoreEntityScan[Base])     -- base side, projected to declared cols
-    ///   EfCoreProject(EfCoreEntityScan[Derived])  -- derived side, projected to declared cols
+    ///   EfCoreSelect(EfCoreEntityScan[Base])     -- base side, projected to declared cols
+    ///   EfCoreSelect(EfCoreEntityScan[Derived])  -- derived side, projected to declared cols
     /// </code>
     ///
-    /// <para>Because <see cref="EfCoreEntityScan"/> already carries the full row type
-    /// (declared + inherited) it is sufficient to replace the join with the derived
-    /// <see cref="EfCoreEntityScan"/> alone wrapped in an <see cref="EfCoreProject"/> that
-    /// re-exposes the join output field names.</para>
+    /// <para>Because <see cref="EfCoreEntityScan"/> already carries the full row type (declared + inherited) it is sufficient to replace the join with the derived
+    /// <see cref="EfCoreEntityScan"/> alone wrapped in an <see cref="EfCoreSelect"/> that re-exposes the join output field names.</para>
     /// </summary>
     public sealed class EfCoreInheritanceJoinRule : RelOptRule
     {
@@ -45,7 +38,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules
                 operand((Class)typeof(EfCoreSelect), any()),
                 operand((Class)typeof(EfCoreSelect), any())),
             "EfCoreInheritanceJoinRule")
-        { }
+        {
+
+        }
 
         /// <inheritdoc />
         public override void onMatch(RelOptRuleCall call)
@@ -55,8 +50,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules
             var rightProject = (EfCoreSelect)call.rel(2);
 
             // Each project must sit directly on top of an EfCoreEntityScan.
-            if (leftProject.getInput() is not EfCoreEntityScan leftQuery ||
-                rightProject.getInput() is not EfCoreEntityScan rightQuery)
+            if (leftProject.getInput() is not EfCoreEntityScan leftQuery || rightProject.getInput() is not EfCoreEntityScan rightQuery)
                 return;
 
             // Identify which side is derived and which is the base.
@@ -74,7 +68,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules
 
             // The derived EfCoreEntityScan has the full row type (all properties, declared + inherited).
             var fullFields = derivedQuery.getRowType().getFieldList();
-            var fullIndex = new Dictionary<string, int>(System.StringComparer.OrdinalIgnoreCase);
+            var fullIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < fullFields.size(); i++)
                 fullIndex[((RelDataTypeField)fullFields.get(i)).getName()] = i;
 
@@ -113,7 +107,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules
         /// <summary>
         /// Returns <see langword="true"/> when <paramref name="candidate"/> has <paramref name="baseType"/> as its direct EF Core base entity type.
         /// </summary>
-        static bool IsDerivedOf(IEntityType candidate, IEntityType baseType) => candidate.BaseType?.ClrType == baseType.ClrType;
+        static bool IsDerivedOf(IEntityType candidate, IEntityType baseType)
+        {
+            return candidate.BaseType?.ClrType == baseType.ClrType;
+        }
 
     }
 

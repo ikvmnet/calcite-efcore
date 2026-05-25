@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
 
@@ -14,9 +14,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
 {
 
     /// <summary>
-    /// Implementation of <see cref="Schema"/> that exposes the <see cref="DbSet{TEntity}"/> properties of a
-    /// <see cref="DbContext"/> as Calcite tables. Queries against this schema are executed by constructing
-    /// <see cref="System.Linq.IQueryable{T}"/> expressions against those <see cref="DbSet{TEntity}"/> instances.
+    /// Implementation of <see cref="Schema"/> that exposes the <see cref="DbSet{TEntity}"/> properties of a <see cref="DbContext"/> as Calcite tables.
+    /// Queries against this schema are executed by constructing <see cref="System.Linq.IQueryable{T}"/> expressions against those <see cref="DbSet{TEntity}"/> instances.
     /// </summary>
     public class EfCoreSchema : AbstractSchema
     {

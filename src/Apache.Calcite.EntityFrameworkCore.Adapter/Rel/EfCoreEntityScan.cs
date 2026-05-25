@@ -1,4 +1,4 @@
-using java.util;
+﻿using java.util;
 
 using org.apache.calcite.plan;
 using org.apache.calcite.rel;
@@ -10,13 +10,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
 {
 
     /// <summary>
-    /// Physical leaf node representing <c>context.Set&lt;T&gt;()</c> — the root of every EF Core
-    /// <see cref="System.Linq.IQueryable"/> chain.
+    /// Physical leaf node representing <c>context.Set&lt;T&gt;()</c> — the root of every EF Core <see cref="System.Linq.IQueryable"/> chain.
     ///
-    /// <para>The row type of <see cref="EfCoreEntityScan"/> always includes <em>all</em> properties of the
-    /// entity (declared + inherited), because EF Core materialises the full entity when you call
-    /// <c>DbContext.Set&lt;T&gt;()</c>. Narrowing to only the columns that are visible in the Calcite
-    /// schema for this entity type is done by the <see cref="EfCoreProject"/> that
+    /// <para>The row type of <see cref="EfCoreEntityScan"/> always includes <em>all</em> properties of the entity (declared + inherited), because EF Core materialises the full entity when you call
+    /// <c>DbContext.Set&lt;T&gt;()</c>. Narrowing to only the columns that are visible in the Calcite schema for this entity type is done by the <see cref="EfCoreSelect"/> that
     /// <see cref="EfCoreTable.toRel"/> places on top of every <see cref="EfCoreEntityScan"/> leaf.</para>
     /// </summary>
     public class EfCoreEntityScan : TableScan, EfCoreRel

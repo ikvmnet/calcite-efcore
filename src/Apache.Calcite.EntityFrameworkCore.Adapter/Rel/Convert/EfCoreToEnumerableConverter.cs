@@ -1,10 +1,11 @@
-using System;
+﻿using System;
+using System.Linq;
+
+using Apache.Calcite.EntityFrameworkCore.Adapter.Query.Steps;
 
 using java.lang;
 using java.lang.reflect;
 using java.util;
-
-using Microsoft.EntityFrameworkCore;
 
 using org.apache.calcite.adapter.enumerable;
 using org.apache.calcite.linq4j.tree;
@@ -19,16 +20,15 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
 {
 
     /// <summary>
-    /// Relational expression that converts from <see cref="EfCoreConvention"/> to
-    /// <see cref="EnumerableConvention"/> by executing an EF Core query at runtime.
+    /// Relational expression that converts from <see cref="EfCoreConvention"/> to <see cref="EnumerableConvention"/> by executing an EF Core query at runtime.
     /// </summary>
     public class EfCoreToEnumerableConverter : ConverterImpl, EnumerableRel
     {
 
-        static readonly Method ScanMethod =
+        static readonly Method ExecuteMethod =
             ((Class)typeof(EfCoreEnumerable)).getDeclaredMethod(
-                nameof(EfCoreEnumerable.Scan),
-                [(Class)typeof(EfCoreSchema), (Class)typeof(string), (Class)typeof(string[])]);
+                nameof(EfCoreEnumerable.Execute),
+                [(Class)typeof(EfCoreSchema), (Class)typeof(IEfCoreQueryableStep[]), (Class)typeof(string[])]);
 
         /// <summary>
         /// Initializes a new instance.
@@ -39,6 +39,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         public EfCoreToEnumerableConverter(RelOptCluster cluster, RelTraitSet traits, RelNode input) :
             base(cluster, ConventionTraitDef.INSTANCE, traits, input)
         {
+
         }
 
         /// <inheritdoc />
@@ -60,7 +61,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
                 getRowType(),
                 pref.prefer(JavaRowFormat.ARRAY));
 
-            // Walk the EfCoreRel tree to find the root table and convention.
+            // Walk the EfCoreRel tree, accumulating IEfCoreQueryableStep instances.
             var efImplementor = new EfCoreImplementor();
             efImplementor.Visit(input);
 
@@ -68,30 +69,24 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
                 (input as RelNode)?.getConvention()
                 ?? throw new InvalidOperationException("Cannot resolve EfCoreConvention from input.");
 
+            // Retrieve the EfCoreSchema from the schema expression embedded in the convention.
+            var schemaExpr = Schemas.unwrap(convention.Expression, typeof(EfCoreSchema));
+
             // Build the ordered column names array matching the Calcite row type.
             var fieldList = getRowType().getFieldList();
             var columnNames = new string[fieldList.size()];
             for (int i = 0; i < fieldList.size(); i++)
                 columnNames[i] = ((RelDataTypeField)fieldList.get(i)).getName();
 
-            var columnNamesExpr = Expressions.constant(columnNames, (Class)typeof(string[]));
+            // Stash the steps array and column names into the DataContext parameter map so that
+            // Janino never sees a cli.* type name in the generated Java source — it just reads the
+            // values back via root.get("vNstashed") casts to the erased Object type.
+            var steps = Enumerable.ToArray(efImplementor.Steps);
+            var stepsExpr = implementor.stash(steps, (Class)typeof(IEfCoreQueryableStep[]));
+            var columnNamesExpr = implementor.stash(columnNames, (Class)typeof(string[]));
 
-            // Retrieve the EfCoreSchema from the schema expression embedded in the convention.
-            var schemaExpr = Schemas.unwrap(convention.Expression, typeof(EfCoreSchema));
-
-            // Determine the table name — always the CLR type name, matching schema discovery.
-            var tableName = efImplementor.RootTable is EfCoreTable t
-                ? t.EntityClrType.Name
-                : throw new InvalidOperationException("Could not find an EfCoreEntityScan root node in the EfCoreRel tree.");
-
-            // Emit: EfCoreEnumerable.Scan(schema, tableName, columnNames)
-            var enumerable_ = list.append("enumerable",
-                Expressions.call(
-                    null,
-                    ScanMethod,
-                    schemaExpr,
-                    Expressions.constant(tableName),
-                    columnNamesExpr));
+            // Emit: EfCoreEnumerable.Execute(schema, steps, columnNames)
+            var enumerable_ = list.append("enumerable", Expressions.call(null, ExecuteMethod, schemaExpr, stepsExpr, columnNamesExpr));
 
             list.add(Expressions.return_(null, enumerable_));
 
@@ -101,32 +96,44 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         #region EnumerableRel default-method forwarding
 
         /// <inheritdoc />
-        public Pair deriveTraits(RelTraitSet childTraits, int childId) =>
-            EnumerableRel.__DefaultMethods.deriveTraits(this, childTraits, childId);
+        public Pair deriveTraits(RelTraitSet childTraits, int childId)
+        {
+            return EnumerableRel.__DefaultMethods.deriveTraits(this, childTraits, childId);
+        }
 
         /// <inheritdoc />
-        public DeriveMode getDeriveMode() =>
-            EnumerableRel.__DefaultMethods.getDeriveMode(this);
+        public DeriveMode getDeriveMode()
+        {
+            return EnumerableRel.__DefaultMethods.getDeriveMode(this);
+        }
 
         /// <inheritdoc />
-        public Pair passThroughTraits(RelTraitSet required) =>
-            EnumerableRel.__DefaultMethods.passThroughTraits(this, required);
+        public Pair passThroughTraits(RelTraitSet required)
+        {
+            return EnumerableRel.__DefaultMethods.passThroughTraits(this, required);
+        }
 
         #endregion
 
         #region PhysicalNode default-method forwarding
 
         /// <inheritdoc />
-        public RelNode derive(RelTraitSet childTraits, int childId) =>
-            PhysicalNode.__DefaultMethods.derive(this, childTraits, childId);
+        public RelNode derive(RelTraitSet childTraits, int childId)
+        {
+            return PhysicalNode.__DefaultMethods.derive(this, childTraits, childId);
+        }
 
         /// <inheritdoc />
-        public List derive(List inputTraits) =>
-            PhysicalNode.__DefaultMethods.derive(this, inputTraits);
+        public List derive(List inputTraits)
+        {
+            return PhysicalNode.__DefaultMethods.derive(this, inputTraits);
+        }
 
         /// <inheritdoc />
-        public RelNode passThrough(RelTraitSet required) =>
-            PhysicalNode.__DefaultMethods.passThrough(this, required);
+        public RelNode passThrough(RelTraitSet required)
+        {
+            return PhysicalNode.__DefaultMethods.passThrough(this, required);
+        }
 
         #endregion
 

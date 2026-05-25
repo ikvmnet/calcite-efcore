@@ -1,6 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
+using Apache.Calcite.EntityFrameworkCore.Adapter.Query.Steps;
 using Apache.Calcite.EntityFrameworkCore.Adapter.Rel;
 
 using org.apache.calcite.rel;
@@ -10,11 +11,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
 {
 
     /// <summary>
-    /// Tracks state while walking an <see cref="EfCoreRel"/> tree during query implementation.
-    /// Unlike the ADO.NET implementor, this class does not generate SQL; instead it captures
-    /// which <see cref="EfCoreTable"/> is at the root so the
-    /// <see cref="Rel.Convert.EfCoreToEnumerableConverter"/> can call
-    /// <see cref="EfCoreEnumerable.Scan"/> at runtime.
+    /// Accumulates <see cref="IEfCoreQueryableStep"/> instances while walking an <see cref="EfCoreRel"/> tree during query implementation.
+    /// The resulting step list is embedded into the Linq4j expression tree by <see cref="Rel.Convert.EfCoreToEnumerableConverter"/> and later executed lazily by <see cref="EfCoreEnumerable.Execute"/>.
     /// </summary>
     public class EfCoreImplementor
     {
@@ -39,11 +37,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         {
 
             /// <summary>
-            /// Gets the table that is at the root of this result.
-            /// </summary>
-            public EfCoreTable? Table { get; }
-
-            /// <summary>
             /// Gets the row type produced by this result.
             /// </summary>
             public RelDataType RowType { get; }
@@ -56,16 +49,15 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             /// <summary>
             /// Initializes a new instance.
             /// </summary>
-            public Result(EfCoreTable? table, RelDataType rowType, IReadOnlyList<Clause> clauses)
+            public Result(RelDataType rowType, IReadOnlyList<Clause> clauses)
             {
-                Table = table;
                 RowType = rowType ?? throw new ArgumentNullException(nameof(rowType));
                 Clauses = clauses ?? throw new ArgumentNullException(nameof(clauses));
             }
 
         }
 
-        EfCoreTable? _rootTable;
+        readonly List<IEfCoreQueryableStep> _steps = [];
 
         /// <summary>
         /// Initializes a new instance.
@@ -73,9 +65,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         public EfCoreImplementor() { }
 
         /// <summary>
-        /// Gets the root <see cref="EfCoreTable"/> discovered while walking the tree.
+        /// Gets the accumulated steps in the order they were appended.
         /// </summary>
-        public EfCoreTable? RootTable => _rootTable;
+        public IReadOnlyList<IEfCoreQueryableStep> Steps => _steps;
 
         /// <summary>
         /// Dispatches to the <see cref="Rel.EfCoreRel.implement"/> method of the given node.
@@ -89,17 +81,18 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         }
 
         /// <summary>
-        /// Records an <see cref="EfCoreEntityScan"/> as the root of the current query tree.
+        /// Creates an <see cref="EfCoreEntityScanStep"/> for the given leaf node and appends it
+        /// to the step list.
         /// </summary>
-        public Result VisitEntityScan(EfCoreEntityScan query)
+        public Result VisitEntityScan(EfCoreEntityScan node)
         {
-            _rootTable = query.EfCoreTable;
-            return new Result(query.EfCoreTable, query.getRowType(), [Clause.FROM]);
+            _steps.Add(new EfCoreEntityScanStep(node.EfCoreTable.EntityClrType));
+            return new Result(node.getRowType(), [Clause.FROM]);
         }
 
         /// <summary>
         /// Default dispatch — called by <see cref="Rel.EfCoreRel.implement"/> for nodes that
-        /// do not provide their own override.
+        /// do not yet provide their own <c>Visit*</c> override. Recurses into the single input.
         /// </summary>
         public Result implement(EfCoreRel rel)
         {

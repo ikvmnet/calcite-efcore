@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using java.util;
 
@@ -32,9 +32,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         public Schema create(SchemaPlus parentSchema, string name, Map operand)
         {
             var contextTypeName = operand?.get("contextType") as string
-                ?? throw new ArgumentException(
-                    "EfCoreSchemaFactory requires an operand 'contextType' with the assembly-qualified " +
-                    "name of the DbContext subclass.");
+                ?? throw new ArgumentException("EfCoreSchemaFactory requires an operand 'contextType' with the assembly-qualified name of the DbContext subclass.");
 
             var contextType = Type.GetType(contextTypeName, throwOnError: true)!;
 

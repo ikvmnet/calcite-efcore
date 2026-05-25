@@ -1,6 +1,8 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Linq;
+
+using Apache.Calcite.EntityFrameworkCore.Adapter.Rel;
 
 using java.lang;
 
@@ -23,10 +25,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
 {
 
     /// <summary>
-    /// A Calcite <see cref="QueryableTable"/> backed by a single EF Core entity type.
-    /// The row type is derived from the EF Core model metadata; data is retrieved by
-    /// executing the corresponding <see cref="System.Linq.IQueryable{T}"/> on a fresh
-    /// <see cref="DbContext"/>.
+    /// A Calcite <see cref="QueryableTable"/> backed by a single EF Core entity type. The row type is derived from the EF Core model metadata;
+    /// data is retrieved by executing the corresponding <see cref="System.Linq.IQueryable{T}"/> on a fresh <see cref="DbContext"/>.
     /// </summary>
     public class EfCoreTable : AbstractQueryableTable, TranslatableTable, ScannableTable
     {
@@ -43,8 +43,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         /// <param name="convention">The EF Core convention for this schema.</param>
         /// <param name="entityClrType">The CLR type of the entity.</param>
         /// <param name="entityType">The EF Core entity type metadata.</param>
-        internal EfCoreTable(Func<DbContext> contextFactory, EfCoreConvention convention,
-            System.Type entityClrType, IEntityType entityType) :
+        internal EfCoreTable(Func<DbContext> contextFactory, EfCoreConvention convention, System.Type entityClrType, IEntityType entityType) :
             base((Class)typeof(object[]))
         {
             _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
@@ -88,9 +87,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         }
 
         /// <summary>
-        /// Returns a row type that includes all properties of this entity type, including those
-        /// inherited from base entity types. Used by <see cref="Rel.EfCoreEntityScan"/> as its row type,
-        /// because EF Core materialises the full entity when executing <c>DbContext.Set&lt;T&gt;()</c>.
+        /// Returns a row type that includes all properties of this entity type, including those inherited from base entity types.
+        /// Used by <see cref="Rel.EfCoreEntityScan"/> as its row type, because EF Core materialises the full entity when executing <c>DbContext.Set&lt;T&gt;()</c>.
         /// </summary>
         public RelDataType GetFullRowType(RelDataTypeFactory typeFactory)
         {
@@ -117,8 +115,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             var cluster = context.getCluster();
             var typeFactory = cluster.getTypeFactory();
 
-            // EfCoreEntityScan: full entity — row type includes all properties (declared + inherited).
-            var query = new Rel.EfCoreEntityScan(cluster, context.getTableHints(), relOptTable, this);
+            // Scan the full entity: row type includes all properties (declared + inherited) so the EfCoreSelect below can project any subset, including columns inherited from a base type.
+            var query = new EfCoreEntityScan(cluster, context.getTableHints(), relOptTable, this);
 
             // Build a project that narrows the full row type down to just the declared properties,
             // which is what the Calcite schema exposes for this table.
@@ -127,15 +125,15 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             var declaredFields = declaredRowType.getFieldList();
 
             // Build a name→index map over the full (query) row type.
-            var fullIndex = new System.Collections.Generic.Dictionary<string, int>(System.StringComparer.OrdinalIgnoreCase);
+            var fullIndex = new System.Collections.Generic.Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < fullFields.size(); i++)
-                fullIndex[((org.apache.calcite.rel.type.RelDataTypeField)fullFields.get(i)).getName()] = i;
+                fullIndex[((RelDataTypeField)fullFields.get(i)).getName()] = i;
 
             var projects = new java.util.ArrayList();
             var rexBuilder = cluster.getRexBuilder();
             for (int i = 0; i < declaredFields.size(); i++)
             {
-                var field = (org.apache.calcite.rel.type.RelDataTypeField)declaredFields.get(i);
+                var field = (RelDataTypeField)declaredFields.get(i);
                 var idx = fullIndex.TryGetValue(field.getName(), out int pos) ? pos : i;
                 projects.add(rexBuilder.makeInputRef(field.getType(), idx));
             }
@@ -234,7 +232,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         }
 
         /// <inheritdoc />
-        public override string toString() => $"EfCoreTable({_entityClrType.Name})";
+        public override string toString()
+        {
+            return $"EfCoreTable({_entityClrType.Name})";
+        }
 
     }
 

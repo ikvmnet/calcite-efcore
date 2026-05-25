@@ -1,4 +1,4 @@
-using java.util.function;
+﻿using java.util.function;
 
 using org.apache.calcite.adapter.enumerable;
 using org.apache.calcite.rel;
@@ -8,8 +8,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
 {
 
     /// <summary>
-    /// Rule that converts a relational expression from <see cref="EfCoreConvention"/>
-    /// to <see cref="EnumerableConvention"/> so that the planner can materialise results.
+    /// Rule that converts a relational expression from <see cref="EfCoreConvention"/> to <see cref="EnumerableConvention"/> so that the planner can materialise results.
     /// </summary>
     public class EfCoreToEnumerableConverterRule : ConverterRule
     {

@@ -1,7 +1,6 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Linq;
-using System.Reflection;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -13,8 +12,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
 {
 
     /// <summary>
-    /// <see cref="AbstractTableQueryable"/> implementation that enumerates an EF Core entity set
-    /// and projects each entity to an <c>object[]</c> of column values.
+    /// <see cref="AbstractTableQueryable"/> implementation that enumerates an EF Core entity set and projects each entity to an <c>object[]</c> of column values.
     /// </summary>
     public class EfCoreTableQueryable : AbstractTableQueryable
     {
@@ -72,7 +70,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         }
 
         /// <inheritdoc />
-        public override string toString() => $"EfCoreTableQueryable {{table: {tableName}}}";
+        public override string toString()
+        {
+            return $"EfCoreTableQueryable {{table: {tableName}}}";
+        }
 
     }
 
