@@ -1,12 +1,8 @@
-﻿using System.Linq;
-
-using Apache.Calcite.EntityFrameworkCore.Adapter.Query.Steps;
-
-using java.util.function;
+﻿using java.util.function;
 
 using org.apache.calcite.interpreter;
+using org.apache.calcite.plan;
 using org.apache.calcite.rel;
-using org.apache.calcite.rel.convert;
 using org.apache.calcite.rel.type;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
@@ -16,7 +12,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
     /// Rule that converts a relational expression from <see cref="EfCoreConvention"/> to <see cref="BindableConvention"/> so that the planner can materialise results
     /// without Janino code-generation.
     /// </summary>
-    public class EfCoreToBindableConverterRule : ConverterRule
+    public class EfCoreToBindableConverterRule : EfCoreConverterRule
     {
 
         /// <summary>
@@ -26,11 +22,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         public static EfCoreToBindableConverterRule Create(EfCoreConvention convention)
         {
             return (EfCoreToBindableConverterRule)Config.INSTANCE
-                .withConversion(typeof(RelNode), convention, BindableConvention.INSTANCE,
-                    "EfCoreToBindableConverterRule")
-                .withRuleFactory(
-                    new DelegateFunction<Config, EfCoreToBindableConverterRule>(
-                        c => new EfCoreToBindableConverterRule(c, convention)))
+                .withConversion(typeof(RelNode), convention, BindableConvention.INSTANCE, "EfCoreToBindableConverterRule")
+                .withRuleFactory(new DelegateFunction<Config, EfCoreToBindableConverterRule>(c => new EfCoreToBindableConverterRule(c, convention)))
                 .toRule(typeof(EfCoreToBindableConverterRule));
         }
 
@@ -41,39 +34,16 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         /// </summary>
         /// <param name="config">Rule configuration.</param>
         /// <param name="convention">The EF Core convention used to resolve schema metadata at convert time.</param>
-        public EfCoreToBindableConverterRule(Config config, EfCoreConvention convention) : base(config)
+        public EfCoreToBindableConverterRule(Config config, EfCoreConvention convention) :
+            base(config)
         {
             _convention = convention;
         }
 
         /// <inheritdoc />
-        public override RelNode convert(RelNode rel)
+        public override RelNode? convert(RelNode rel)
         {
-            var input = rel as EfCoreRel
-                ?? throw new System.InvalidOperationException("Input to EfCoreToBindableConverterRule must be an EfCoreRel.");
-
-            // Walk the EfCoreRel tree now (at plan time) to accumulate the step pipeline and derive column names.
-            // The converter node stores these so that bind() can execute them without revisiting the rel tree.
-            var efImplementor = new EfCoreImplementor();
-            efImplementor.Visit(input);
-
-            var steps = Enumerable.ToArray(efImplementor.Steps);
-
-            var fieldList = rel.getRowType().getFieldList();
-            var columnNames = new string[fieldList.size()];
-            for (int i = 0; i < fieldList.size(); i++)
-                columnNames[i] = ((RelDataTypeField)fieldList.get(i)).getName();
-
-            // Extract the schema name from the convention name: "EFCORE.<schemaName>" → "<schemaName>".
-            var conventionName = _convention.getName();
-            var schemaName = conventionName.StartsWith("EFCORE.") ? conventionName["EFCORE.".Length..] : conventionName;
-
-            return new EfCoreToBindableConverter(
-                rel.getCluster(),
-                rel,
-                schemaName,
-                steps,
-                columnNames);
+            return new EfCoreToBindableConverter(rel.getCluster(), rel, _convention);
         }
 
     }

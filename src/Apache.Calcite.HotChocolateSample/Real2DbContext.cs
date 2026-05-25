@@ -3,14 +3,14 @@
 namespace Apache.Calcite.HotChocolateSample
 {
 
-    public class RealDbContext : DbContext
+    public class Real2DbContext : DbContext
     {
 
-        public DbSet<RealProduct> Products { get; set; }
+        public DbSet<Real2Product> Products { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Filename=real.db");
+            optionsBuilder.UseSqlite("Filename=real2.db");
         }
 
     }

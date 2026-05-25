@@ -26,6 +26,7 @@
     <ItemGroup>
         <MavenReference Include="org.apache.calcite:calcite-linq4j" Version="$(CalciteVersion)" />
         <MavenReference Include="org.apache.calcite:calcite-core" Version="$(CalciteVersion)" />
+        <MavenReference Include="org.slf4j:slf4j-simple" Version="2.0.18" />
     </ItemGroup>
 
     <ItemGroup>

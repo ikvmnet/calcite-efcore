@@ -1,3 +1,6 @@
+﻿using com.google.common.io;
+
+using org.apache.calcite.rel;
 using org.apache.calcite.rel.convert;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
@@ -14,6 +17,16 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         /// </summary>
         /// <param name="config">Rule configuration.</param>
         protected EfCoreConverterRule(Config config) : base(config) { }
+
+        /// <summary>
+        /// Default implementation of <see cref="convert"/> that returns null to indicate that the rule does not apply.
+        /// </summary>
+        /// <param name="rn"></param>
+        /// <returns></returns>
+        public override RelNode? convert(RelNode rn)
+        {
+            return null;
+        }
 
     }
 

@@ -1,12 +1,21 @@
+﻿using System;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
+
+using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
+
 using com.google.common.collect;
 
 using java.util;
 
 using org.apache.calcite.plan;
+using org.apache.calcite.plan.volcano;
 using org.apache.calcite.rel;
 using org.apache.calcite.rel.core;
 using org.apache.calcite.rel.metadata;
 using org.apache.calcite.rel.type;
+using org.apache.calcite.rex;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
 {
@@ -16,6 +25,16 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
     /// </summary>
     public class EfCoreSelect : Project, EfCoreRel
     {
+
+        // Queryable.Select<TSource, TResult>(IQueryable<TSource>, Expression<Func<TSource, TResult>>)
+        static readonly MethodInfo QueryableSelectMethod =
+            typeof(Queryable)
+                .GetMethods()
+                .First(m => m.Name == nameof(Queryable.Select)
+                    && m.GetParameters().Length == 2
+                    && m.GetParameters()[1].ParameterType.GetGenericTypeDefinition() == typeof(Expression<>));
+
+        readonly Lazy<Type> _clrElementType;
 
         /// <summary>
         /// Initializes a new instance.
@@ -28,7 +47,32 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
         public EfCoreSelect(RelOptCluster cluster, RelTraitSet traitSet, RelNode input, List projects, RelDataType rowType) :
             base(cluster, traitSet, ImmutableList.of(), input, projects, rowType, ImmutableSet.of())
         {
+            _clrElementType = new Lazy<Type>(CreateClrElementType);
+        }
 
+        /// <inheritdoc />
+        public Type ClrElementType => _clrElementType.Value;
+
+        /// <summary>
+        /// Resolves the output CLR shape by inspecting each project expression, then emits the DTO type via
+        /// <see cref="DynamicRowType"/>. Invoked at most once by <see cref="_clrElementType"/>.
+        /// </summary>
+        Type CreateClrElementType()
+        {
+            var efRel = (EfCoreRel)getInput();
+            var outputFields = getRowType().getFieldList();
+            var projects = getProjects();
+            var translator = new RexToLinqTranslator(efRel.ClrElementType, efRel.getRowType().getFieldList(), Expression.Parameter(efRel.ClrElementType));
+
+            var n = projects.size();
+            var shape = new (string Name, Type ClrType)[n];
+            for (int i = 0; i < n; i++)
+            {
+                var outputField = (RelDataTypeField)outputFields.get(i);
+                shape[i] = (outputField.getName(), translator.ResolveType((RexNode)projects.get(i)));
+            }
+
+            return DynamicRowType.GetOrCreate(shape);
         }
 
         /// <inheritdoc />
@@ -44,9 +88,35 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
         }
 
         /// <inheritdoc />
-        public EfCoreImplementor.Result implement(EfCoreImplementor implementor)
+        public IQueryable implement()
         {
-            return implementor.Visit((EfCoreRel)getInput());
+            var efRel = (EfCoreRel)getInput();
+            var inputType = efRel.ClrElementType;
+            var inputFields = efRel.getRowType().getFieldList();
+            var outputFields = getRowType().getFieldList();
+            var projects = getProjects();
+            var param = Expression.Parameter(inputType, "e");
+            var translator = new RexToLinqTranslator(inputType, inputFields, param);
+            var clrElementType = ClrElementType;
+
+            // Translate each project expression and bind it to the corresponding DTO property.
+            var n = projects.size();
+            var bindings = new MemberBinding[n];
+            for (int i = 0; i < n; i++)
+            {
+                var prop = clrElementType.GetProperty(((RelDataTypeField)outputFields.get(i)).getName())!;
+                var value = translator.Translate((RexNode)projects.get(i));
+                // Coerce when the translated expression type doesn't exactly match the property type (e.g. widening numerics).
+                var coerced = value.Type == prop.PropertyType ? value : Expression.Convert(value, prop.PropertyType);
+                bindings[i] = Expression.Bind(prop, coerced);
+            }
+
+            var selector = Expression.Lambda(
+                typeof(Func<,>).MakeGenericType(inputType, clrElementType),
+                Expression.MemberInit(Expression.New(clrElementType), bindings),
+                param);
+
+            return (IQueryable)QueryableSelectMethod.MakeGenericMethod(efRel.ClrElementType, ClrElementType).Invoke(null, [efRel.implement(), selector])!;
         }
 
     }

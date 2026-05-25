@@ -21,9 +21,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         /// <returns>An enumerable of <see cref="RelOptRule"/> instances.</returns>
         public static IEnumerable<RelOptRule> GetRules(EfCoreConvention convention)
         {
-            yield return EfCoreToEnumerableConverterRule.Create(convention);
+            //yield return EfCoreToEnumerableConverterRule.Create(convention);
             yield return EfCoreToBindableConverterRule.Create(convention);
             yield return EfCoreSelectRule.Create(convention);
+            yield return EfCoreWhereRule.Create(convention);
             yield return EfCoreInheritanceJoinRule.Instance;
         }
 

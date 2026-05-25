@@ -25,48 +25,32 @@
             ulong v => org.joou.ULong.valueOf((long)v),
             float v => java.lang.Float.valueOf(v),
             double v => java.lang.Double.valueOf(v),
-            decimal v => DecimalToBigDecimal(v),
+            decimal v => BigDecimalConverter.ToBigDecimal(v),
             _ => value,
         };
 
         /// <summary>
-        /// Converts a CLR <see cref="decimal"/> to a <see cref="java.math.BigDecimal"/> without going through string parsing.
-        /// <c>decimal</c> is stored internally as a 96-bit unsigned integer (unscaled value) plus a scale in the range 0–28,
-        /// so we construct <c>BigDecimal</c> from a <c>BigInteger</c> unscaled value and the scale directly.
+        /// Converts a Java-boxed object returned by Calcite back to the equivalent CLR primitive.
+        /// This is the inverse of <see cref="ToJavaObject"/>. Values that are not recognised Java
+        /// wrapper types are returned as-is.
         /// </summary>
-        internal static java.math.BigDecimal DecimalToBigDecimal(decimal value)
+        internal static object? FromJavaObject(object? value) => value switch
         {
-            var bits = decimal.GetBits(value);
-
-            // bits[3] high word: bit 31 = sign, bits 16–23 = scale.
-            bool negative = (bits[3] & unchecked((int)0x80000000)) != 0;
-            int scale = (bits[3] >> 16) & 0xFF;
-
-            // Reconstruct the 96-bit unscaled magnitude from the three low words.
-            // Use unsigned arithmetic to avoid sign-extension issues.
-            ulong lo32 = (uint)bits[0];
-            ulong mid32 = (uint)bits[1];
-            ulong hi32 = (uint)bits[2];
-
-            // Build bytes in big-endian order for java.math.BigInteger(int signum, byte[] magnitude).
-            byte[] magnitude = new byte[12];
-            magnitude[0]  = (byte)(hi32 >> 24);
-            magnitude[1]  = (byte)(hi32 >> 16);
-            magnitude[2]  = (byte)(hi32 >> 8);
-            magnitude[3]  = (byte)(hi32);
-            magnitude[4]  = (byte)(mid32 >> 24);
-            magnitude[5]  = (byte)(mid32 >> 16);
-            magnitude[6]  = (byte)(mid32 >> 8);
-            magnitude[7]  = (byte)(mid32);
-            magnitude[8]  = (byte)(lo32 >> 24);
-            magnitude[9]  = (byte)(lo32 >> 16);
-            magnitude[10] = (byte)(lo32 >> 8);
-            magnitude[11] = (byte)(lo32);
-
-            int signum = negative ? -1 : (lo32 == 0 && mid32 == 0 && hi32 == 0 ? 0 : 1);
-            var unscaled = new java.math.BigInteger(signum, magnitude);
-            return new java.math.BigDecimal(unscaled, scale);
-        }
+            null => null,
+            java.lang.Boolean b => b.booleanValue(),
+            org.joou.UByte ub => (byte)ub.intValue(),
+            org.joou.UShort us => (ushort)us.intValue(),
+            org.joou.UInteger ui => (uint)ui.longValue(),
+            org.joou.ULong ul => (ulong)ul.longValue(),
+            java.lang.Byte b => b.byteValue(),
+            java.lang.Short s => s.shortValue(),
+            java.lang.Integer i => i.intValue(),
+            java.lang.Long l => l.longValue(),
+            java.lang.Float f => f.floatValue(),
+            java.lang.Double d => d.doubleValue(),
+            java.math.BigDecimal bd => BigDecimalConverter.ToDecimal(bd),
+            _ => value,
+        };
 
     }
 

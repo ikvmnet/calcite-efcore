@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Linq;
 
-using Apache.Calcite.EntityFrameworkCore.Adapter.Query.Steps;
-
 using java.lang;
 using java.lang.reflect;
 using java.util;
@@ -28,7 +26,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         static readonly Method ExecuteMethod =
             ((Class)typeof(EfCoreEnumerable)).getDeclaredMethod(
                 nameof(EfCoreEnumerable.Execute),
-                [(Class)typeof(EfCoreSchema), (Class)typeof(IEfCoreQueryableStep[]), (Class)typeof(string[])]);
+                [(Class)typeof(EfCoreConvention), (Class)typeof(IQueryable), (Class)typeof(string[])]);
 
         /// <summary>
         /// Initializes a new instance.
@@ -61,32 +59,22 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
                 getRowType(),
                 pref.prefer(JavaRowFormat.ARRAY));
 
-            // Walk the EfCoreRel tree, accumulating IEfCoreQueryableStep instances.
-            var efImplementor = new EfCoreImplementor();
-            efImplementor.Visit(input);
+            var queryable = input.implement();
 
             var convention = (EfCoreConvention?)
                 (input as RelNode)?.getConvention()
                 ?? throw new InvalidOperationException("Cannot resolve EfCoreConvention from input.");
 
-            // Retrieve the EfCoreSchema from the schema expression embedded in the convention.
-            var schemaExpr = Schemas.unwrap(convention.Expression, typeof(EfCoreSchema));
-
-            // Build the ordered column names array matching the Calcite row type.
+            var conventionExpr = convention.Expression;
             var fieldList = getRowType().getFieldList();
             var columnNames = new string[fieldList.size()];
             for (int i = 0; i < fieldList.size(); i++)
                 columnNames[i] = ((RelDataTypeField)fieldList.get(i)).getName();
 
-            // Stash the steps array and column names into the DataContext parameter map so that
-            // Janino never sees a cli.* type name in the generated Java source — it just reads the
-            // values back via root.get("vNstashed") casts to the erased Object type.
-            var steps = Enumerable.ToArray(efImplementor.Steps);
-            var stepsExpr = implementor.stash(steps, (Class)typeof(IEfCoreQueryableStep[]));
+            var queryableExpr = implementor.stash(queryable, (Class)typeof(IQueryable));
             var columnNamesExpr = implementor.stash(columnNames, (Class)typeof(string[]));
 
-            // Emit: EfCoreEnumerable.Execute(schema, steps, columnNames)
-            var enumerable_ = list.append("enumerable", Expressions.call(null, ExecuteMethod, schemaExpr, stepsExpr, columnNamesExpr));
+            var enumerable_ = list.append("enumerable", Expressions.call(null, ExecuteMethod, conventionExpr, queryableExpr, columnNamesExpr));
 
             list.add(Expressions.return_(null, enumerable_));
 

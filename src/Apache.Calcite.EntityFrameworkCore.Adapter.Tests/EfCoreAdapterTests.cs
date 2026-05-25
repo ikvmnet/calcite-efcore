@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Data;
 using System.Text;
 
@@ -92,6 +92,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
         [Fact]
         public void SelectProjection_ReturnsOnlyRequestedColumns()
         {
+            java.lang.System.setProperty("calcite.debug", "true");
+
             var rows = Execute($@"SELECT ""Id"", ""Name"" FROM ""{AdapterFixture.SchemaName}"".""Product"" WHERE ""Id"" = 2");
             Assert.Single(rows);
 

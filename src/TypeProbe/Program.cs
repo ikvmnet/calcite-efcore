@@ -1,0 +1,1 @@
+using System; using System.Linq; var asm = System.Reflection.Assembly.LoadFrom(@"D:\calcite-efcore\src\Apache.Calcite.EntityFrameworkCore.Adapter\bin\Debug\net10.0\calcite.core.dll"); foreach (var t in asm.GetTypes().Where(t => t.Name.Contains("JavaTypeFactory") || t.Name.Contains("SqlStdOperator") || t.Name.Contains("RelDataTypeBuilder"))) Console.WriteLine(t.FullName);

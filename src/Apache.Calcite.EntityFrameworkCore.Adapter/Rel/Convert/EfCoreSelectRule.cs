@@ -1,4 +1,4 @@
-using java.util.function;
+﻿using java.util.function;
 
 using org.apache.calcite.plan;
 using org.apache.calcite.rel;
@@ -22,8 +22,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         {
             return (EfCoreSelectRule)Config.INSTANCE
                 .withConversion(typeof(Project), Convention.NONE, convention, "EfCoreSelectRule")
-                .withRuleFactory(
-                    new DelegateFunction<Config, EfCoreSelectRule>(c => new EfCoreSelectRule(c)))
+                .withRuleFactory(new DelegateFunction<Config, EfCoreSelectRule>(c => new EfCoreSelectRule(c)))
                 .toRule(typeof(EfCoreSelectRule));
         }
 
@@ -31,10 +30,14 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         /// Initializes a new instance.
         /// </summary>
         /// <param name="config">Rule configuration.</param>
-        public EfCoreSelectRule(Config config) : base(config) { }
+        public EfCoreSelectRule(Config config) :
+            base(config)
+        {
+
+        }
 
         /// <inheritdoc />
-        public override RelNode convert(RelNode rel)
+        public override RelNode? convert(RelNode rel)
         {
             var project = (Project)rel;
             return new EfCoreSelect(

@@ -1,11 +1,11 @@
 ﻿using System;
 
-using Apache.Calcite.EntityFrameworkCore.Adapter.Query.Steps;
-
 using java.util;
 
 using org.apache.calcite.adapter.enumerable;
+using org.apache.calcite.interpreter;
 using org.apache.calcite.rel;
+using org.apache.calcite.rel.type;
 
 using CalciteEnumerable = org.apache.calcite.linq4j.Enumerable;
 
@@ -25,36 +25,38 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
     public class EfCoreToBindableConverter : EnumerableBindable
     {
 
-        readonly string _schemaName;
-        readonly IEfCoreQueryableStep[] _steps;
-        readonly string[] _columnNames;
+        readonly EfCoreConvention _convention;
 
         /// <summary>
         /// Initializes a new instance.
         /// </summary>
         /// <param name="cluster">The query planning cluster.</param>
         /// <param name="input">The EF Core relational input.</param>
-        /// <param name="schemaName">The name under which the <see cref="EfCoreSchema"/> is registered on the root Calcite schema.</param>
-        /// <param name="steps">The ordered pipeline steps produced by <see cref="EfCoreImplementor"/> during planning.</param>
-        /// <param name="columnNames">Ordered Calcite row-type field names used to project each entity to an <c>object?[]</c> row.</param>
-        public EfCoreToBindableConverter(org.apache.calcite.plan.RelOptCluster cluster, RelNode input, string schemaName, IEfCoreQueryableStep[] steps, string[] columnNames) :
+        /// <param name="convention">The <see cref="EfCoreConvention"/> that owns the query.</param>
+        public EfCoreToBindableConverter(org.apache.calcite.plan.RelOptCluster cluster, RelNode input, EfCoreConvention convention) :
             base(cluster, input)
         {
-            _schemaName = schemaName ?? throw new ArgumentNullException(nameof(schemaName));
-            _steps = steps ?? throw new ArgumentNullException(nameof(steps));
-            _columnNames = columnNames ?? throw new ArgumentNullException(nameof(columnNames));
+            _convention = convention ?? throw new ArgumentNullException(nameof(convention));
         }
 
         /// <inheritdoc />
         public override EnumerableBindable copy(org.apache.calcite.plan.RelTraitSet traitSet, List inputs)
         {
-            return new EfCoreToBindableConverter(getCluster(), (RelNode)sole(inputs), _schemaName, _steps, _columnNames);
+            return new EfCoreToBindableConverter(getCluster(), (RelNode)sole(inputs), _convention);
         }
 
         /// <inheritdoc />
         public override CalciteEnumerable bind(org.apache.calcite.DataContext dataContext)
         {
-            return EfCoreEnumerable.BindExecute(dataContext, _schemaName, _steps, _columnNames);
+            var efInput = (EfCoreRel)getInput();
+
+            // assemble the column names from the row type of the relational expression.
+            var fieldList = efInput.getRowType().getFieldList();
+            var columnNames = new string[fieldList.size()];
+            for (int i = 0; i < fieldList.size(); i++)
+                columnNames[i] = ((RelDataTypeField)fieldList.get(i)).getName();
+
+            return EfCoreEnumerable.Execute(_convention, efInput.implement(), columnNames);
         }
 
     }

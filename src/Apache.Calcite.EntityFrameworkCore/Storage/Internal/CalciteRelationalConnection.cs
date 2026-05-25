@@ -16,6 +16,8 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 
+using org.apache.calcite.runtime;
+
 namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
 {
 
@@ -69,9 +71,14 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
         /// <inheritdoc/>
         protected override DbConnection CreateDbConnection()
         {
-            var connection = new CalciteConnection(GetValidatedConnectionString());
-            InitializeDbConnection(connection);
-            return connection;
+            return new CalciteConnection(GetValidatedConnectionString());
+        }
+
+        /// <inheritdoc/>
+        protected override void OpenDbConnection(bool errorsExpected)
+        {
+            base.OpenDbConnection(errorsExpected);
+            InitializeDbConnection(DbConnection);
         }
 
         void InitializeDbConnection(DbConnection connection)
@@ -82,6 +89,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
                 {
 
                 }
+
+                calciteConnection.RegisterHook(Hook.ENABLE_BINDABLE, true);
             }
             else
             {

@@ -10,6 +10,8 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.Internal;
 
+using org.apache.calcite.runtime;
+
 namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
 {
 
@@ -36,9 +38,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
         }
 
         /// <inheritdoc/>
-        public override Task<int> ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken = default)
+        public override async Task<int> ExecuteNonQueryAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken = default)
         {
-            return base.ExecuteNonQueryAsync(parameterObject, cancellationToken);
+            return await base.ExecuteNonQueryAsync(parameterObject, cancellationToken).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
@@ -48,9 +50,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
         }
 
         /// <inheritdoc/>
-        public override Task<object?> ExecuteScalarAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken = default)
+        public override async Task<object?> ExecuteScalarAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken = default)
         {
-            return base.ExecuteScalarAsync(parameterObject, cancellationToken);
+            return await base.ExecuteScalarAsync(parameterObject, cancellationToken).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>
@@ -60,9 +62,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
         }
 
         /// <inheritdoc/>
-        public override Task<RelationalDataReader> ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken = default)
+        public override async Task<RelationalDataReader> ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken = default)
         {
-            return base.ExecuteReaderAsync(parameterObject, cancellationToken);
+            return await base.ExecuteReaderAsync(parameterObject, cancellationToken).ConfigureAwait(false);
         }
 
         /// <inheritdoc/>

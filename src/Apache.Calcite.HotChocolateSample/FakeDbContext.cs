@@ -1,12 +1,9 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 
 using Apache.Calcite.Data;
 using Apache.Calcite.EntityFrameworkCore.Adapter;
 using Apache.Calcite.EntityFrameworkCore.Extensions;
-
-using com.google.common.collect;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -31,7 +28,7 @@ namespace Apache.Calcite.HotChocolateSample
                             {
                                 "name": "FakeProduct",
                                 "type": "view",
-                                "sql": "SELECT * FROM \"real\".\"RealProduct\""
+                                "sql": "SELECT \"real1\".\"Real1Product\".\"Id\", \"real2\".\"Real2Product\".\"Name\" FROM \"real1\".\"Real1Product\" INNER JOIN \"real2\".\"Real2Product\" ON \"real1\".\"Real1Product\".\"Id\" = \"real2\".\"Real2Product\".\"Id\""
                             }
                         ]
                     }
@@ -48,8 +45,10 @@ namespace Apache.Calcite.HotChocolateSample
 
             connection.Open();
 
-            var realSchema = EfCoreSchema.Create(connection.RootSchema, "real", () => new RealDbContext());
-            connection.RootSchema.add("real", realSchema);
+            var real1Schema = EfCoreSchema.Create(connection.RootSchema, "real1", () => new Real1DbContext());
+            connection.RootSchema.add("real1", real1Schema);
+            var real2Schema = EfCoreSchema.Create(connection.RootSchema, "real2", () => new Real2DbContext());
+            connection.RootSchema.add("real2", real2Schema);
 
             optionsBuilder.UseCalcite(connection, b => b.MaxBatchSize(1));
         }

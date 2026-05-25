@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Linq;
+using System.Reflection;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +17,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
     /// </summary>
     public class EfCoreTableQueryable : AbstractTableQueryable
     {
+
+        static readonly MethodInfo DbContextSetMethodInfo = typeof(DbContext).GetMethod(nameof(DbContext.Set), 1, []) ?? throw new InvalidOperationException("Failed to get DbContext.Set method.");
 
         readonly EfCoreTable _table;
 
@@ -42,7 +45,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         {
             var properties = _table.EntityType.GetDeclaredProperties().ToList();
 
-            using var context = _table.ContextFactory();
+            using var context = _table.Convention.ContextFactory();
 
             var set = GetDbSetAsEnumerable(context);
             var rows = new java.util.ArrayList();
@@ -63,9 +66,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         /// </summary>
         IEnumerable GetDbSetAsEnumerable(DbContext context)
         {
-            var setMethod = typeof(DbContext)
-                .GetMethod(nameof(DbContext.Set), 1, System.Type.EmptyTypes)!
-                .MakeGenericMethod(_table.EntityClrType);
+            var setMethod = DbContextSetMethodInfo.MakeGenericMethod(_table.EntityClrType);
             return (IEnumerable)setMethod.Invoke(context, null)!;
         }
 

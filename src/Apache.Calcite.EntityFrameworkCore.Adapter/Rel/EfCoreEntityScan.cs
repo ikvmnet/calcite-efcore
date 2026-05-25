@@ -1,4 +1,9 @@
-﻿using java.util;
+﻿using System;
+using System.Linq;
+
+using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
+
+using java.util;
 
 using org.apache.calcite.plan;
 using org.apache.calcite.rel;
@@ -70,9 +75,12 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
         }
 
         /// <inheritdoc />
-        public EfCoreImplementor.Result implement(EfCoreImplementor implementor)
+        public Type ClrElementType => _efCoreTable.EntityClrType;
+
+        /// <inheritdoc />
+        public IQueryable implement()
         {
-            return implementor.VisitEntityScan(this);
+            return TemplateQueryable.Create(_efCoreTable.EntityClrType);
         }
 
     }

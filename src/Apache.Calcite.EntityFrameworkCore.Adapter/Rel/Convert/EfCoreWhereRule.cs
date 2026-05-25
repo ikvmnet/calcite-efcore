@@ -1,4 +1,4 @@
-using java.util.function;
+﻿using java.util.function;
 
 using org.apache.calcite.plan;
 using org.apache.calcite.rel;
@@ -22,8 +22,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         {
             return (EfCoreWhereRule)Config.INSTANCE
                 .withConversion(typeof(Filter), Convention.NONE, convention, "EfCoreWhereRule")
-                .withRuleFactory(
-                    new DelegateFunction<Config, EfCoreWhereRule>(c => new EfCoreWhereRule(c)))
+                .withRuleFactory(new DelegateFunction<Config, EfCoreWhereRule>(c => new EfCoreWhereRule(c)))
                 .toRule(typeof(EfCoreWhereRule));
         }
 
@@ -31,7 +30,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         /// Initializes a new instance.
         /// </summary>
         /// <param name="config">Rule configuration.</param>
-        public EfCoreWhereRule(Config config) : base(config) { }
+        public EfCoreWhereRule(Config config) :
+            base(config)
+        {
+
+        }
 
         /// <inheritdoc />
         public override RelNode convert(RelNode rel)

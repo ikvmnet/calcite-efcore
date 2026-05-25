@@ -31,31 +31,23 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
     public class EfCoreTable : AbstractQueryableTable, TranslatableTable, ScannableTable
     {
 
-        readonly Func<DbContext> _contextFactory;
         readonly EfCoreConvention _convention;
-        readonly System.Type _entityClrType;
+        readonly Type _entityClrType;
         readonly IEntityType _entityType;
 
         /// <summary>
         /// Initializes a new instance.
         /// </summary>
-        /// <param name="contextFactory">Factory that produces a <see cref="DbContext"/> on demand.</param>
         /// <param name="convention">The EF Core convention for this schema.</param>
         /// <param name="entityClrType">The CLR type of the entity.</param>
         /// <param name="entityType">The EF Core entity type metadata.</param>
-        internal EfCoreTable(Func<DbContext> contextFactory, EfCoreConvention convention, System.Type entityClrType, IEntityType entityType) :
+        internal EfCoreTable(EfCoreConvention convention, Type entityClrType, IEntityType entityType) :
             base((Class)typeof(object[]))
         {
-            _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
             _convention = convention ?? throw new ArgumentNullException(nameof(convention));
             _entityClrType = entityClrType ?? throw new ArgumentNullException(nameof(entityClrType));
             _entityType = entityType ?? throw new ArgumentNullException(nameof(entityType));
         }
-
-        /// <summary>
-        /// Gets the factory that creates a <see cref="DbContext"/> for this table.
-        /// </summary>
-        public Func<DbContext> ContextFactory => _contextFactory;
 
         /// <summary>
         /// Gets the EF Core convention for this schema.
@@ -116,7 +108,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             var typeFactory = cluster.getTypeFactory();
 
             // Scan the full entity: row type includes all properties (declared + inherited) so the EfCoreSelect below can project any subset, including columns inherited from a base type.
-            var query = new EfCoreEntityScan(cluster, context.getTableHints(), relOptTable, this);
+            var query = new Rel.EfCoreEntityScan(cluster, context.getTableHints(), relOptTable, this);
 
             // Build a project that narrows the full row type down to just the declared properties,
             // which is what the Calcite schema exposes for this table.
@@ -149,7 +141,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             var fields = rowType.getFieldList();
             var properties = _entityType.GetDeclaredProperties().ToList();
 
-            using var context = _contextFactory();
+            using var context = Convention.ContextFactory();
             var set = GetDbSetAsEnumerable(context);
 
             var rows = new java.util.ArrayList();

@@ -1,11 +1,12 @@
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
 
 using Apache.Calcite.Data;
-using Apache.Calcite.EntityFrameworkCore.Adapter;
 
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+
+using org.apache.calcite.runtime;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
 {
@@ -58,6 +59,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             // Open the CalciteConnection and register the EF Core schema.
             Connection = new CalciteConnection("caseSensitive=false");
             Connection.Open();
+            Connection.RegisterHook(Hook.ENABLE_BINDABLE, true);
 
             var schema = EfCoreSchema.Create(Connection.RootSchema, SchemaName, () => new ProductDbContext(connectionString));
             Connection.RootSchema.add(SchemaName, schema);
