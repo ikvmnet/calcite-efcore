@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 
 using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
+using Apache.Calcite.EntityFrameworkCore.Core;
 
 using Microsoft.EntityFrameworkCore;
 

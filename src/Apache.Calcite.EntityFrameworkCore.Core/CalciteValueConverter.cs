@@ -1,17 +1,17 @@
-﻿namespace Apache.Calcite.EntityFrameworkCore.Adapter
+﻿namespace Apache.Calcite.EntityFrameworkCore.Core
 {
 
     /// <summary>
     /// Converts CLR primitive values to Java-boxed equivalents that Calcite's in-memory enumerable evaluator can consume without a type-conversion failure.
     /// </summary>
-    internal static class CalciteValueConverter
+    public static class CalciteValueConverter
     {
 
         /// <summary>
         /// Converts a CLR primitive value to a Java-compatible boxed object so that Calcite's in-memory enumerable evaluator (<c>SqlFunctions.toInt</c>, <c>toBoolean</c>, etc.) can
         /// process it without a type-conversion failure. Unsigned integer types use joou boxed types, which Calcite uses to represent SQL unsigned integer columns.
         /// </summary>
-        internal static object? ToJavaObject(object? value) => value switch
+        public static object? ToJavaObject(object? value) => value switch
         {
             null => null,
             bool v => java.lang.Boolean.valueOf(v),
@@ -34,7 +34,7 @@
         /// This is the inverse of <see cref="ToJavaObject"/>. Values that are not recognised Java
         /// wrapper types are returned as-is.
         /// </summary>
-        internal static object? FromJavaObject(object? value) => value switch
+        public static object? FromJavaObject(object? value) => value switch
         {
             null => null,
             java.lang.Boolean b => b.booleanValue(),

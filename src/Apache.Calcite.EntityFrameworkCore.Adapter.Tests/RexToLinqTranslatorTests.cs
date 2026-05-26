@@ -332,21 +332,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             Assert.Equal(typeof(string), t.ResolveType(node));
         }
 
-        // -----------------------------------------------------------------------------------------
-        // Unsupported node throws
-        // -----------------------------------------------------------------------------------------
-
-        [Fact]
-        public void Translate_UnsupportedKind_Throws()
-        {
-            var (t, _, rex, tf) = Build();
-            var intType = tf.createSqlType(SqlTypeName.INTEGER);
-            var idRef = rex.makeInputRef(intType, 0);
-            // PLUS is not in the supported set.
-            var call = (RexCall)rex.makeCall(SqlStdOperatorTable.PLUS, idRef, rex.makeLiteral(java.lang.Integer.valueOf(1), intType, false));
-            Assert.Throws<NotSupportedException>(() => t.Translate(call));
-        }
-
     }
 
 }

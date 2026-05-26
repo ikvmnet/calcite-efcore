@@ -11,11 +11,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Query
 {
 
     /// <summary>
-    /// A queryable that records LINQ operator calls as an <see cref="Expression"/> tree without
-    /// executing anything. Use <see cref="TemplateQueryable.Create{T}"/> to seed the chain, compose
-    /// standard LINQ operators (<c>Where</c>, <c>Select</c>, <c>OrderBy</c>, …) against it, then
-    /// read <see cref="IQueryable.Expression"/> to obtain the captured tree.
-    ///
+    /// A queryable that records LINQ operator calls as an <see cref="Expression"/> tree without executing anything. Use <see cref="Create{T}"/> to seed the chain, compose
+    /// standard LINQ operators (<c>Where</c>, <c>Select</c>, <c>OrderBy</c>, …) against it, then read <see cref="IQueryable.Expression"/> to obtain the captured tree.
     /// <para>
     /// At query-execution time, pass the captured expression to <see cref="TemplateQueryable.Apply"/>
     /// together with a fresh <see cref="IQueryable{T}"/> root (e.g. <c>context.Set&lt;T&gt;()</c>)

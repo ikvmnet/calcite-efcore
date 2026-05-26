@@ -2,6 +2,8 @@
 using System.Linq.Expressions;
 using System.Reflection;
 
+using Apache.Calcite.EntityFrameworkCore.Core;
+
 using org.apache.calcite.rel.type;
 using org.apache.calcite.rex;
 using org.apache.calcite.sql;
@@ -119,35 +121,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Query
                 return typeof(object);
 
             var sqlTypeName = (SqlTypeName.__Enum)literal.getType().getSqlTypeName().ordinal();
-            return sqlTypeName switch
-            {
-                SqlTypeName.__Enum.BOOLEAN => typeof(bool),
-                SqlTypeName.__Enum.TINYINT => typeof(sbyte),
-                SqlTypeName.__Enum.UTINYINT => typeof(byte),
-                SqlTypeName.__Enum.SMALLINT => typeof(short),
-                SqlTypeName.__Enum.USMALLINT => typeof(ushort),
-                SqlTypeName.__Enum.INTEGER => typeof(int),
-                SqlTypeName.__Enum.UINTEGER => typeof(uint),
-                SqlTypeName.__Enum.BIGINT => typeof(long),
-                SqlTypeName.__Enum.UBIGINT => typeof(ulong),
-                SqlTypeName.__Enum.FLOAT or SqlTypeName.__Enum.REAL => typeof(float),
-                SqlTypeName.__Enum.DOUBLE => typeof(double),
-                SqlTypeName.__Enum.DECIMAL => typeof(decimal),
-                SqlTypeName.__Enum.CHAR or SqlTypeName.__Enum.VARCHAR => typeof(string),
-                SqlTypeName.__Enum.BINARY or SqlTypeName.__Enum.VARBINARY => typeof(byte[]),
-                SqlTypeName.__Enum.DATE => typeof(DateOnly),
-                SqlTypeName.__Enum.TIME or SqlTypeName.__Enum.TIME_WITH_LOCAL_TIME_ZONE => typeof(TimeOnly),
-                SqlTypeName.__Enum.TIMESTAMP => typeof(DateTime),
-                SqlTypeName.__Enum.TIMESTAMP_WITH_LOCAL_TIME_ZONE => typeof(DateTimeOffset),
-                SqlTypeName.__Enum.INTERVAL_YEAR or SqlTypeName.__Enum.INTERVAL_YEAR_MONTH or
-                SqlTypeName.__Enum.INTERVAL_MONTH or SqlTypeName.__Enum.INTERVAL_DAY or
-                SqlTypeName.__Enum.INTERVAL_DAY_HOUR or SqlTypeName.__Enum.INTERVAL_DAY_MINUTE or
-                SqlTypeName.__Enum.INTERVAL_DAY_SECOND or SqlTypeName.__Enum.INTERVAL_HOUR or
-                SqlTypeName.__Enum.INTERVAL_HOUR_MINUTE or SqlTypeName.__Enum.INTERVAL_HOUR_SECOND or
-                SqlTypeName.__Enum.INTERVAL_MINUTE or SqlTypeName.__Enum.INTERVAL_MINUTE_SECOND or
-                SqlTypeName.__Enum.INTERVAL_SECOND => typeof(TimeSpan),
-                _ => typeof(object)
-            };
+            return CalciteTypeMapper.ToClrType(sqlTypeName) ?? typeof(object);
         }
 
         /// <summary>

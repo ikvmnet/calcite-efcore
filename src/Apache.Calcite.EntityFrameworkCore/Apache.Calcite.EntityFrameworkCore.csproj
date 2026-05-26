@@ -16,7 +16,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Apache.Calcite.Data" Version="0.0.5-pre.82" />
+        <PackageReference Include="Apache.Calcite.Data" Version="1.0.1" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.2" />
     </ItemGroup>
 
@@ -25,6 +25,10 @@
         <MavenReference Include="org.apache.calcite:calcite-core" Version="$(CalciteVersion)" />
         <MavenReference Include="org.apache.calcite:calcite-server" Version="$(CalciteVersion)" />
         <MavenReference Include="org.jooq:joou-java-6" Version="0.9.5" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Apache.Calcite.EntityFrameworkCore.Core\Apache.Calcite.EntityFrameworkCore.Core.csproj" />
     </ItemGroup>
 
     <ItemGroup>

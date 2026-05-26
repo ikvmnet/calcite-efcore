@@ -3,6 +3,7 @@ using System.Collections;
 using System.Linq;
 
 using Apache.Calcite.EntityFrameworkCore.Adapter.Rel;
+using Apache.Calcite.EntityFrameworkCore.Core;
 
 using java.lang;
 
@@ -173,54 +174,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         /// </summary>
         static RelDataType MapClrTypeToSqlType(RelDataTypeFactory typeFactory, IProperty property)
         {
-            var clrType = property.ClrType;
-            clrType = Nullable.GetUnderlyingType(clrType) ?? clrType;
-
-            if (clrType == typeof(bool))
-                return typeFactory.createSqlType(SqlTypeName.BOOLEAN);
-            if (clrType == typeof(sbyte))
-                return typeFactory.createSqlType(SqlTypeName.TINYINT);
-            if (clrType == typeof(byte))
-                return typeFactory.createSqlType(SqlTypeName.UTINYINT);
-            if (clrType == typeof(short))
-                return typeFactory.createSqlType(SqlTypeName.SMALLINT);
-            if (clrType == typeof(ushort))
-                return typeFactory.createSqlType(SqlTypeName.USMALLINT);
-            if (clrType == typeof(int))
-                return typeFactory.createSqlType(SqlTypeName.INTEGER);
-            if (clrType == typeof(uint))
-                return typeFactory.createSqlType(SqlTypeName.UINTEGER);
-            if (clrType == typeof(long))
-                return typeFactory.createSqlType(SqlTypeName.BIGINT);
-            if (clrType == typeof(ulong))
-                return typeFactory.createSqlType(SqlTypeName.UBIGINT);
-            if (clrType == typeof(float))
-                return typeFactory.createSqlType(SqlTypeName.FLOAT);
-            if (clrType == typeof(double))
-                return typeFactory.createSqlType(SqlTypeName.DOUBLE);
-            if (clrType == typeof(decimal))
-                return typeFactory.createSqlType(SqlTypeName.DECIMAL, property.GetPrecision() ?? 28, property.GetScale() ?? 4);
-            if (clrType == typeof(char))
-                return typeFactory.createSqlType(SqlTypeName.CHAR, 1);
-            if (clrType == typeof(string))
-                return typeFactory.createSqlType(SqlTypeName.VARCHAR);
-            if (clrType == typeof(DateTime))
-                return typeFactory.createSqlType(SqlTypeName.TIMESTAMP);
-            if (clrType == typeof(DateTimeOffset))
-                return typeFactory.createSqlType(SqlTypeName.TIMESTAMP_TZ);
-            if (clrType == typeof(DateOnly))
-                return typeFactory.createSqlType(SqlTypeName.DATE);
-            if (clrType == typeof(TimeOnly))
-                return typeFactory.createSqlType(SqlTypeName.TIME);
-            if (clrType == typeof(TimeSpan))
-                return typeFactory.createSqlType(SqlTypeName.INTERVAL_DAY_SECOND);
-            if (clrType == typeof(Guid))
-                return typeFactory.createSqlType(SqlTypeName.UUID);
-            if (clrType == typeof(byte[]))
-                return typeFactory.createSqlType(SqlTypeName.VARBINARY);
-
-            // Fallback: treat as VARCHAR.
-            return typeFactory.createSqlType(SqlTypeName.VARCHAR);
+            return CalciteTypeMapper.ToRelDataType(typeFactory, property);
         }
 
         /// <inheritdoc />

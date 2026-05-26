@@ -1,9 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFrameworks>net10.0</TargetFrameworks>
         <Nullable>enable</Nullable>
-        <ImplicitUsings>enable</ImplicitUsings>
+        <PackageIconUrl>icon.png</PackageIconUrl>
+        <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+        <Description>Shared primitives for Apache Calcite Entity Framework Core provider and adapter.</Description>
     </PropertyGroup>
 
     <ItemGroup>
@@ -14,21 +16,18 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Apache.Calcite.Data" Version="1.0.1" />
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.8" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.8" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\Apache.Calcite.EntityFrameworkCore.Adapter\Apache.Calcite.EntityFrameworkCore.Adapter.csproj" />
-        <ProjectReference Include="..\Apache.Calcite.EntityFrameworkCore\Apache.Calcite.EntityFrameworkCore.csproj" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.2" />
     </ItemGroup>
 
     <ItemGroup>
         <MavenReference Include="org.apache.calcite:calcite-linq4j" Version="$(CalciteVersion)" />
         <MavenReference Include="org.apache.calcite:calcite-core" Version="$(CalciteVersion)" />
-        <MavenReference Include="org.apache.calcite:calcite-server" Version="$(CalciteVersion)" />
         <MavenReference Include="org.jooq:joou-java-6" Version="0.9.5" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="." Visible="false" />
+        <None Include="..\..\icon.png" Pack="true" PackagePath="." Visible="false" />
     </ItemGroup>
 
 </Project>
