@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 
+using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
 using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 
 using org.apache.calcite.plan;
@@ -20,15 +20,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
     /// </summary>
     public class EfCoreWhere : Filter, EfCoreRel
     {
-
-        // Queryable.Where<TSource>(IQueryable<TSource>, Expression<Func<TSource, bool>>)
-        static readonly MethodInfo QueryableWhereMethod =
-            typeof(Queryable)
-                .GetMethods()
-                .First(m => m.Name == nameof(Queryable.Where)
-                    && m.GetParameters().Length == 2
-                    && m.GetParameters()[1].ParameterType.GetGenericTypeDefinition() == typeof(Expression<>)
-                    && m.GetParameters()[1].ParameterType.GetGenericArguments()[0].GetGenericTypeDefinition() == typeof(Func<,>));
 
         /// <summary>
         /// Initializes a new instance.
@@ -66,7 +57,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
             var context = RexTranslationContext.ForSingleInput(efRel.getRowType().getFieldList(), param);
             var body = RexToLinqTranslator.Default.Translate(getCondition(), context);
             var lambda = Expression.Lambda(typeof(Func<,>).MakeGenericType(efRel.ClrElementType, typeof(bool)), body, param);
-            return (IQueryable)QueryableWhereMethod.MakeGenericMethod(efRel.ClrElementType).Invoke(null, [efRel.implement(), lambda])!;
+            return (IQueryable)QueryableMethods.Where.MakeGenericMethod(efRel.ClrElementType).Invoke(null, [efRel.implement(), lambda])!;
         }
 
     }

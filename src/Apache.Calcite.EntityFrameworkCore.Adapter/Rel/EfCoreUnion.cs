@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
-using System.Reflection;
+
+using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
 
 using java.util;
 
@@ -18,14 +19,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
     /// </summary>
     public class EfCoreUnion : Union, EfCoreRel
     {
-
-        // Queryable.Union<TSource>(IQueryable<TSource>, IEnumerable<TSource>)
-        static readonly MethodInfo QueryableUnionMethod =
-            typeof(Queryable).GetMethods().First(m => m.Name == nameof(Queryable.Union) && m.GetParameters().Length == 2);
-
-        // Queryable.Concat<TSource>(IQueryable<TSource>, IEnumerable<TSource>)
-        static readonly MethodInfo QueryableConcatMethod =
-            typeof(Queryable).GetMethods().First(m => m.Name == nameof(Queryable.Concat) && m.GetParameters().Length == 2);
 
         /// <summary>
         /// Initializes a new instance.
@@ -59,7 +52,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
         public IQueryable implement()
         {
             var elementType = ClrElementType;
-            var combine = all ? QueryableConcatMethod : QueryableUnionMethod;
+            var combine = all ? QueryableMethods.Concat : QueryableMethods.Union;
             var n = inputs.size();
 
             var result = ((EfCoreRel)((RelNode)inputs.get(0))).implement();

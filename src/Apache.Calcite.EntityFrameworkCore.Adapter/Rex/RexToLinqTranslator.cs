@@ -5,6 +5,8 @@ using System.Reflection;
 
 using Apache.Calcite.EntityFrameworkCore.Core;
 
+using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
+
 using org.apache.calcite.rel.type;
 using org.apache.calcite.rex;
 using org.apache.calcite.sql;
@@ -1084,8 +1086,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
             return Expression.OnesComplement(operand);
         }
 
-        static readonly MethodInfo StringConcat2 = typeof(string).GetMethod(nameof(string.Concat), [typeof(string), typeof(string)])!;
-
         /// <summary>
         /// Translates <c>CONCAT2(a, b)</c> and <c>CONCAT_WITH_NULL(a, b)</c> into <see cref="string.Concat(string, string)"/>.
         /// <c>CONCAT2</c> treats NULL as empty string (SQL Server semantics); <c>CONCAT_WITH_NULL</c> propagates NULL.
@@ -1096,11 +1096,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         {
             var left = Translate((RexNode)call.getOperands().get(0), context);
             var right = Translate((RexNode)call.getOperands().get(1), context);
-            return Expression.Call(StringConcat2, Expression.Convert(left, typeof(string)), Expression.Convert(right, typeof(string)));
+            return Expression.Call(StringMethods.Concat2, Expression.Convert(left, typeof(string)), Expression.Convert(right, typeof(string)));
         }
-
-        static readonly MethodInfo StringTrimStart = typeof(string).GetMethod(nameof(string.TrimStart), Type.EmptyTypes)!;
-        static readonly MethodInfo StringTrimEnd = typeof(string).GetMethod(nameof(string.TrimEnd), Type.EmptyTypes)!;
 
         /// <summary>
         /// Translates <c>LTRIM(value)</c> into <see cref="string.TrimStart()"/>.
@@ -1108,7 +1105,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         protected virtual Expression TranslateLTrim(RexCall call, RexTranslationContext context)
         {
             var operand = Translate((RexNode)call.getOperands().get(0), context);
-            return Expression.Call(Expression.Convert(operand, typeof(string)), StringTrimStart);
+            return Expression.Call(Expression.Convert(operand, typeof(string)), StringMethods.TrimStart);
         }
 
         /// <summary>
@@ -1117,12 +1114,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         protected virtual Expression TranslateRTrim(RexCall call, RexTranslationContext context)
         {
             var operand = Translate((RexNode)call.getOperands().get(0), context);
-            return Expression.Call(Expression.Convert(operand, typeof(string)), StringTrimEnd);
+            return Expression.Call(Expression.Convert(operand, typeof(string)), StringMethods.TrimEnd);
         }
-
-        static readonly MethodInfo StringEndsWith = typeof(string).GetMethod(nameof(string.EndsWith), [typeof(string)])!;
-        static readonly MethodInfo StringStartsWith = typeof(string).GetMethod(nameof(string.StartsWith), [typeof(string)])!;
-        static readonly MethodInfo StringContains = typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!;
 
         /// <summary>
         /// Translates <c>ENDS_WITH(value, suffix)</c> into <see cref="string.EndsWith(string)"/>.
@@ -1131,7 +1124,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         {
             var str = Expression.Convert(Translate((RexNode)call.getOperands().get(0), context), typeof(string));
             var suffix = Expression.Convert(Translate((RexNode)call.getOperands().get(1), context), typeof(string));
-            return Expression.Call(str, StringEndsWith, suffix);
+            return Expression.Call(str, StringMethods.EndsWith, suffix);
         }
 
         /// <summary>
@@ -1141,7 +1134,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         {
             var str = Expression.Convert(Translate((RexNode)call.getOperands().get(0), context), typeof(string));
             var prefix = Expression.Convert(Translate((RexNode)call.getOperands().get(1), context), typeof(string));
-            return Expression.Call(str, StringStartsWith, prefix);
+            return Expression.Call(str, StringMethods.StartsWith, prefix);
         }
 
         /// <summary>
@@ -1151,7 +1144,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         {
             var str = Expression.Convert(Translate((RexNode)call.getOperands().get(0), context), typeof(string));
             var substr = Expression.Convert(Translate((RexNode)call.getOperands().get(1), context), typeof(string));
-            return Expression.Call(str, StringContains, substr);
+            return Expression.Call(str, StringMethods.Contains, substr);
         }
 
         /// <summary>

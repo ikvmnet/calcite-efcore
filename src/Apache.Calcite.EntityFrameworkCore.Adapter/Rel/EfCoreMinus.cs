@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
-using System.Reflection;
+
+using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
 
 using java.util;
 
@@ -18,10 +19,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
     /// </summary>
     public class EfCoreMinus : Minus, EfCoreRel
     {
-
-        // Queryable.Except<TSource>(IQueryable<TSource>, IEnumerable<TSource>)
-        static readonly MethodInfo QueryableExceptMethod =
-            typeof(Queryable).GetMethods().First(m => m.Name == nameof(Queryable.Except) && m.GetParameters().Length == 2);
 
         /// <summary>
         /// Initializes a new instance.
@@ -61,8 +58,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
             var result = ((EfCoreRel)(RelNode)inputs.get(0)).implement();
             for (int i = 1; i < n; i++)
             {
-                var right = ((EfCoreRel)((RelNode)inputs.get(i))).implement();
-                result = (IQueryable)QueryableExceptMethod.MakeGenericMethod(elementType).Invoke(null, [result, right])!;
+                var right = ((EfCoreRel)(RelNode)inputs.get(i)).implement();
+                result = (IQueryable)QueryableMethods.Except.MakeGenericMethod(elementType).Invoke(null, [result, right])!;
             }
 
             return result;

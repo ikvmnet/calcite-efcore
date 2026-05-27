@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
-using System.Reflection;
+
+using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
 
 using java.util;
 
@@ -18,10 +19,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
     /// </summary>
     public class EfCoreIntersect : Intersect, EfCoreRel
     {
-
-        // Queryable.Intersect<TSource>(IQueryable<TSource>, IEnumerable<TSource>)
-        static readonly MethodInfo QueryableIntersectMethod =
-            typeof(Queryable).GetMethods().First(m => m.Name == nameof(Queryable.Intersect) && m.GetParameters().Length == 2);
 
         /// <summary>
         /// Initializes a new instance.
@@ -62,7 +59,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
             for (int i = 1; i < n; i++)
             {
                 var right = ((EfCoreRel)((RelNode)inputs.get(i))).implement();
-                result = (IQueryable)QueryableIntersectMethod.MakeGenericMethod(elementType).Invoke(null, [result, right])!;
+                result = (IQueryable)QueryableMethods.Intersect.MakeGenericMethod(elementType).Invoke(null, [result, right])!;
             }
 
             return result;

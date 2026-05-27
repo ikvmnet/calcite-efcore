@@ -3,6 +3,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
+using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
 using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 
 using org.apache.calcite.plan;
@@ -20,30 +21,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
     /// </summary>
     public class EfCoreOrderBy : Sort, EfCoreRel
     {
-
-        // Queryable.OrderBy<TSource, TKey>(IQueryable<TSource>, Expression<Func<TSource, TKey>>)
-        static readonly MethodInfo QueryableOrderByMethod =
-            typeof(Queryable).GetMethods().First(m => m.Name == nameof(Queryable.OrderBy) && m.GetParameters().Length == 2);
-
-        // Queryable.OrderByDescending<TSource, TKey>
-        static readonly MethodInfo QueryableOrderByDescendingMethod =
-            typeof(Queryable).GetMethods().First(m => m.Name == nameof(Queryable.OrderByDescending) && m.GetParameters().Length == 2);
-
-        // Queryable.ThenBy<TSource, TKey>
-        static readonly MethodInfo QueryableThenByMethod =
-            typeof(Queryable).GetMethods().First(m => m.Name == nameof(Queryable.ThenBy) && m.GetParameters().Length == 2);
-
-        // Queryable.ThenByDescending<TSource, TKey>
-        static readonly MethodInfo QueryableThenByDescendingMethod =
-            typeof(Queryable).GetMethods().First(m => m.Name == nameof(Queryable.ThenByDescending) && m.GetParameters().Length == 2);
-
-        // Queryable.Skip<TSource>
-        static readonly MethodInfo QueryableSkipMethod =
-            typeof(Queryable).GetMethods().First(m => m.Name == nameof(Queryable.Skip) && m.GetParameters().Length == 2);
-
-        // Queryable.Take<TSource>
-        static readonly MethodInfo QueryableTakeMethod =
-            typeof(Queryable).GetMethods().First(m => m.Name == nameof(Queryable.Take) && m.GetParameters().Length == 2);
 
         /// <summary>
         /// Initializes a new instance.
@@ -106,9 +83,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
 
                 MethodInfo method;
                 if (i == 0)
-                    method = isDescending ? QueryableOrderByDescendingMethod : QueryableOrderByMethod;
+                    method = isDescending ? QueryableMethods.OrderByDescending : QueryableMethods.OrderBy;
                 else
-                    method = isDescending ? QueryableThenByDescendingMethod : QueryableThenByMethod;
+                    method = isDescending ? QueryableMethods.ThenByDescending : QueryableMethods.ThenBy;
 
                 result = (IQueryable)method.MakeGenericMethod(elementType, prop.PropertyType).Invoke(null, [result, keySelector])!;
             }
@@ -119,7 +96,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
                 if (offsetExpr.Type != typeof(int))
                     offsetExpr = Expression.Convert(offsetExpr, typeof(int));
 
-                result = (IQueryable)QueryableSkipMethod.MakeGenericMethod(elementType).Invoke(null, [result, offsetExpr])!;
+                result = (IQueryable)QueryableMethods.Skip.MakeGenericMethod(elementType).Invoke(null, [result, offsetExpr])!;
             }
 
             if (fetch != null)
@@ -128,7 +105,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
                 if (fetchExpr.Type != typeof(int))
                     fetchExpr = Expression.Convert(fetchExpr, typeof(int));
 
-                result = (IQueryable)QueryableTakeMethod.MakeGenericMethod(elementType).Invoke(null, [result, fetchExpr])!;
+                result = (IQueryable)QueryableMethods.Take.MakeGenericMethod(elementType).Invoke(null, [result, fetchExpr])!;
             }
 
             return result;

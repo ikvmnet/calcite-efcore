@@ -4,6 +4,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 
 using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
+using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
 using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 
 using com.google.common.collect;
@@ -26,14 +27,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
     /// </summary>
     public class EfCoreSelect : Project, EfCoreRel
     {
-
-        // Queryable.Select<TSource, TResult>(IQueryable<TSource>, Expression<Func<TSource, TResult>>)
-        static readonly MethodInfo QueryableSelectMethod =
-            typeof(Queryable)
-                .GetMethods()
-                .First(m => m.Name == nameof(Queryable.Select)
-                    && m.GetParameters().Length == 2
-                    && m.GetParameters()[1].ParameterType.GetGenericTypeDefinition() == typeof(Expression<>));
 
         readonly Lazy<Type> _clrElementType;
 
@@ -119,7 +112,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
                 Expression.MemberInit(Expression.New(clrElementType), bindings),
                 param);
 
-            return (IQueryable)QueryableSelectMethod.MakeGenericMethod(efRel.ClrElementType, ClrElementType).Invoke(null, [efRel.implement(), selector])!;
+            return (IQueryable)QueryableMethods.Select.MakeGenericMethod(efRel.ClrElementType, ClrElementType).Invoke(null, [efRel.implement(), selector])!;
         }
 
     }
