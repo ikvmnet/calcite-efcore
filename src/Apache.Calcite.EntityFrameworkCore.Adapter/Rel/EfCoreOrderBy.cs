@@ -3,7 +3,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
+using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 
 using org.apache.calcite.plan;
 using org.apache.calcite.rel;
@@ -83,7 +83,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
             var elementType = efRel.ClrElementType;
             var inputFields = efRel.getRowType().getFieldList();
             var param = Expression.Parameter(elementType, "e");
-            var translator = new RexToLinqTranslator(elementType, inputFields, param);
+            var context = RexTranslationContext.ForSingleInput(inputFields, param);
             var fieldKeys = collation.getFieldCollations();
             var n = fieldKeys.size();
 
@@ -115,7 +115,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
 
             if (offset != null)
             {
-                var offsetExpr = translator.Translate(offset);
+                var offsetExpr = RexToLinqTranslator.Default.Translate(offset, context);
                 if (offsetExpr.Type != typeof(int))
                     offsetExpr = Expression.Convert(offsetExpr, typeof(int));
 
@@ -124,7 +124,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
 
             if (fetch != null)
             {
-                var fetchExpr = translator.Translate(fetch);
+                var fetchExpr = RexToLinqTranslator.Default.Translate(fetch, context);
                 if (fetchExpr.Type != typeof(int))
                     fetchExpr = Expression.Convert(fetchExpr, typeof(int));
 

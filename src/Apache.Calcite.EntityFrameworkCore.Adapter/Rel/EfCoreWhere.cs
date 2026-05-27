@@ -3,7 +3,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
+using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 
 using org.apache.calcite.plan;
 using org.apache.calcite.plan.volcano;
@@ -63,8 +63,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
         {
             var efRel = (EfCoreRel)getInput();
             var param = Expression.Parameter(efRel.ClrElementType, "e");
-            var translator = new RexToLinqTranslator(efRel.ClrElementType, efRel.getRowType().getFieldList(), param);
-            var body = translator.Translate(getCondition());
+            var context = RexTranslationContext.ForSingleInput(efRel.getRowType().getFieldList(), param);
+            var body = RexToLinqTranslator.Default.Translate(getCondition(), context);
             var lambda = Expression.Lambda(typeof(Func<,>).MakeGenericType(efRel.ClrElementType, typeof(bool)), body, param);
             return (IQueryable)QueryableWhereMethod.MakeGenericMethod(efRel.ClrElementType).Invoke(null, [efRel.implement(), lambda])!;
         }

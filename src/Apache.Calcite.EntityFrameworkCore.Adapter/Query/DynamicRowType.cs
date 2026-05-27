@@ -17,10 +17,39 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Query
     internal static class DynamicRowType
     {
 
+        readonly struct ShapeKey : IEquatable<ShapeKey>
+        {
+
+            public readonly (string Name, Type ClrType)[] Shape;
+
+            public ShapeKey((string Name, Type ClrType)[] shape) => Shape = shape;
+
+            public bool Equals(ShapeKey other)
+            {
+                if (Shape.Length != other.Shape.Length)
+                    return false;
+                for (int i = 0; i < Shape.Length; i++)
+                    if (Shape[i] != other.Shape[i])
+                        return false;
+                return true;
+            }
+
+            public override bool Equals(object? obj) => obj is ShapeKey k && Equals(k);
+
+            public override int GetHashCode()
+            {
+                var h = new HashCode();
+                foreach (var (name, type) in Shape)
+                    h.Add(HashCode.Combine(name, type));
+                return h.ToHashCode();
+            }
+
+        }
+
         static readonly AssemblyBuilder AssemblyBuilder =
             AssemblyBuilder.DefineDynamicAssembly(
                 new AssemblyName("Apache.Calcite.EntityFrameworkCore.DynamicRows"),
-                AssemblyBuilderAccess.Run);
+                AssemblyBuilderAccess.RunAndCollect);
 
         static readonly ModuleBuilder ModuleBuilder =
             AssemblyBuilder.DefineDynamicModule("DynamicRows");
@@ -70,35 +99,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Query
             }
 
             return tb.CreateType()!;
-        }
-
-        readonly struct ShapeKey : IEquatable<ShapeKey>
-        {
-
-            public readonly (string Name, Type ClrType)[] Shape;
-
-            public ShapeKey((string Name, Type ClrType)[] shape) => Shape = shape;
-
-            public bool Equals(ShapeKey other)
-            {
-                if (Shape.Length != other.Shape.Length)
-                    return false;
-                for (int i = 0; i < Shape.Length; i++)
-                    if (Shape[i] != other.Shape[i])
-                        return false;
-                return true;
-            }
-
-            public override bool Equals(object? obj) => obj is ShapeKey k && Equals(k);
-
-            public override int GetHashCode()
-            {
-                var h = new HashCode();
-                foreach (var (name, type) in Shape)
-                    h.Add(HashCode.Combine(name, type));
-                return h.ToHashCode();
-            }
-
         }
 
     }

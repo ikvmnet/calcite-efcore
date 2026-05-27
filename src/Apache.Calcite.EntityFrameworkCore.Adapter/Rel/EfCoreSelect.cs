@@ -4,6 +4,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 
 using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
+using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 
 using com.google.common.collect;
 
@@ -62,14 +63,15 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
             var efRel = (EfCoreRel)getInput();
             var outputFields = getRowType().getFieldList();
             var projects = getProjects();
-            var translator = new RexToLinqTranslator(efRel.ClrElementType, efRel.getRowType().getFieldList(), Expression.Parameter(efRel.ClrElementType));
+            var inputParam = Expression.Parameter(efRel.ClrElementType);
+            var context = RexTranslationContext.ForSingleInput(efRel.getRowType().getFieldList(), inputParam);
 
             var n = projects.size();
             var shape = new (string Name, Type ClrType)[n];
             for (int i = 0; i < n; i++)
             {
                 var outputField = (RelDataTypeField)outputFields.get(i);
-                shape[i] = (outputField.getName(), translator.ResolveType((RexNode)projects.get(i)));
+                shape[i] = (outputField.getName(), RexToLinqTranslator.Default.ResolveType((RexNode)projects.get(i), context));
             }
 
             return DynamicRowType.GetOrCreate(shape);
@@ -96,7 +98,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
             var outputFields = getRowType().getFieldList();
             var projects = getProjects();
             var param = Expression.Parameter(inputType, "e");
-            var translator = new RexToLinqTranslator(inputType, inputFields, param);
+            var context = RexTranslationContext.ForSingleInput(inputFields, param);
             var clrElementType = ClrElementType;
 
             // Translate each project expression and bind it to the corresponding DTO property.
@@ -105,7 +107,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
             for (int i = 0; i < n; i++)
             {
                 var prop = clrElementType.GetProperty(((RelDataTypeField)outputFields.get(i)).getName())!;
-                var value = translator.Translate((RexNode)projects.get(i));
+                var value = RexToLinqTranslator.Default.Translate((RexNode)projects.get(i), context);
+
                 // Coerce when the translated expression type doesn't exactly match the property type (e.g. widening numerics).
                 var coerced = value.Type == prop.PropertyType ? value : Expression.Convert(value, prop.PropertyType);
                 bindings[i] = Expression.Bind(prop, coerced);

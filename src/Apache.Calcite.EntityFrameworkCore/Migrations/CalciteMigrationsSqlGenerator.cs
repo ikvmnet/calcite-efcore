@@ -38,13 +38,25 @@ namespace Apache.Calcite.EntityFrameworkCore.Migrations
         /// <inheritdoc/>
         protected override void CreateTablePrimaryKeyConstraint(CreateTableOperation operation, IModel? model, MigrationCommandListBuilder builder)
         {
-
+            throw new NotSupportedException();
         }
 
         /// <inheritdoc/>
         protected override void CreateTableForeignKeys(CreateTableOperation operation, IModel? model, MigrationCommandListBuilder builder)
         {
+            throw new NotSupportedException();
+        }
 
+        /// <inheritdoc />
+        protected override void Generate(AddColumnOperation operation, IModel? model, MigrationCommandListBuilder builder, bool terminate = true)
+        {
+            throw new NotSupportedException();
+        }
+
+        /// <inheritdoc />
+        protected override void Generate(AlterColumnOperation operation, IModel? model, MigrationCommandListBuilder builder)
+        {
+            throw new NotSupportedException();
         }
 
         /// <inheritdoc />

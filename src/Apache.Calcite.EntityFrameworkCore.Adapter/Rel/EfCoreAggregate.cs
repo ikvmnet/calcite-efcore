@@ -13,6 +13,7 @@ using org.apache.calcite.rel.core;
 using org.apache.calcite.rel.metadata;
 using org.apache.calcite.rel.type;
 using org.apache.calcite.sql.type;
+using org.apache.calcite.util;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
 {
@@ -63,8 +64,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
         /// <inheritdoc />
         public IQueryable implement()
         {
-            throw new NotSupportedException(
-                "EfCoreAggregate.implement() is not yet implemented. Aggregate translation to LINQ GroupBy is pending.");
+            throw new NotSupportedException("EfCoreAggregate.implement() is not yet implemented. Aggregate translation to LINQ GroupBy is pending.");
         }
 
         /// <summary>

@@ -34,6 +34,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
             [typeof(byte[])] = CalciteByteArrayTypeMapping.Default,
         };
 
+        static readonly CalciteJsonTypeMapping _jsonTypeMapping = CalciteJsonTypeMapping.Default;
+
         static readonly Dictionary<string, RelationalTypeMapping[]> _storeTypeMappings = new(StringComparer.OrdinalIgnoreCase)
         {
             ["BOOLEAN"] = [CalciteBoolTypeMapping.Default],
@@ -68,6 +70,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
         /// <inheritdoc/>
         protected override RelationalTypeMapping? FindMapping(in RelationalTypeMappingInfo mappingInfo)
         {
+            if (mappingInfo.ClrType == typeof(JsonTypePlaceholder))
+                return _jsonTypeMapping;
+
             var mapping = base.FindMapping(mappingInfo)
                 ?? FindRawMapping(mappingInfo);
 

@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 
 using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
+using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 using Apache.Calcite.EntityFrameworkCore.Core;
 
 using com.google.common.collect;
@@ -63,38 +64,41 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
         public IQueryable implement()
         {
             var elementType = ClrElementType;
-            var fields = getRowType().getFieldList();
+            var rowType = getRowType();
+            var fields = rowType.getFieldList();
             var n = fields.size();
 
-            // Build the list of row objects via reflection.
-            var rows = new List<object>();
+            // Build one MemberInitExpression per tuple: new T { F0 = <literal>, F1 = <literal>, … }
             var tupleCount = tuples.size();
+            var rowInits = new Expression[tupleCount];
             for (int r = 0; r < tupleCount; r++)
             {
                 var tuple = (List)tuples.get(r);
-                var row = Activator.CreateInstance(elementType)!;
+                var bindings = new MemberBinding[n];
                 for (int c = 0; c < n; c++)
                 {
                     var field = (RelDataTypeField)fields.get(c);
                     var literal = (RexLiteral)tuple.get(c);
                     var prop = elementType.GetProperty(field.getName(), BindingFlags.Public | BindingFlags.Instance)!;
-                    if (!literal.isNull())
-                    {
-                        var sqlTypeName = (SqlTypeName.__Enum)literal.getType().getSqlTypeName().ordinal();
-                        var value = ExtractLiteralValue(literal, sqlTypeName, prop.PropertyType);
-                        prop.SetValue(row, value);
-                    }
+                    var valueExpr = RexToLinqTranslator.Default.Translate(literal, RexTranslationContext.Empty);
+                    var coerced = valueExpr.Type == prop.PropertyType ? valueExpr : Expression.Convert(valueExpr, prop.PropertyType);
+                    bindings[c] = Expression.Bind(prop, coerced);
                 }
-                rows.Add(row);
+
+                rowInits[r] = Expression.MemberInit(Expression.New(elementType), bindings);
             }
+
+            // Compile: () => new T[] { row0, row1, … }
+            var arrayInit = Expression.NewArrayInit(elementType, rowInits);
+            var factory = Expression.Lambda<Func<object>>(Expression.Convert(arrayInit, typeof(object))).Compile();
+            var array = factory();
 
             // Wrap as a typed IQueryable via Queryable.AsQueryable<T>.
             var asQueryableMethod = typeof(Queryable)
                 .GetMethod(nameof(Queryable.AsQueryable), 1, [typeof(IEnumerable<>).MakeGenericType(Type.MakeGenericMethodParameter(0))])!
                 .MakeGenericMethod(elementType);
 
-            var typedList = ConvertToTypedList(rows, elementType);
-            return (IQueryable)asQueryableMethod.Invoke(null, [typedList])!;
+            return (IQueryable)asQueryableMethod.Invoke(null, [array])!;
         }
 
         /// <summary>
@@ -113,61 +117,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
                 shape[i] = (field.getName(), clrType);
             }
             return DynamicRowType.GetOrCreate(shape);
-        }
-
-        /// <summary>
-        /// Extracts the CLR value from a non-null <see cref="RexLiteral"/> and converts it to <paramref name="targetType"/>.
-        /// </summary>
-        static object? ExtractLiteralValue(RexLiteral literal, SqlTypeName.__Enum sqlTypeName, Type targetType)
-        {
-            var raw = literal.getValue();
-            object? value = raw switch
-            {
-                org.apache.calcite.util.NlsString nls => nls.getValue(),
-                java.lang.Boolean b => b.booleanValue(),
-                java.math.BigDecimal bd => ConvertBigDecimal(bd, sqlTypeName),
-                org.joou.UByte ub => (byte)ub.intValue(),
-                org.joou.UShort us => (ushort)us.intValue(),
-                org.joou.UInteger ui => (uint)ui.longValue(),
-                org.joou.ULong ul => (ulong)ul.longValue(),
-                java.lang.Byte byt => byt.byteValue(),
-                java.lang.Short s => s.shortValue(),
-                java.lang.Integer i => i.intValue(),
-                java.lang.Long l => l.longValue(),
-                java.lang.Float f => f.floatValue(),
-                java.lang.Double d => d.doubleValue(),
-                _ => throw new NotSupportedException($"EfCoreValues: unsupported literal value type '{raw?.GetType().Name}'.")
-            };
-            return value is null ? null : Convert.ChangeType(value, targetType);
-        }
-
-        static object ConvertBigDecimal(java.math.BigDecimal bd, SqlTypeName.__Enum sqlTypeName) => sqlTypeName switch
-        {
-            SqlTypeName.__Enum.TINYINT => bd.byteValueExact(),
-            SqlTypeName.__Enum.UTINYINT => (byte)bd.byteValueExact(),
-            SqlTypeName.__Enum.SMALLINT => bd.shortValueExact(),
-            SqlTypeName.__Enum.USMALLINT => (ushort)bd.shortValueExact(),
-            SqlTypeName.__Enum.INTEGER => bd.intValueExact(),
-            SqlTypeName.__Enum.UINTEGER => (uint)bd.intValueExact(),
-            SqlTypeName.__Enum.BIGINT => bd.longValueExact(),
-            SqlTypeName.__Enum.UBIGINT => (ulong)bd.longValueExact(),
-            SqlTypeName.__Enum.FLOAT or SqlTypeName.__Enum.REAL => bd.floatValue(),
-            SqlTypeName.__Enum.DOUBLE => bd.doubleValue(),
-            _ => BigDecimalConverter.ToDecimal(bd)
-        };
-
-        /// <summary>
-        /// Converts an untyped <see cref="List{object}"/> to a typed <c>List&lt;T&gt;</c> at runtime so that
-        /// <c>AsQueryable&lt;T&gt;</c> receives the correctly typed enumerable.
-        /// </summary>
-        static object ConvertToTypedList(List<object> rows, Type elementType)
-        {
-            var listType = typeof(List<>).MakeGenericType(elementType);
-            var list = Activator.CreateInstance(listType)!;
-            var addMethod = listType.GetMethod(nameof(List<object>.Add))!;
-            foreach (var row in rows)
-                addMethod.Invoke(list, [row]);
-            return list;
         }
 
     }

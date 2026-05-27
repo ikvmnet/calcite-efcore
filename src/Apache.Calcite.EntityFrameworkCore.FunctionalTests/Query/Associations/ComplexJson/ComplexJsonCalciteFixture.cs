@@ -1,4 +1,4 @@
-using Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities;
+﻿using Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities;
 
 using Microsoft.EntityFrameworkCore.Query.Associations.ComplexJson;
 using Microsoft.EntityFrameworkCore.TestUtilities;
