@@ -20,11 +20,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         public static EfCoreToEnumerableConverterRule Create(EfCoreConvention convention)
         {
             return (EfCoreToEnumerableConverterRule)Config.INSTANCE
-                .withConversion(typeof(RelNode), convention, EnumerableConvention.INSTANCE,
-                    "EfCoreToEnumerableConverterRule")
-                .withRuleFactory(
-                    new DelegateFunction<Config, EfCoreToEnumerableConverterRule>(
-                        c => new EfCoreToEnumerableConverterRule(c)))
+                .withConversion(typeof(RelNode), convention, EnumerableConvention.INSTANCE, nameof(EfCoreToEnumerableConverterRule))
+                .withRuleFactory(new DelegateFunction<Config, EfCoreToEnumerableConverterRule>(c => new EfCoreToEnumerableConverterRule(c)))
                 .toRule(typeof(EfCoreToEnumerableConverterRule));
         }
 

@@ -25,7 +25,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         public static EfCoreJoinRule Create(EfCoreConvention convention)
         {
             return (EfCoreJoinRule)Config.INSTANCE
-                .withConversion(typeof(Join), Convention.NONE, convention, "EfCoreJoinRule")
+                .withConversion(typeof(Join), Convention.NONE, convention, nameof(EfCoreJoinRule))
                 .withRuleFactory(new DelegateFunction<Config, EfCoreJoinRule>(c => new EfCoreJoinRule(c)))
                 .toRule(typeof(EfCoreJoinRule));
         }

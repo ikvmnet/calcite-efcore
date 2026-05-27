@@ -3,9 +3,9 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
 using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
 using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
+using Apache.Calcite.EntityFrameworkCore.Core;
 
 using com.google.common.collect;
 
@@ -28,8 +28,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
     public class EfCoreSelect : Project, EfCoreRel
     {
 
-        readonly Lazy<Type> _clrElementType;
-
         /// <summary>
         /// Initializes a new instance.
         /// </summary>
@@ -41,34 +39,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         public EfCoreSelect(RelOptCluster cluster, RelTraitSet traitSet, RelNode input, List projects, RelDataType rowType) :
             base(cluster, traitSet, ImmutableList.of(), input, projects, rowType, ImmutableSet.of())
         {
-            _clrElementType = new Lazy<Type>(CreateClrElementType);
+
         }
 
         /// <inheritdoc />
-        public Type ClrElementType => _clrElementType.Value;
-
-        /// <summary>
-        /// Resolves the output CLR shape by inspecting each project expression, then emits the DTO type via
-        /// <see cref="DynamicRowType"/>. Invoked at most once by <see cref="_clrElementType"/>.
-        /// </summary>
-        Type CreateClrElementType()
-        {
-            var efRel = (EfCoreRel)getInput();
-            var outputFields = getRowType().getFieldList();
-            var projects = getProjects();
-            var inputParam = Expression.Parameter(efRel.ClrElementType);
-            var context = RexTranslationContext.ForSingleInput(efRel.getRowType().getFieldList(), inputParam);
-
-            var n = projects.size();
-            var shape = new (string Name, Type ClrType)[n];
-            for (int i = 0; i < n; i++)
-            {
-                var outputField = (RelDataTypeField)outputFields.get(i);
-                shape[i] = (outputField.getName(), RexToLinqTranslator.Default.ResolveType((RexNode)projects.get(i), context));
-            }
-
-            return DynamicRowType.GetOrCreate(shape);
-        }
+        public Type ClrElementType => CalciteTypeMapper.ToClrType(getRowType());
 
         /// <inheritdoc />
         public override Project copy(RelTraitSet traitSet, RelNode input, List projects, RelDataType rowType)
@@ -83,16 +58,17 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         }
 
         /// <inheritdoc />
-        public IQueryable implement()
+        public IQueryable implement(EfCoreRelImplementor implementor)
         {
-            var efRel = (EfCoreRel)getInput();
-            var inputType = efRel.ClrElementType;
+            var efRel = EfCoreRel.Unwrap(getInput());
+            var source = implementor.visitChild(getInput());
+            var inputType = source.ElementType;
             var inputFields = efRel.getRowType().getFieldList();
             var outputFields = getRowType().getFieldList();
             var projects = getProjects();
             var param = Expression.Parameter(inputType, "e");
             var context = RexTranslationContext.ForSingleInput(inputFields, param);
-            var clrElementType = ClrElementType;
+            var clrElementType = CalciteTypeMapper.ToClrType(getRowType());
 
             // Translate each project expression and bind it to the corresponding DTO property.
             var n = projects.size();
@@ -112,7 +88,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
                 Expression.MemberInit(Expression.New(clrElementType), bindings),
                 param);
 
-            return (IQueryable)QueryableMethods.Select.MakeGenericMethod(efRel.ClrElementType, ClrElementType).Invoke(null, [efRel.implement(), selector])!;
+            return (IQueryable)QueryableMethods.Select.MakeGenericMethod(inputType, clrElementType).Invoke(null, [source, selector])!;
         }
 
     }

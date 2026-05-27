@@ -38,9 +38,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         }
 
         /// <inheritdoc />
-        public Type ClrElementType => ((EfCoreRel)getInput()).ClrElementType;
-
-        /// <inheritdoc />
         public override Sort copy(RelTraitSet traitSet, RelNode newInput, RelCollation newCollation, RexNode? offset, RexNode? fetch)
         {
             return new EfCoreOrderBy(getCluster(), traitSet, newInput, newCollation, offset, fetch);
@@ -53,11 +50,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         }
 
         /// <inheritdoc />
-        public IQueryable implement()
+        public IQueryable implement(EfCoreRelImplementor implementor)
         {
-            var efRel = (EfCoreRel)getInput();
-            var source = efRel.implement();
-            var elementType = efRel.ClrElementType;
+            var efRel = EfCoreRel.Unwrap(getInput());
+            var source = implementor.visitChild(getInput());
+            var elementType = source.ElementType;
             var inputFields = efRel.getRowType().getFieldList();
             var param = Expression.Parameter(elementType, "e");
             var context = RexTranslationContext.ForSingleInput(inputFields, param);

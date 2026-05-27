@@ -34,9 +34,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         }
 
         /// <inheritdoc />
-        public Type ClrElementType => ((EfCoreRel)((RelNode)inputs.get(0))).ClrElementType;
-
-        /// <inheritdoc />
         public override SetOp copy(RelTraitSet traitSet, List inputs, bool all)
         {
             return new EfCoreUnion(getCluster(), traitSet, inputs, all);
@@ -49,16 +46,16 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         }
 
         /// <inheritdoc />
-        public IQueryable implement()
+        public IQueryable implement(EfCoreRelImplementor implementor)
         {
-            var elementType = ClrElementType;
             var combine = all ? QueryableMethods.Concat : QueryableMethods.Union;
             var n = inputs.size();
 
-            var result = ((EfCoreRel)((RelNode)inputs.get(0))).implement();
+            var result = implementor.visitChild((RelNode)inputs.get(0));
+            var elementType = result.ElementType;
             for (int i = 1; i < n; i++)
             {
-                var right = ((EfCoreRel)((RelNode)inputs.get(i))).implement();
+                var right = implementor.visitChild((RelNode)inputs.get(i));
                 result = (IQueryable)combine.MakeGenericMethod(elementType).Invoke(null, [result, right])!;
             }
 

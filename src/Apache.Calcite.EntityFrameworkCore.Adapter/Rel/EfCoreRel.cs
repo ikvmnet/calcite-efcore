@@ -14,17 +14,29 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
     {
 
         /// <summary>
-        /// The CLR element type of the <see cref="System.Linq.IQueryable"/> produced by <see cref="implement"/>.
-        /// For leaf nodes this is the EF Core entity type; for projection nodes it is the
-        /// <see cref="Apache.Calcite.EntityFrameworkCore.Adapter.Query.DynamicRowType"/> generated for that node's output shape.
+        /// Translates this relational node into an <see cref="IQueryable"/>,
+        /// recursively visiting any inputs via <paramref name="implementor"/>.
         /// </summary>
-        Type ClrElementType { get; }
+        IQueryable implement(EfCoreRelImplementor implementor);
 
         /// <summary>
-        /// Translates this relational node into an <see cref="IQueryable"/>,
-        /// recursively calling <c>implement()</c> on any inputs.
+        /// Unwraps <paramref name="rel"/> to a concrete <see cref="EfCoreRel"/>, resolving any
+        /// <see cref="RelSubset"/> by following <see cref="RelSubset.getBest()"/>.
+        /// Throws <see cref="InvalidOperationException"/> if no concrete <see cref="EfCoreRel"/> is reachable.
         /// </summary>
-        IQueryable implement();
+        static EfCoreRel Unwrap(RelNode rel)
+        {
+            while (rel is RelSubset subset)
+            {
+                rel = subset.getBest()
+                    ?? throw new InvalidOperationException($"RelSubset has no best rel yet (convention={subset.getConvention()}).");
+            }
+
+            if (rel is EfCoreRel efRel)
+                return efRel;
+
+            throw new InvalidOperationException($"Expected EfCoreRel but got {rel.GetType().Name}.");
+        }
 
     }
 

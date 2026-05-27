@@ -78,7 +78,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         public Type ClrElementType => _efCoreTable.EntityClrType;
 
         /// <inheritdoc />
-        public IQueryable implement()
+        public IQueryable implement(EfCoreRelImplementor implementor)
         {
             return TemplateQueryable.Create(_efCoreTable.EntityClrType);
         }

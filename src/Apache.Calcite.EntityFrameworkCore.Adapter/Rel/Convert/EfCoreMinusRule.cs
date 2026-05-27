@@ -24,7 +24,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         public static EfCoreMinusRule Create(EfCoreConvention convention)
         {
             return (EfCoreMinusRule)Config.INSTANCE
-                .withConversion(typeof(Minus), Convention.NONE, convention, "EfCoreMinusRule")
+                .withConversion(typeof(Minus), Convention.NONE, convention, nameof(EfCoreMinusRule))
                 .withRuleFactory(new DelegateFunction<Config, EfCoreMinusRule>(c => new EfCoreMinusRule(c)))
                 .toRule(typeof(EfCoreMinusRule));
         }

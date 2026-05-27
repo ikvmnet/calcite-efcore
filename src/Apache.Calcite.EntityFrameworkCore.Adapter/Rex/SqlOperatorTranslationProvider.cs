@@ -13,7 +13,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
 {
 
     /// <summary>
-    /// A table that maps Calcite <see cref="SqlOperator"/> instances to <see cref="SqlFunctionTranslator"/>
+    /// A table that maps Calcite <see cref="SqlOperator"/> instances to <see cref="SqlOperatorTranslator"/>
     /// delegates, driving <c>OTHER_FUNCTION</c> translation in <see cref="RexToLinqTranslator"/>.
     /// </summary>
     /// <remarks>
@@ -32,7 +32,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// </summary>
         public static readonly SqlOperatorTranslationProvider Default = new();
 
-        readonly Dictionary<SqlOperator, SqlFunctionTranslator> _translators;
+        readonly Dictionary<SqlOperator, SqlOperatorTranslator> _translators;
 
         /// <summary>
         /// Initializes a new instance, populating it via <see cref="Build"/>.
@@ -48,7 +48,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// Override in a subclass to add or replace entries; call <c>base.Build(translators)</c> to retain
         /// the standard mappings.
         /// </summary>
-        protected virtual void Build(Dictionary<SqlOperator, SqlFunctionTranslator> translators)
+        protected virtual void Build(Dictionary<SqlOperator, SqlOperatorTranslator> translators)
         {
             // ── String functions ─────────────────────────────────────────────────────────
             translators[Op.UPPER] = InstanceCall(typeof(string), nameof(string.ToUpper));
@@ -119,29 +119,29 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         // ── Common translator factories ───────────────────────────────────────────────
 
         /// <summary>
-        /// Returns a <see cref="SqlFunctionTranslator"/> that emits a static method call, forwarding all
+        /// Returns a <see cref="SqlOperatorTranslator"/> that emits a static method call, forwarding all
         /// operands as arguments in order.
         /// </summary>
-        public static SqlFunctionTranslator StaticCall(Type type, string name, params Type[] paramTypes)
+        public static SqlOperatorTranslator StaticCall(Type type, string name, params Type[] paramTypes)
         {
             var m = RequireMethod(type, name, paramTypes);
             return ops => Expression.Call(m, ops);
         }
 
         /// <summary>
-        /// Returns a <see cref="SqlFunctionTranslator"/> that emits an instance method call: operands[0]
+        /// Returns a <see cref="SqlOperatorTranslator"/> that emits an instance method call: operands[0]
         /// becomes the receiver and the remaining operands are the arguments.
         /// </summary>
-        public static SqlFunctionTranslator InstanceCall(Type type, string name, params Type[] paramTypes)
+        public static SqlOperatorTranslator InstanceCall(Type type, string name, params Type[] paramTypes)
         {
             var m = RequireMethod(type, name, paramTypes);
             return ops => Expression.Call(ops[0], m, ops[1..]);
         }
 
         /// <summary>
-        /// Returns a <see cref="SqlFunctionTranslator"/> that reads a property from operands[0].
+        /// Returns a <see cref="SqlOperatorTranslator"/> that reads a property from operands[0].
         /// </summary>
-        public static SqlFunctionTranslator PropRead(Type type, string name)
+        public static SqlOperatorTranslator PropRead(Type type, string name)
         {
             var getter = type.GetProperty(name)?.GetGetMethod()
                 ?? throw new MissingMemberException(type.FullName, name);
@@ -155,7 +155,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// CLR type of the first translated operand, falling back to <c>double</c> when no exact overload
         /// exists. Supports unary and binary methods.
         /// </summary>
-        static SqlFunctionTranslator MathOverload(string methodName) => ops =>
+        static SqlOperatorTranslator MathOverload(string methodName) => ops =>
         {
             var t = ops[0].Type;
             var typedParams = new Type[ops.Length];
@@ -172,7 +172,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// Used for methods such as <c>RadiansToDegrees</c>/<c>DegreesToRadians</c> that are static methods
         /// defined on the value type itself.
         /// </summary>
-        static SqlFunctionTranslator FloatOverload(string methodName) => ops =>
+        static SqlOperatorTranslator FloatOverload(string methodName) => ops =>
         {
             var t = ops[0].Type;
             var m = ResolveMethod(t, methodName, t)
@@ -199,12 +199,12 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         }
 
         /// <summary>
-        /// Returns the <see cref="SqlFunctionTranslator"/> registered for <paramref name="call"/>'s operator.
+        /// Returns the <see cref="SqlOperatorTranslator"/> registered for <paramref name="call"/>'s operator.
         /// </summary>
         /// <returns>
         /// <see langword="true"/> and the translator if one is registered; <see langword="false"/> otherwise.
         /// </returns>
-        public bool TryGet(RexCall call, [NotNullWhen(true)] out SqlFunctionTranslator? translator)
+        public bool TryGet(RexCall call, [NotNullWhen(true)] out SqlOperatorTranslator? translator)
         {
             return _translators.TryGetValue(call.getOperator(), out translator);
         }

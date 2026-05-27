@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+
+using java.util;
 
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -65,6 +68,33 @@ namespace Apache.Calcite.EntityFrameworkCore.Core
                 return typeFactory.createSqlType(SqlTypeName.CHAR, 1);
 
             return typeFactory.createSqlType(ToSqlTypeName(clrType));
+        }
+
+        /// <summary>
+        /// Returns the CLR type that best represents the given Calcite <see cref="RelDataType"/>.
+        /// Struct (row) types are mapped to a generated dynamic CLR type via <see cref="ClrDataTypeGenerator"/>.
+        /// Scalar types respect nullability: nullable value types are returned as <see cref="Nullable{T}"/>.
+        /// Returns <see cref="object"/> if the scalar type name has no direct CLR counterpart.
+        /// </summary>
+        public static Type ToClrType(RelDataType relDataType)
+        {
+            if (relDataType.isStruct())
+                return ToClrType(relDataType.getFieldList().AsList<RelDataTypeField>().AsReadOnly());
+
+            var baseType = ToClrType((SqlTypeName.__Enum)relDataType.getSqlTypeName().ordinal()) ?? typeof(object);
+            if (relDataType.isNullable() && baseType.IsValueType)
+                return typeof(Nullable<>).MakeGenericType(baseType);
+            else
+                return baseType;
+        }
+
+        /// <summary>
+        /// Derives a dynamic CLR record type from an ordered list of <see cref="RelDataTypeField"/> instances.
+        /// Use when only a field subset is needed (e.g. a group key projection).
+        /// </summary>
+        public static Type ToClrType(IReadOnlyCollection<RelDataTypeField> fields)
+        {
+            return ClrDataTypeGenerator.GetOrCreate(fields);
         }
 
         /// <summary>

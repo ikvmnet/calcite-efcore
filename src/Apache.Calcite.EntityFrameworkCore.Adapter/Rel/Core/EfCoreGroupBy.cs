@@ -4,7 +4,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
 using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
 using Apache.Calcite.EntityFrameworkCore.Core;
 
@@ -35,8 +34,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
     public class EfCoreGroupBy : Aggregate, EfCoreRel
     {
 
-        readonly Lazy<Type> _clrElementType;
-
         /// <summary>
         /// Initializes a new instance.
         /// </summary>
@@ -49,11 +46,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         public EfCoreGroupBy(RelOptCluster cluster, RelTraitSet traitSet, RelNode input, ImmutableBitSet groupSet, List? groupSets, List aggCalls) :
             base(cluster, traitSet, ImmutableList.of(), input, groupSet, groupSets, aggCalls)
         {
-            _clrElementType = new Lazy<Type>(BuildClrElementType);
         }
 
         /// <inheritdoc />
-        public Type ClrElementType => _clrElementType.Value;
+        public Type ClrElementType => CalciteTypeMapper.ToClrType(getRowType());
 
         /// <inheritdoc />
         public override Aggregate copy(RelTraitSet traitSet, RelNode input, ImmutableBitSet groupSet, List? groupSets, List aggCalls)
@@ -68,16 +64,16 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         }
 
         /// <inheritdoc />
-        public IQueryable implement()
+        public IQueryable implement(EfCoreRelImplementor implementor)
         {
-            var efRel = (EfCoreRel)getInput();
-            var source = efRel.implement();
-            var elementType = efRel.ClrElementType;
+            var efRel = EfCoreRel.Unwrap(getInput());
+            var source = implementor.visitChild(getInput());
+            var elementType = source.ElementType;
             var inputFields = efRel.getRowType().getFieldList();
             var outputFields = getRowType().getFieldList();
 
             // Collect the ordered list of group key field indices from the ImmutableBitSet.
-            var groupKeyIndices = new List<int>();
+            var groupKeyIndices = new List<int>(groupSet.cardinality());
             for (int idx = groupSet.nextSetBit(0); idx >= 0; idx = groupSet.nextSetBit(idx + 1))
                 groupKeyIndices.Add(idx);
 
@@ -104,14 +100,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             else
             {
                 // Multiple keys: build a DynamicRowType to carry them.
-                var keyShape = new (string Name, Type ClrType)[groupKeyIndices.Count];
+                var keyFields = new List<RelDataTypeField>(groupKeyIndices.Count);
                 for (int i = 0; i < groupKeyIndices.Count; i++)
-                {
-                    var fieldName = ((RelDataTypeField)inputFields.get(groupKeyIndices[i])).getName();
-                    var prop = elementType.GetProperty(fieldName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)!;
-                    keyShape[i] = (fieldName, prop.PropertyType);
-                }
-                keyType = DynamicRowType.GetOrCreate(keyShape);
+                    keyFields.Add((RelDataTypeField)inputFields.get(groupKeyIndices[i]));
+                keyType = CalciteTypeMapper.ToClrType((IReadOnlyList<RelDataTypeField>)keyFields);
                 var keyBindings = new MemberBinding[groupKeyIndices.Count];
                 for (int i = 0; i < groupKeyIndices.Count; i++)
                 {
@@ -136,7 +128,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             // ---- Build result selector: g => new OutputRow { ... } ----------------------
             var groupingType = typeof(IGrouping<,>).MakeGenericType(keyType, elementType);
             var groupParam = Expression.Parameter(groupingType, "g");
-            var outputType = ClrElementType;
+            var outputType = CalciteTypeMapper.ToClrType(getRowType());
             var aggCalls = getAggCallList();
             var outputFieldCount = outputFields.size();
             var bindings = new MemberBinding[outputFieldCount];
@@ -364,24 +356,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             return (prop, lambda);
         }
 
-        /// <summary>
-        /// Builds the CLR element type for the output row shape from the row type's fields.
-        /// </summary>
-        Type BuildClrElementType()
-        {
-            var fields = getRowType().getFieldList();
-            var n = fields.size();
-            var shape = new (string Name, Type ClrType)[n];
-            for (int i = 0; i < n; i++)
-            {
-                var field = (RelDataTypeField)fields.get(i);
-                var sqlTypeName = (SqlTypeName.__Enum)field.getType().getSqlTypeName().ordinal();
-                shape[i] = (field.getName(), CalciteTypeMapper.ToClrType(sqlTypeName) ?? typeof(object));
             }
 
-            return DynamicRowType.GetOrCreate(shape);
         }
-
-    }
-
-}

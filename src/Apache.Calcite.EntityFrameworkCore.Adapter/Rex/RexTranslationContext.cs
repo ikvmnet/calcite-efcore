@@ -2,6 +2,8 @@
 using System.Linq;
 using System.Linq.Expressions;
 
+using org.apache.calcite.rex;
+
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
 {
 

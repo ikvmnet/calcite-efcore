@@ -35,9 +35,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         }
 
         /// <inheritdoc />
-        public Type ClrElementType => ((EfCoreRel)getInput()).ClrElementType;
-
-        /// <inheritdoc />
         public override Filter copy(RelTraitSet traitSet, RelNode input, RexNode condition)
         {
             return new EfCoreWhere(getCluster(), traitSet, input, condition);
@@ -50,14 +47,16 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         }
 
         /// <inheritdoc />
-        public IQueryable implement()
+        public IQueryable implement(EfCoreRelImplementor implementor)
         {
-            var efRel = (EfCoreRel)getInput();
-            var param = Expression.Parameter(efRel.ClrElementType, "e");
+            var efRel = EfCoreRel.Unwrap(getInput());
+            var source = implementor.visitChild(getInput());
+            var elementType = source.ElementType;
+            var param = Expression.Parameter(elementType, "e");
             var context = RexTranslationContext.ForSingleInput(efRel.getRowType().getFieldList(), param);
             var body = RexToLinqTranslator.Default.Translate(getCondition(), context);
-            var lambda = Expression.Lambda(typeof(Func<,>).MakeGenericType(efRel.ClrElementType, typeof(bool)), body, param);
-            return (IQueryable)QueryableMethods.Where.MakeGenericMethod(efRel.ClrElementType).Invoke(null, [efRel.implement(), lambda])!;
+            var lambda = Expression.Lambda(typeof(Func<,>).MakeGenericType(elementType, typeof(bool)), body, param);
+            return (IQueryable)QueryableMethods.Where.MakeGenericMethod(elementType).Invoke(null, [source, lambda])!;
         }
 
     }

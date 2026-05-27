@@ -24,7 +24,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         public static EfCoreIntersectRule Create(EfCoreConvention convention)
         {
             return (EfCoreIntersectRule)Config.INSTANCE
-                .withConversion(typeof(Intersect), Convention.NONE, convention, "EfCoreIntersectRule")
+                .withConversion(typeof(Intersect), Convention.NONE, convention, nameof(EfCoreIntersectRule))
                 .withRuleFactory(new DelegateFunction<Config, EfCoreIntersectRule>(c => new EfCoreIntersectRule(c)))
                 .toRule(typeof(EfCoreIntersectRule));
         }

@@ -16,11 +16,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         /// <param name="config">Rule configuration.</param>
         protected EfCoreConverterRule(Config config) : base(config) { }
 
-        /// <summary>
-        /// Default implementation of <see cref="convert"/> that returns null to indicate that the rule does not apply.
-        /// </summary>
-        /// <param name="rn"></param>
-        /// <returns></returns>
+        /// <inheritdoc />
         public override RelNode? convert(RelNode rn)
         {
             return null;
@@ -29,3 +25,4 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
     }
 
 }
+

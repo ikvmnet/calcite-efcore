@@ -11,6 +11,7 @@ using org.apache.calcite.plan;
 using org.apache.calcite.rel;
 using org.apache.calcite.rel.convert;
 using org.apache.calcite.rel.type;
+using org.apache.calcite.runtime;
 using org.apache.calcite.schema;
 using org.apache.calcite.util;
 
@@ -59,7 +60,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
                 getRowType(),
                 pref.prefer(JavaRowFormat.ARRAY));
 
-            var queryable = input.implement();
+            var efImplementor = new EfCoreRelImplementor();
+            var queryable = efImplementor.visitChild(getInput());
+
+            Hook.QUERY_PLAN.run(queryable);
 
             var convention = (EfCoreConvention?)
                 (input as RelNode)?.getConvention()

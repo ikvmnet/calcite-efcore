@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
+using Apache.Calcite.EntityFrameworkCore.Core;
 
 using java.util;
 
@@ -11,7 +11,6 @@ using org.apache.calcite.rel.core;
 using org.apache.calcite.rel.metadata;
 using org.apache.calcite.rel.type;
 using org.apache.calcite.rex;
-using org.apache.calcite.sql.type;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
 {
@@ -62,7 +61,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         }
 
         /// <inheritdoc />
-        public IQueryable implement()
+        public IQueryable implement(EfCoreRelImplementor implementor)
         {
             throw new NotSupportedException("EfCoreJoin.implement() is not yet supported. Cross-entity joins must be rewritten by a planner rule before execution.");
         }
@@ -70,28 +69,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         /// <summary>
         /// Builds the CLR element type for the combined output row shape by merging both inputs' row-type fields.
         /// </summary>
-        Type BuildClrElementType()
-        {
-            var leftFields = left.getRowType().getFieldList();
-            var rightFields = right.getRowType().getFieldList();
-            var total = leftFields.size() + rightFields.size();
-            var shape = new (string Name, Type ClrType)[total];
-
-            for (int i = 0; i < leftFields.size(); i++)
-            {
-                var field = (RelDataTypeField)leftFields.get(i);
-                var sqlTypeName = (SqlTypeName.__Enum)field.getType().getSqlTypeName().ordinal();
-                shape[i] = (field.getName(), Apache.Calcite.EntityFrameworkCore.Core.CalciteTypeMapper.ToClrType(sqlTypeName) ?? typeof(object));
-            }
-            for (int i = 0; i < rightFields.size(); i++)
-            {
-                var field = (RelDataTypeField)rightFields.get(i);
-                var sqlTypeName = (SqlTypeName.__Enum)field.getType().getSqlTypeName().ordinal();
-                shape[leftFields.size() + i] = (field.getName(), Apache.Calcite.EntityFrameworkCore.Core.CalciteTypeMapper.ToClrType(sqlTypeName) ?? typeof(object));
-            }
-
-            return DynamicRowType.GetOrCreate(shape);
-        }
+        Type BuildClrElementType() => CalciteTypeMapper.ToClrType(getRowType());
 
     }
 

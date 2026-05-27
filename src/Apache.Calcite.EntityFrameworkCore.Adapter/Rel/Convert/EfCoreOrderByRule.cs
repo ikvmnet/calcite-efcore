@@ -24,7 +24,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         public static EfCoreOrderByRule Create(EfCoreConvention convention)
         {
             return (EfCoreOrderByRule)Config.INSTANCE
-                .withConversion(typeof(Sort), Convention.NONE, convention, "EfCoreSortRule")
+                .withConversion(typeof(Sort), Convention.NONE, convention, nameof(EfCoreOrderByRule))
                 .withRuleFactory(new DelegateFunction<Config, EfCoreOrderByRule>(c => new EfCoreOrderByRule(c)))
                 .toRule(typeof(EfCoreOrderByRule));
         }
@@ -43,10 +43,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         public override RelNode? convert(RelNode rel)
         {
             var sort = (Sort)rel;
+            var traitSet = sort.getTraitSet().replace(@out).replace(sort.getCollation());
             return new EfCoreOrderBy(
                 rel.getCluster(),
-                rel.getTraitSet().replace(@out),
-                convert(sort.getInput(), sort.getInput().getTraitSet().replace(@out)),
+                traitSet,
+                convert(sort.getInput(), traitSet.replace(RelCollations.EMPTY)),
                 sort.getCollation(),
                 sort.offset,
                 sort.fetch);

@@ -3,14 +3,18 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
+using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
 using Apache.Calcite.EntityFrameworkCore.Core;
 
-using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
+using java.util;
+
+using com.google.common.collect;
 
 using org.apache.calcite.rel.type;
 using org.apache.calcite.rex;
 using org.apache.calcite.sql;
 using org.apache.calcite.sql.type;
+using org.apache.calcite.util;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
 {
@@ -381,8 +385,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// </summary>
         protected virtual Type ResolveDeclaredType(RexCall call)
         {
-            var sqlTypeName = (SqlTypeName.__Enum)call.getType().getSqlTypeName().ordinal();
-            return CalciteTypeMapper.ToClrType(sqlTypeName) ?? typeof(object);
+            return CalciteTypeMapper.ToClrType(call.getType());
         }
 
         /// <summary>
@@ -396,7 +399,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
 
         /// <summary>
         /// Dispatches an <c>OTHER_FUNCTION</c> <see cref="RexCall"/> by translating its operands and
-        /// passing them to the <see cref="SqlFunctionTranslator"/> registered in the binding table.
+        /// passing them to the <see cref="SqlOperatorTranslator"/> registered in the binding table.
         /// </summary>
         protected virtual Expression TranslateOtherFunction(RexCall call, RexTranslationContext context)
         {
@@ -454,10 +457,261 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         protected virtual Type ResolveLiteralType(RexLiteral literal)
         {
             if (literal.isNull())
-                return typeof(object);
+                return CalciteTypeMapper.ToClrType(literal.getType());
 
             var sqlTypeName = (SqlTypeName.__Enum)literal.getType().getSqlTypeName().ordinal();
             return CalciteTypeMapper.ToClrType(sqlTypeName) ?? typeof(object);
+        }
+
+        /// <summary>
+        /// Returns <see langword="true"/> if <paramref name="rex"/> is structurally translatable given
+        /// the field list of the input relation. Does not allocate CLR expressions or require a CLR type.
+        /// </summary>
+        /// <remarks>
+        /// This is a pure structural probe:
+        /// <list type="bullet">
+        ///   <item><see cref="RexInputRef"/> — valid when the index is within the input field count.</item>
+        ///   <item><see cref="RexLiteral"/> — always valid.</item>
+        ///   <item><see cref="RexDynamicParam"/> — always valid (index is caller-managed).</item>
+        ///   <item><see cref="RexCorrelVariable"/> — always valid (carries its own type).</item>
+        ///   <item><see cref="RexFieldAccess"/> over <see cref="RexCorrelVariable"/> — valid when the field name exists on the correl variable's row type.</item>
+        ///   <item><see cref="RexCall"/> — valid when the <see cref="SqlKind"/> is supported and all operands are recursively valid.</item>
+        /// </list>
+        /// </remarks>
+        public virtual bool CanTranslate(RexNode rex, org.apache.calcite.rel.type.RelDataType inputRowType)
+        {
+            switch (rex)
+            {
+                case RexInputRef inputRef:
+                    return inputRef.getIndex() < inputRowType.getFieldList().size();
+
+                case RexLiteral:
+                case RexDynamicParam:
+                case RexCorrelVariable:
+                    return true;
+
+                case RexFieldAccess fieldAccess:
+                    if (fieldAccess.getReferenceExpr() is not RexCorrelVariable correlVar)
+                        return false;
+                    var correlRowType = correlVar.getType();
+                    var fieldName = fieldAccess.getField().getName();
+                    return correlRowType.getField(fieldName, true, false) != null;
+
+                case RexCall call:
+                    return CanTranslateCall(call, inputRowType);
+
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Returns <see langword="true"/> if the <see cref="RexCall"/> is structurally and type-safely
+        /// translatable. Each overload mirrors the corresponding <c>Translate*</c> method and validates
+        /// the same type constraints that would cause <c>Translate</c> to throw.
+        /// </summary>
+        protected virtual bool CanTranslateCall(RexCall call, RelDataType inputRowType)
+        {
+            switch ((SqlKind.__Enum)call.getKind().ordinal())
+            {
+                // SEARCH(ref, Sarg) — expanded to OR/range form; valid iff the first operand (the column ref) is translatable
+                case SqlKind.__Enum.SEARCH:
+                    return CanTranslate((RexNode)call.getOperands().get(0), inputRowType);
+
+                // Logical — operands must be boolean; Coerce handles mismatches so any translatable operands are fine
+                case SqlKind.__Enum.AND:
+                case SqlKind.__Enum.OR:
+                case SqlKind.__Enum.NOT:
+                // Comparisons — Coerce handles type widening; any translatable operand pair is fine
+                case SqlKind.__Enum.EQUALS:
+                case SqlKind.__Enum.NOT_EQUALS:
+                case SqlKind.__Enum.LESS_THAN:
+                case SqlKind.__Enum.LESS_THAN_OR_EQUAL:
+                case SqlKind.__Enum.GREATER_THAN:
+                case SqlKind.__Enum.GREATER_THAN_OR_EQUAL:
+                // Null / boolean tests — single operand, any type
+                case SqlKind.__Enum.IS_NULL:
+                case SqlKind.__Enum.IS_NOT_NULL:
+                case SqlKind.__Enum.IS_TRUE:
+                case SqlKind.__Enum.IS_NOT_TRUE:
+                case SqlKind.__Enum.IS_FALSE:
+                case SqlKind.__Enum.IS_NOT_FALSE:
+                case SqlKind.__Enum.IS_UNKNOWN:
+                // Range — Coerce handles widening
+                case SqlKind.__Enum.BETWEEN:
+                case SqlKind.__Enum.DRUID_BETWEEN:
+                // Conditional / null-handling — any translatable operands
+                case SqlKind.__Enum.IF:
+                case SqlKind.__Enum.NVL:
+                case SqlKind.__Enum.NVL2:
+                case SqlKind.__Enum.NULLIF:
+                case SqlKind.__Enum.COALESCE:
+                case SqlKind.__Enum.CASE:
+                    return CanTranslateOperands(call, inputRowType);
+
+                // Arithmetic — operands must be numeric (non-string, non-date)
+                case SqlKind.__Enum.PLUS:
+                case SqlKind.__Enum.MINUS:
+                case SqlKind.__Enum.TIMES:
+                case SqlKind.__Enum.DIVIDE:
+                case SqlKind.__Enum.MOD:
+                case SqlKind.__Enum.CHECKED_PLUS:
+                case SqlKind.__Enum.CHECKED_MINUS:
+                case SqlKind.__Enum.CHECKED_TIMES:
+                case SqlKind.__Enum.CHECKED_DIVIDE:
+                case SqlKind.__Enum.PLUS_PREFIX:
+                case SqlKind.__Enum.MINUS_PREFIX:
+                case SqlKind.__Enum.CHECKED_MINUS_PREFIX:
+                    return CanTranslateOperands(call, inputRowType) && CanTranslateArithmeticOperands(call);
+
+                // Bitwise — operands must be integral
+                case SqlKind.__Enum.BITAND:
+                case SqlKind.__Enum.BIT_AND:
+                case SqlKind.__Enum.BITOR:
+                case SqlKind.__Enum.BIT_OR:
+                case SqlKind.__Enum.BITXOR:
+                case SqlKind.__Enum.BIT_XOR:
+                case SqlKind.__Enum.BITNOT:
+                    return CanTranslateOperands(call, inputRowType) && CanTranslateBitwiseOperands(call);
+
+                // String ops — operands must be string-typed
+                case SqlKind.__Enum.CONCAT2:
+                case SqlKind.__Enum.CONCAT_WITH_NULL:
+                case SqlKind.__Enum.LTRIM:
+                case SqlKind.__Enum.RTRIM:
+                case SqlKind.__Enum.ENDS_WITH:
+                case SqlKind.__Enum.STARTS_WITH:
+                case SqlKind.__Enum.CONTAINS_SUBSTR:
+                    return CanTranslateOperands(call, inputRowType) && CanTranslateStringOperands(call);
+
+                case SqlKind.__Enum.OTHER:
+                    return call.op.getName() == "||"
+                        && CanTranslateOperands(call, inputRowType)
+                        && CanTranslateStringOperands(call);
+
+                // CAST — validate source/target type combination mirrors TranslateCast logic
+                case SqlKind.__Enum.CAST:
+                    return CanTranslateOperands(call, inputRowType) && CanTranslateCast(call);
+
+                // Operator-table dispatch — check the operator is registered and operands are translatable
+                case SqlKind.__Enum.OTHER_FUNCTION:
+                case SqlKind.__Enum.FLOOR:
+                case SqlKind.__Enum.CEIL:
+                case SqlKind.__Enum.CHAR_LENGTH:
+                case SqlKind.__Enum.POSITION:
+                case SqlKind.__Enum.TRIM:
+                    return operatorTranslations.TryGet(call, out _) && CanTranslateOperands(call, inputRowType);
+
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Returns <see langword="true"/> if all operands of an arithmetic call have numeric CLR types
+        /// (i.e. not string, date, time, or other non-arithmetic types).
+        /// </summary>
+        bool CanTranslateArithmeticOperands(RexCall call)
+        {
+            var operands = call.getOperands();
+            for (int i = 0, n = operands.size(); i < n; i++)
+            {
+                var t = Nullable.GetUnderlyingType(CalciteTypeMapper.ToClrType(((RexNode)operands.get(i)).getType())) ?? CalciteTypeMapper.ToClrType(((RexNode)operands.get(i)).getType());
+                if (NumericRank(t) == 0)
+                    return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Returns <see langword="true"/> if all operands of a bitwise call have integral CLR types.
+        /// </summary>
+        bool CanTranslateBitwiseOperands(RexCall call)
+        {
+            var operands = call.getOperands();
+            for (int i = 0, n = operands.size(); i < n; i++)
+            {
+                var t = Nullable.GetUnderlyingType(CalciteTypeMapper.ToClrType(((RexNode)operands.get(i)).getType())) ?? CalciteTypeMapper.ToClrType(((RexNode)operands.get(i)).getType());
+                if (!IsIntegral(t))
+                    return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Returns <see langword="true"/> if all operands of a string call have string CLR types.
+        /// </summary>
+        bool CanTranslateStringOperands(RexCall call)
+        {
+            var operands = call.getOperands();
+            for (int i = 0, n = operands.size(); i < n; i++)
+            {
+                var t = CalciteTypeMapper.ToClrType(((RexNode)operands.get(i)).getType());
+                if (t != typeof(string))
+                    return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Returns <see langword="true"/> if the <c>CAST</c> source/target type combination is supported,
+        /// mirroring the branching in <see cref="TranslateCast"/>.
+        /// </summary>
+        bool CanTranslateCast(RexCall call)
+        {
+            var sourceType = CalciteTypeMapper.ToClrType(((RexNode)call.getOperands().get(0)).getType());
+            var targetType = ResolveDeclaredType(call);
+            if (sourceType == targetType) return true;
+
+            var format = GetCastFormat(call);
+
+            // CAST(x AS VARCHAR) — supported unless a FORMAT clause is present
+            if (targetType == typeof(string))
+                return format is null;
+
+            // CAST(x AS DATE/TIME/TIMESTAMP) — not supported through EF Core LINQ
+            if (targetType == typeof(DateTime) || targetType == typeof(DateTime?) ||
+                targetType == typeof(DateOnly) || targetType == typeof(DateOnly?) ||
+                targetType == typeof(TimeOnly) || targetType == typeof(TimeOnly?))
+                return false;
+
+            // CAST(string AS numeric/bool) — not supported through EF Core LINQ
+            if (sourceType == typeof(string))
+                return false;
+
+            // Numeric-to-numeric CAST via Expression.Convert — always supported
+            return true;
+        }
+
+        static bool IsIntegral(Type t) =>
+            t == typeof(sbyte) || t == typeof(byte) ||
+            t == typeof(short) || t == typeof(ushort) ||
+            t == typeof(int) || t == typeof(uint) ||
+            t == typeof(long) || t == typeof(ulong);
+
+        bool CanTranslateOperands(RexCall call, RelDataType inputRowType)
+        {
+            var operands = call.getOperands();
+            for (int i = 0, n = operands.size(); i < n; i++)
+                if (CanTranslate((RexNode)operands.get(i), inputRowType) == false)
+                    return false;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Returns <see langword="true"/> if every element of <paramref name="nodes"/> is structurally
+        /// translatable given the input row type.
+        /// </summary>
+        public virtual bool CanTranslateAll(List nodes, RelDataType inputRowType)
+        {
+            for (int i = 0, n = nodes.size(); i < n; i++)
+            {
+                if (!CanTranslate((RexNode)nodes.get(i), inputRowType))
+                    return false;
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -484,6 +738,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         {
             switch ((SqlKind.__Enum)call.getKind().ordinal())
             {
+                // SEARCH(ref, Sarg) — translate directly from the embedded RangeSet
+                case SqlKind.__Enum.SEARCH:
+                    return TranslateSearch(call, context);
                 // Logical operators
                 case SqlKind.__Enum.AND:
                     return TranslateAnd(call, context);
@@ -594,8 +851,13 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
                     return TranslateStartsWith(call, context);
                 case SqlKind.__Enum.CONTAINS_SUBSTR:
                     return TranslateContainsSubstr(call, context);
-                // These call kinds can appear as RexCall but translation is not yet implemented.
+                // SqlKind.OTHER is used by Calcite for the standard || string-concatenation operator.
+                // Dispatch by operator name; fall through to not-implemented for unknown OTHER operators.
                 case SqlKind.__Enum.OTHER:
+                    if (call.op.getName() == "||")
+                        return TranslateConcat2(call, context);
+                    throw new NotImplementedException($"RexToLinqTranslator: translation for RexCall kind 'OTHER' (operator '{call.op.getName()}') is not yet implemented.");
+                // These call kinds can appear as RexCall but translation is not yet implemented.
                 case SqlKind.__Enum.CONVERT:
                 case SqlKind.__Enum.CONVERT_ORACLE:
                 case SqlKind.__Enum.TRANSLATE:
@@ -950,6 +1212,81 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         }
 
         /// <summary>
+        /// Translates <c>SEARCH(ref, Sarg)</c> directly from the Guava <see cref="RangeSet"/> embedded in the <see cref="Sarg"/>
+        /// without requiring a <c>RexBuilder</c> in the translation context.
+        /// Each range in the set becomes a comparison fragment; fragments are combined with OR.
+        /// When <c>nullAs == TRUE</c> an additional <c>ref IS NULL</c> branch is prepended.
+        /// The degenerate cases <c>isAll</c> and <c>isNone</c> produce <c>true</c>/<c>false</c> constants.
+        /// </summary>
+        protected virtual Expression TranslateSearch(RexCall call, RexTranslationContext context)
+        {
+            var operands = call.getOperands();
+            var refOperand = (RexNode)operands.get(0);
+            var refExpr = Translate(refOperand, context);
+            var refOperandType = refOperand.getType();
+            var sargLiteral = (RexLiteral)operands.get(1);
+            var sarg = (Sarg)sargLiteral.getValue();
+            var nullAs = (RexUnknownAs.__Enum)sarg.nullAs.ordinal();
+
+            if (sarg.isNone())
+                return nullAs == RexUnknownAs.__Enum.TRUE ? Expression.Equal(refExpr, Expression.Default(refExpr.Type)) : Expression.Constant(false);
+
+            if (sarg.isAll())
+                return nullAs == RexUnknownAs.__Enum.FALSE ? Expression.NotEqual(refExpr, Expression.Default(refExpr.Type)) : Expression.Constant(true);
+
+            var orFragments = new System.Collections.Generic.List<Expression>();
+
+            // NULL AS TRUE: prepend an IS-NULL branch
+            if (nullAs == RexUnknownAs.__Enum.TRUE)
+                orFragments.Add(Expression.Equal(refExpr, Expression.Default(refExpr.Type)));
+
+            var rangesIterator = sarg.rangeSet.asRanges().iterator();
+            while (rangesIterator.hasNext())
+            {
+                var range = (com.google.common.collect.Range)rangesIterator.next();
+                var hasLo = range.hasLowerBound();
+                var hasHi = range.hasUpperBound();
+
+                if (hasLo && hasHi)
+                {
+                    var lo = TranslateConstant(false, refOperandType, range.lowerEndpoint());
+                    var hi = TranslateConstant(false, refOperandType, range.upperEndpoint());
+                    var (refLo, loCoerced) = Coerce(refExpr, lo);
+                    var (refHi, hiCoerced) = Coerce(refExpr, hi);
+                    var loOp = range.lowerBoundType() == BoundType.OPEN ? Expression.GreaterThan(refLo, loCoerced) : Expression.GreaterThanOrEqual(refLo, loCoerced);
+                    var hiOp = range.upperBoundType() == BoundType.OPEN ? Expression.LessThan(refHi, hiCoerced) : Expression.LessThanOrEqual(refHi, hiCoerced);
+                    // Point range: single equality
+                    if (!range.lowerEndpoint().Equals(range.upperEndpoint()) || range.lowerBoundType() == BoundType.OPEN || range.upperBoundType() == BoundType.OPEN)
+                        orFragments.Add(Expression.AndAlso(loOp, hiOp));
+                    else
+                        orFragments.Add(Expression.Equal(refLo, loCoerced));
+                }
+                else if (hasLo)
+                {
+                    var lo = TranslateConstant(false, refOperandType, range.lowerEndpoint());
+                    var (refCoerced, loCoerced) = Coerce(refExpr, lo);
+                    orFragments.Add(range.lowerBoundType() == BoundType.OPEN ? Expression.GreaterThan(refCoerced, loCoerced) : Expression.GreaterThanOrEqual(refCoerced, loCoerced));
+                }
+                else if (hasHi)
+                {
+                    var hi = TranslateConstant(false, refOperandType, range.upperEndpoint());
+                    var (refCoerced, hiCoerced) = Coerce(refExpr, hi);
+                    orFragments.Add(range.upperBoundType() == BoundType.OPEN ? Expression.LessThan(refCoerced, hiCoerced) : Expression.LessThanOrEqual(refCoerced, hiCoerced));
+                }
+                else
+                {
+                    // Unbounded range — matches everything not-null
+                    orFragments.Add(Expression.NotEqual(refExpr, Expression.Default(refExpr.Type)));
+                }
+            }
+
+            if (orFragments.Count == 0)
+                return Expression.Constant(false);
+
+            return orFragments.Aggregate(Expression.OrElse);
+        }
+
+        /// <summary>
         /// Translates the unary-plus prefix operator: returns the operand unchanged.
         /// </summary>
         protected virtual Expression TranslateUnaryPlus(RexCall call, RexTranslationContext context)
@@ -1067,12 +1404,82 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>CAST(value AS type)</c> into <see cref="Expression.Convert"/> targeting the declared CLR type.
         /// </summary>
+        /// <summary>
+        /// Extracts the optional FORMAT <see cref="RexLiteral"/> from a <c>CAST</c> call.
+        /// Returns the format string when operand index 1 is present and non-null, otherwise <c>null</c>.
+        /// </summary>
+        protected static string? GetCastFormat(RexCall call)
+        {
+            if (call.getOperands().size() < 2)
+                return null;
+            if (call.getOperands().get(1) is not RexLiteral fmt || fmt.isNull())
+                return null;
+            return fmt.getValue() is org.apache.calcite.util.NlsString nls ? nls.getValue() : null;
+        }
+
         protected virtual Expression TranslateCast(RexCall call, RexTranslationContext context)
         {
             var operand = Translate((RexNode)call.getOperands().get(0), context);
             var targetType = ResolveDeclaredType(call);
-            return operand.Type == targetType ? operand : Expression.Convert(operand, targetType);
+            if (operand.Type == targetType)
+                return operand;
+
+            var format = GetCastFormat(call);
+            var sourceType = operand.Type;
+
+            if (targetType == typeof(string))
+                return TranslateCastToString(operand, sourceType, format, call, context);
+
+            if (targetType == typeof(DateTime) || targetType == typeof(DateTime?) ||
+                targetType == typeof(DateOnly) || targetType == typeof(DateOnly?) ||
+                targetType == typeof(TimeOnly) || targetType == typeof(TimeOnly?))
+                return TranslateCastToDateTime(operand, sourceType, targetType, format, call, context);
+
+            if (sourceType == typeof(string))
+                return TranslateCastFromString(operand, targetType, format, call, context);
+
+            return TranslateCastNumeric(operand, targetType, call, context);
         }
+
+        /// <summary>
+        /// Translates <c>CAST(value AS VARCHAR / CHAR)</c>.
+        /// EF Core providers translate only zero-argument <see cref="object.ToString()"/> to SQL <c>CAST</c>/<c>CONVERT</c>;
+        /// <c>ToString(string format)</c> is not handled by any provider and will fail at query execution time.
+        /// Accordingly, CAST with a FORMAT clause is not supported and throws <see cref="NotImplementedException"/>.
+        /// </summary>
+        protected virtual Expression TranslateCastToString(Expression operand, Type sourceType, string? format, RexCall call, RexTranslationContext context)
+        {
+            if (format is not null)
+                throw new NotImplementedException($"RexToLinqTranslator: CAST(... AS VARCHAR FORMAT '{format}') is not supported — EF Core providers do not translate ToString(string) to SQL.");
+
+            return Expression.Call(operand, CastMethods.ObjectToString);
+        }
+
+        /// <summary>
+        /// Translates <c>CAST(stringValue AS DATE / TIME / TIMESTAMP)</c>.
+        /// EF Core providers do not translate <c>DateTime.Parse</c> / <c>ParseExact</c> to SQL,
+        /// so this is not yet implementable through the EF Core LINQ translation pipeline.
+        /// </summary>
+        protected virtual Expression TranslateCastToDateTime(Expression operand, Type sourceType, Type targetType, string? format, RexCall call, RexTranslationContext context)
+        {
+            throw new NotImplementedException($"RexToLinqTranslator: CAST from '{sourceType.Name}' to '{targetType.Name}' is not yet implemented — EF Core providers do not translate date/time parse methods to SQL.");
+        }
+
+        /// <summary>
+        /// Translates <c>CAST(stringValue AS numericOrBoolType)</c>.
+        /// EF Core providers do not translate <see cref="Convert"/> methods to SQL,
+        /// so this is not yet implementable through the EF Core LINQ translation pipeline.
+        /// </summary>
+        protected virtual Expression TranslateCastFromString(Expression operand, Type targetType, string? format, RexCall call, RexTranslationContext context)
+        {
+            throw new NotImplementedException($"RexToLinqTranslator: CAST from string to '{targetType.Name}' is not yet implemented — EF Core providers do not translate Convert methods to SQL.");
+        }
+
+        /// <summary>
+        /// Translates a numeric or value-type <c>CAST</c> via <see cref="Expression.Convert"/>.
+        /// </summary>
+        protected virtual Expression TranslateCastNumeric(Expression operand, Type targetType, RexCall call, RexTranslationContext context) =>
+            Expression.Convert(operand, targetType);
 
         /// <summary>
         /// Translates <c>BITAND</c> / <c>BIT_AND</c> into <see cref="Expression.And"/>.
@@ -1288,24 +1695,36 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates a <see cref="RexLiteral"/> into a <see cref="ConstantExpression"/> of the appropriate CLR type.
         /// </summary>
-        static ConstantExpression TranslateLiteral(RexLiteral literal)
+        protected virtual Expression TranslateLiteral(RexLiteral literal)
+            => TranslateConstant(literal.isNull(), literal.getType(), literal.getValue());
+
+        /// <summary>
+        /// Translates a constant defined by its nullability, Calcite <see cref="RelDataType"/>, and raw Java value
+        /// into a CLR <see cref="ConstantExpression"/>. This is the common core shared by
+        /// <see cref="TranslateLiteral"/> and the <c>SEARCH</c>/<c>Sarg</c> endpoint translation path.
+        /// </summary>
+        /// <param name="isNull">When <see langword="true"/> the value is SQL NULL; a default-valued expression for the mapped CLR type is returned.</param>
+        /// <param name="type">The Calcite <see cref="RelDataType"/> carrying the <see cref="SqlTypeName"/> used for numeric dispatch.</param>
+        /// <param name="value">
+        /// The raw Java object value. Recognised types:
+        /// <list type="bullet">
+        ///   <item><see cref="org.apache.calcite.util.NlsString"/> — <see cref="string"/></item>
+        ///   <item><see cref="java.lang.Boolean"/> — <see cref="bool"/></item>
+        ///   <item><see cref="java.lang.Number"/> (including <see cref="java.math.BigDecimal"/> and jOOU wrappers) — numeric CLR type driven by <paramref name="type"/></item>
+        ///   <item><see cref="org.apache.calcite.util.DateString"/> — <see cref="DateOnly"/></item>
+        ///   <item><see cref="org.apache.calcite.util.TimeString"/> — <see cref="TimeOnly"/></item>
+        ///   <item><see cref="org.apache.calcite.util.TimestampString"/> — <see cref="DateTime"/> or <see cref="DateTimeOffset"/></item>
+        ///   <item><see cref="org.apache.calcite.avatica.util.ByteString"/> — <see cref="byte"/>[]</item>
+        /// </list>
+        /// </param>
+        protected virtual Expression TranslateConstant(bool isNull, RelDataType type, object value)
         {
-            if (literal.isNull())
-                return Expression.Constant(null, typeof(object));
+            if (isNull)
+                return Expression.Default(CalciteTypeMapper.ToClrType(type));
 
-            // getValue() returns IKVM-mapped Java wrapper objects:
-            //   NlsString      -> org.apache.calcite.util.NlsString
-            //   Boolean        -> java.lang.Boolean
-            //   All numerics   -> java.lang.Number (BigDecimal, joou unsigned wrappers, or primitive wrappers)
-            //   DateString     -> org.apache.calcite.util.DateString
-            //   TimeString     -> org.apache.calcite.util.TimeString
-            //   TimestampString-> org.apache.calcite.util.TimestampString
-            //   ByteString     -> org.apache.calcite.avatica.util.ByteString
-            var raw = literal.getValue();
+            var sqlTypeName = (SqlTypeName.__Enum)type.getSqlTypeName().ordinal();
 
-            var sqlTypeName = (SqlTypeName.__Enum)literal.getType().getSqlTypeName().ordinal();
-
-            return raw switch
+            return value switch
             {
                 org.apache.calcite.util.NlsString nls => TranslateNlsString(nls),
                 org.apache.calcite.util.DateString ds => TranslateDateString(ds),
@@ -1314,7 +1733,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
                 org.apache.calcite.avatica.util.ByteString bs => TranslateByteString(bs),
                 java.lang.Boolean b => TranslateBoolean(b),
                 java.lang.Number n => TranslateNumber(n, sqlTypeName),
-                _ => throw new NotSupportedException($"RexToLinqTranslator: unsupported literal value type '{raw?.GetType().Name}' (SQL type={literal.getType().getSqlTypeName()}).")
+                _ => throw new NotSupportedException($"RexToLinqTranslator: unsupported literal value type '{value?.GetType().Name}' (SQL type={type.getSqlTypeName()}).")
             };
         }
 

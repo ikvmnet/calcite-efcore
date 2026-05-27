@@ -13,6 +13,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
     /// Returning a complete <see cref="Expression"/> directly—rather than a metadata record describing
     /// how to build one—keeps dispatch logic in the table and removes the need for a separate interpreter.
     /// </remarks>
-    public delegate Expression SqlFunctionTranslator(Expression[] operands);
+    public delegate Expression SqlOperatorTranslator(Expression[] operands);
 
 }

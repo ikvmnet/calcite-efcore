@@ -1,13 +1,17 @@
 ﻿using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 using Apache.Calcite.Data;
-using Apache.Calcite.EntityFrameworkCore.Adapter;
+
+using java.util.function;
 
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 using org.apache.calcite.runtime;
+
+using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
 {
@@ -48,6 +52,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
 
         readonly SqliteConnection _keepAlive;
 
+        /// <summary>
+        /// Initializes a new instance.
+        /// </summary>
+        /// <param name="output"></param>
         public ComplexAdapterFixture()
         {
             RuntimeHelpers.RunClassConstructor(typeof(EfCoreSchema).TypeHandle);
@@ -66,18 +74,19 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
                 ctx.Categories.Add(new Category { Id = 2, Name = "Household" });
                 ctx.Categories.Add(new Category { Id = 3, Name = "Toys" });
 
-                ctx.Products.Add(new Product { Id = 1, Name = "Widget",       Price =  9.99m, InStock = true,  CategoryId = 1 });
-                ctx.Products.Add(new Product { Id = 2, Name = "Gadget",       Price = 24.95m, InStock = false, CategoryId = 1 });
-                ctx.Products.Add(new Product { Id = 3, Name = "Doohickey",    Price =  4.50m, InStock = true,  CategoryId = 2 });
-                ctx.Products.Add(new Product { Id = 4, Name = "Thingamajig",  Price = 14.99m, InStock = false, CategoryId = 2 });
-                ctx.Products.Add(new Product { Id = 5, Name = "Whatsit",      Price =  2.99m, InStock = true,  CategoryId = 3 });
-                ctx.Products.Add(new Product { Id = 6, Name = "Gizmo",        Price = 49.99m, InStock = false, CategoryId = null });
+                ctx.Products.Add(new Product { Id = 1, Name = "Widget", Price = 9.99m, InStock = true, CategoryId = 1 });
+                ctx.Products.Add(new Product { Id = 2, Name = "Gadget", Price = 24.95m, InStock = false, CategoryId = 1 });
+                ctx.Products.Add(new Product { Id = 3, Name = "Doohickey", Price = 4.50m, InStock = true, CategoryId = 2 });
+                ctx.Products.Add(new Product { Id = 4, Name = "Thingamajig", Price = 14.99m, InStock = false, CategoryId = 2 });
+                ctx.Products.Add(new Product { Id = 5, Name = "Whatsit", Price = 2.99m, InStock = true, CategoryId = 3 });
+                ctx.Products.Add(new Product { Id = 6, Name = "Gizmo", Price = 49.99m, InStock = false, CategoryId = null });
 
                 ctx.SaveChanges();
             }
 
             Connection = new CalciteConnection("caseSensitive=false");
             Connection.RegisterHook(Hook.ENABLE_BINDABLE, true);
+            Connection.RegisterHook(Hook.QUERY_PLAN, new DelegateConsumer<object>((object q) => Console.WriteLine($"IQueryable: {((IQueryable)q).Expression}")));
             Connection.Open();
 
             var schema = EfCoreSchema.Create(Connection.RootSchema, SchemaName, () => new ProductDbContext(ConnectionString));

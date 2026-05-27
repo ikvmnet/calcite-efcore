@@ -22,7 +22,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         public static EfCoreToBindableConverterRule Create(EfCoreConvention convention)
         {
             return (EfCoreToBindableConverterRule)Config.INSTANCE
-                .withConversion(typeof(RelNode), convention, BindableConvention.INSTANCE, "EfCoreToBindableConverterRule")
+                .withConversion(typeof(RelNode), convention, BindableConvention.INSTANCE, nameof(EfCoreToBindableConverterRule))
                 .withRuleFactory(new DelegateFunction<Config, EfCoreToBindableConverterRule>(c => new EfCoreToBindableConverterRule(c, convention)))
                 .toRule(typeof(EfCoreToBindableConverterRule));
         }

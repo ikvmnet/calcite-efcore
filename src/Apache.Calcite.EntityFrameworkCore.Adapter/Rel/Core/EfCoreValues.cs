@@ -4,7 +4,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
 using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 using Apache.Calcite.EntityFrameworkCore.Core;
 
@@ -30,8 +29,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
     public class EfCoreValues : Values, EfCoreRel
     {
 
-        readonly Lazy<Type> _clrElementType;
-
         /// <summary>
         /// Initializes a new instance.
         /// </summary>
@@ -42,11 +39,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         public EfCoreValues(RelOptCluster cluster, RelDataType rowType, ImmutableList tuples, RelTraitSet traitSet) :
             base(cluster, rowType, tuples, traitSet)
         {
-            _clrElementType = new Lazy<Type>(BuildClrElementType);
         }
 
         /// <inheritdoc />
-        public Type ClrElementType => _clrElementType.Value;
+        public Type ClrElementType => CalciteTypeMapper.ToClrType(getRowType());
 
         /// <inheritdoc />
         public override Values copy(RelTraitSet traitSet, List inputs)
@@ -61,9 +57,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         }
 
         /// <inheritdoc />
-        public IQueryable implement()
+        public IQueryable implement(EfCoreRelImplementor implementor)
         {
-            var elementType = ClrElementType;
+            var elementType = CalciteTypeMapper.ToClrType(getRowType());
             var rowType = getRowType();
             var fields = rowType.getFieldList();
             var n = fields.size();
@@ -101,24 +97,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             return (IQueryable)asQueryableMethod.Invoke(null, [array])!;
         }
 
-        /// <summary>
-        /// Builds the CLR element type for this node's output shape by inspecting the row type fields.
-        /// </summary>
-        Type BuildClrElementType()
-        {
-            var fields = getRowType().getFieldList();
-            var n = fields.size();
-            var shape = new (string Name, Type ClrType)[n];
-            for (int i = 0; i < n; i++)
-            {
-                var field = (RelDataTypeField)fields.get(i);
-                var sqlTypeName = (SqlTypeName.__Enum)field.getType().getSqlTypeName().ordinal();
-                var clrType = CalciteTypeMapper.ToClrType(sqlTypeName) ?? typeof(object);
-                shape[i] = (field.getName(), clrType);
             }
-            return DynamicRowType.GetOrCreate(shape);
+
         }
-
-    }
-
-}

@@ -24,7 +24,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         public static EfCoreGroupByRule Create(EfCoreConvention convention)
         {
             return (EfCoreGroupByRule)Config.INSTANCE
-                .withConversion(typeof(Aggregate), Convention.NONE, convention, "EfCoreGroupByRule")
+                .withConversion(typeof(Aggregate), Convention.NONE, convention, nameof(EfCoreGroupByRule))
                 .withRuleFactory(new DelegateFunction<Config, EfCoreGroupByRule>(c => new EfCoreGroupByRule(c)))
                 .toRule(typeof(EfCoreGroupByRule));
         }
