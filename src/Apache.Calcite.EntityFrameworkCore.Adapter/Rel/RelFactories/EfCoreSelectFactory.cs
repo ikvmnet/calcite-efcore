@@ -1,9 +1,10 @@
 ﻿using System;
 
+using Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core;
+
 using java.util;
 
 using org.apache.calcite.rel;
-using org.apache.calcite.rel.type;
 using org.apache.calcite.rex;
 using org.apache.calcite.sql.validate;
 
@@ -16,7 +17,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.RelFactories
     /// <see cref="ProjectFactory"/> implementation that creates <see cref="EfCoreSelect"/> nodes
     /// during relational-algebra construction in the <see cref="EfCoreConvention"/>.
     /// </summary>
-    public class EfCoreProjectFactory : ProjectFactory
+    public class EfCoreSelectFactory : ProjectFactory
     {
 
         /// <inheritdoc />

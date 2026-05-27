@@ -360,9 +360,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
                 case SqlKind.__Enum.ST_CONTAINS:
                 case SqlKind.__Enum.HILBERT:
                     return ResolveDeclaredType(call);
+                case SqlKind.__Enum.CASE:
+                    return ResolveDeclaredType(call);
                 // These can appear as RexCall but require special type handling not yet implemented.
                 case SqlKind.__Enum.OVER:
-                case SqlKind.__Enum.CASE:
                 case SqlKind.__Enum.SCALAR_QUERY:
                 case SqlKind.__Enum.LAMBDA:
                 case SqlKind.__Enum.ROW:
@@ -784,8 +785,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
                 case SqlKind.__Enum.HILBERT:
                     throw new NotImplementedException($"RexToLinqTranslator: translation for RexCall kind '{(SqlKind.__Enum)call.getKind().ordinal()}' is not yet implemented.");
                 // These can appear as RexCall but require special translation handling not yet implemented.
-                case SqlKind.__Enum.OVER:
                 case SqlKind.__Enum.CASE:
+                    return TranslateCase(call, context);
+                case SqlKind.__Enum.OVER:
                 case SqlKind.__Enum.SCALAR_QUERY:
                 case SqlKind.__Enum.LAMBDA:
                 case SqlKind.__Enum.ROW:
@@ -976,6 +978,28 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
             var ifFalse = Translate((RexNode)operands.get(2), context);
             var (t, f) = Coerce(ifTrue, ifFalse);
             return Expression.Condition(test, t, f);
+        }
+
+        /// <summary>
+        /// Translates a Calcite <c>CASE WHEN c1 THEN v1 … ELSE vN</c> expression.
+        /// Operands are interleaved as <c>[when1, then1, when2, then2, …, else]</c>.
+        /// </summary>
+        protected virtual Expression TranslateCase(RexCall call, RexTranslationContext context)
+        {
+            var operands = call.getOperands();
+            var count = operands.size();
+            // The last operand is the ELSE branch; preceding pairs are WHEN/THEN.
+            var elseExpr = Translate((RexNode)operands.get(count - 1), context);
+            // Build right-to-left so the innermost Condition is the first WHEN.
+            var result = elseExpr;
+            for (int i = count - 3; i >= 0; i -= 2)
+            {
+                var when = Translate((RexNode)operands.get(i), context);
+                var then = Translate((RexNode)operands.get(i + 1), context);
+                var (t, r) = Coerce(then, result);
+                result = Expression.Condition(when, t, r);
+            }
+            return result;
         }
 
         /// <summary>

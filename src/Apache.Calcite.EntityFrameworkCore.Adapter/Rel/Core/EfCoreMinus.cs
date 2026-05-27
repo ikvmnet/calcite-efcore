@@ -10,14 +10,14 @@ using org.apache.calcite.rel;
 using org.apache.calcite.rel.core;
 using org.apache.calcite.rel.metadata;
 
-namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
+namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
 {
 
     /// <summary>
-    /// Implementation of <see cref="Intersect"/> in the <see cref="EfCoreConvention"/> calling convention.
-    /// Only the distinct form (<c>INTERSECT</c>) is supported; <c>INTERSECT ALL</c> is rejected at rule-convert time.
+    /// Implementation of <see cref="Minus"/> (EXCEPT) in the <see cref="EfCoreConvention"/> calling convention.
+    /// Only the distinct form (<c>EXCEPT</c>) is supported; <c>EXCEPT ALL</c> is rejected at rule-convert time.
     /// </summary>
-    public class EfCoreIntersect : Intersect, EfCoreRel
+    public class EfCoreMinus : Minus, EfCoreRel
     {
 
         /// <summary>
@@ -26,12 +26,12 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
         /// <param name="cluster">The query-planning cluster.</param>
         /// <param name="traitSet">Trait set for this node.</param>
         /// <param name="inputs">The set of input relational expressions.</param>
-        /// <param name="all">Must be <c>false</c>; <c>INTERSECT ALL</c> is unsupported.</param>
-        public EfCoreIntersect(RelOptCluster cluster, RelTraitSet traitSet, List inputs, bool all) :
+        /// <param name="all">Must be <c>false</c>; <c>EXCEPT ALL</c> is unsupported.</param>
+        public EfCoreMinus(RelOptCluster cluster, RelTraitSet traitSet, List inputs, bool all) :
             base(cluster, traitSet, inputs, all)
         {
             if (all)
-                throw new InvalidRelException("EfCoreIntersect does not support INTERSECT ALL");
+                throw new InvalidRelException("EfCoreMinus does not support EXCEPT ALL");
         }
 
         /// <inheritdoc />
@@ -40,7 +40,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
         /// <inheritdoc />
         public override SetOp copy(RelTraitSet traitSet, List inputs, bool all)
         {
-            return new EfCoreIntersect(getCluster(), traitSet, inputs, all);
+            return new EfCoreMinus(getCluster(), traitSet, inputs, all);
         }
 
         /// <inheritdoc />
@@ -55,11 +55,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
             var elementType = ClrElementType;
             var n = inputs.size();
 
-            var result = ((EfCoreRel)((RelNode)inputs.get(0))).implement();
+            var result = ((EfCoreRel)(RelNode)inputs.get(0)).implement();
             for (int i = 1; i < n; i++)
             {
-                var right = ((EfCoreRel)((RelNode)inputs.get(i))).implement();
-                result = (IQueryable)QueryableMethods.Intersect.MakeGenericMethod(elementType).Invoke(null, [result, right])!;
+                var right = ((EfCoreRel)(RelNode)inputs.get(i)).implement();
+                result = (IQueryable)QueryableMethods.Except.MakeGenericMethod(elementType).Invoke(null, [result, right])!;
             }
 
             return result;

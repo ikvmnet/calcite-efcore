@@ -1,4 +1,6 @@
-﻿using java.util.function;
+﻿using Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core;
+
+using java.util.function;
 
 using org.apache.calcite.plan;
 using org.apache.calcite.rel;
@@ -22,7 +24,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         public static EfCoreGroupByRule Create(EfCoreConvention convention)
         {
             return (EfCoreGroupByRule)Config.INSTANCE
-                .withConversion(typeof(Aggregate), Convention.NONE, convention, "EfCoreAggregateRule")
+                .withConversion(typeof(Aggregate), Convention.NONE, convention, "EfCoreGroupByRule")
                 .withRuleFactory(new DelegateFunction<Config, EfCoreGroupByRule>(c => new EfCoreGroupByRule(c)))
                 .toRule(typeof(EfCoreGroupByRule));
         }
@@ -41,7 +43,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         public override RelNode? convert(RelNode rel)
         {
             var agg = (Aggregate)rel;
-            return new EfCoreAggregate(
+            return new EfCoreGroupBy(
                 rel.getCluster(),
                 rel.getTraitSet().replace(@out),
                 convert(agg.getInput(), agg.getInput().getTraitSet().replace(@out)),

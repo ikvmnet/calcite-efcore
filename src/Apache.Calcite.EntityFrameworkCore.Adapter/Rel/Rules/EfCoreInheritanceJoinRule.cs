@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core;
+
 using java.lang;
 
 using Microsoft.EntityFrameworkCore.Metadata;

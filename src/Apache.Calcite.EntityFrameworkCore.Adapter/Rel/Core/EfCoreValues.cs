@@ -20,7 +20,7 @@ using org.apache.calcite.rel.type;
 using org.apache.calcite.rex;
 using org.apache.calcite.sql.type;
 
-namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
+namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
 {
 
     /// <summary>

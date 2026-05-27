@@ -12,7 +12,7 @@ using org.apache.calcite.rel.core;
 using org.apache.calcite.rel.metadata;
 using org.apache.calcite.rex;
 
-namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
+namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
 {
 
     /// <summary>

@@ -13,14 +13,14 @@ using org.apache.calcite.rel.type;
 using org.apache.calcite.rex;
 using org.apache.calcite.sql.type;
 
-namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel
+namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
 {
 
     /// <summary>
     /// Implementation of <see cref="Join"/> in the <see cref="EfCoreConvention"/> calling convention.
     /// </summary>
     /// <remarks>
-    /// Most EF Core join patterns are rewritten upstream by <see cref="Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules.EfCoreInheritanceJoinRule"/>
+    /// Most EF Core join patterns are rewritten upstream by <see cref="Rules.EfCoreInheritanceJoinRule"/>
     /// into a single <see cref="EfCoreSelect"/> over <see cref="EfCoreEntityScan"/>. This node handles remaining
     /// cases (e.g. cross-entity joins) and translates them to <c>SelectMany</c> + predicate.
     /// </remarks>

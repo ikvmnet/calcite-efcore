@@ -1,6 +1,4 @@
-﻿using com.google.common.io;
-
-using org.apache.calcite.rel;
+﻿using org.apache.calcite.rel;
 using org.apache.calcite.rel.convert;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert

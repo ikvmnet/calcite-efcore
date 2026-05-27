@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Linq;
 
-using Apache.Calcite.EntityFrameworkCore.Adapter.Rel;
+using Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core;
 using Apache.Calcite.EntityFrameworkCore.Core;
 
 using java.lang;
@@ -81,7 +81,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
 
         /// <summary>
         /// Returns a row type that includes all properties of this entity type, including those inherited from base entity types.
-        /// Used by <see cref="Rel.EfCoreEntityScan"/> as its row type, because EF Core materialises the full entity when executing <c>DbContext.Set&lt;T&gt;()</c>.
+        /// Used by <see cref="Rel.Core.EfCoreEntityScan"/> as its row type, because EF Core materialises the full entity when executing <c>DbContext.Set&lt;T&gt;()</c>.
         /// </summary>
         public RelDataType GetFullRowType(RelDataTypeFactory typeFactory)
         {
@@ -109,7 +109,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             var typeFactory = cluster.getTypeFactory();
 
             // Scan the full entity: row type includes all properties (declared + inherited) so the EfCoreSelect below can project any subset, including columns inherited from a base type.
-            var query = new Rel.EfCoreEntityScan(cluster, context.getTableHints(), relOptTable, this);
+            var query = new EfCoreEntityScan(cluster, context.getTableHints(), relOptTable, this);
 
             // Build a project that narrows the full row type down to just the declared properties,
             // which is what the Calcite schema exposes for this table.
@@ -131,7 +131,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
                 projects.add(rexBuilder.makeInputRef(field.getType(), idx));
             }
 
-            return new Rel.EfCoreSelect(cluster, query.getTraitSet(), query, projects, declaredRowType);
+            return new EfCoreSelect(cluster, query.getTraitSet(), query, projects, declaredRowType);
         }
 
         /// <inheritdoc />

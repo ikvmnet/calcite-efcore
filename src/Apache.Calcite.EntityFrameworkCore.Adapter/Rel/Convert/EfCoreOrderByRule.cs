@@ -1,4 +1,6 @@
-﻿using java.util.function;
+﻿using Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core;
+
+using java.util.function;
 
 using org.apache.calcite.plan;
 using org.apache.calcite.rel;

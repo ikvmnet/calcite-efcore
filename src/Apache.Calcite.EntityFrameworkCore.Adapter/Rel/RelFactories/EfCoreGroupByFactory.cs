@@ -15,13 +15,13 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.RelFactories
     /// <see cref="AggregateFactory"/> implementation for the <see cref="EfCoreConvention"/>.
     /// Aggregate pushdown is not supported by the EF Core adapter; this factory always throws.
     /// </summary>
-    public class EfCoreAggregateFactory : AggregateFactory
+    public class EfCoreGroupByFactory : AggregateFactory
     {
 
         /// <inheritdoc />
         public RelNode createAggregate(RelNode input, List hints, ImmutableBitSet groupSet, ImmutableList groupSets, List aggCalls)
         {
-            throw new UnsupportedOperationException("EfCoreAggregate");
+            throw new UnsupportedOperationException("EfCoreGroupBy");
         }
 
     }

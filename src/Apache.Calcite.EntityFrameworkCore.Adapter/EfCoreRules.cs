@@ -18,13 +18,13 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
     public static class EfCoreRules
     {
 
-        static readonly ProjectFactory PROJECT_FACTORY = new EfCoreProjectFactory();
+        static readonly ProjectFactory PROJECT_FACTORY = new EfCoreSelectFactory();
         static readonly FilterFactory FILTER_FACTORY = new EfCoreFilterFactory();
         static readonly JoinFactory JOIN_FACTORY = new EfCoreJoinFactory();
-        static readonly SortFactory SORT_FACTORY = new EfCoreSortFactory();
+        static readonly SortFactory SORT_FACTORY = new EfCoreOrderByFactory();
         static readonly ExchangeFactory EXCHANGE_FACTORY = new EfCoreExchangeFactory();
         static readonly SortExchangeFactory SORT_EXCHANGE_FACTORY = new EfCoreSortExchangeFactory();
-        static readonly AggregateFactory AGGREGATE_FACTORY = new EfCoreAggregateFactory();
+        static readonly AggregateFactory AGGREGATE_FACTORY = new EfCoreGroupByFactory();
         static readonly MatchFactory MATCH_FACTORY = new EfCoreMatchFactory();
         static readonly SetOpFactory SET_OP_FACTORY = new EfCoreSetOpFactory();
         static readonly ValuesFactory VALUES_FACTORY = new EfCoreValuesFactory();

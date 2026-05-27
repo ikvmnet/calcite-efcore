@@ -1,5 +1,7 @@
 ﻿using System;
 
+using Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core;
+
 using java.util;
 
 using org.apache.calcite.rel;

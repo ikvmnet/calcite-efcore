@@ -8,7 +8,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Query
 {
 
     /// <summary>
-    /// Generates and caches dynamic CLR types used to represent intermediate row shapes produced by <see cref="Apache.Calcite.EntityFrameworkCore.Adapter.Rel.EfCoreSelect"/>.
+    /// Generates and caches dynamic CLR types used to represent intermediate row shapes produced by <see cref="Rel.Core.EfCoreSelect"/>.
     /// Each unique ordered sequence of <c>(name, CLR type)</c> pairs produces exactly one generated type that is reused across calls.
     /// The generated types have public read/write auto-properties and a public parameterless constructor, satisfying the requirements
     /// of EF Core's <see cref="System.Linq.Expressions.MemberInitExpression"/> translation (same as hand-written DTO projections)
