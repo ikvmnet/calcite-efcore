@@ -16,6 +16,7 @@ using org.apache.calcite.linq4j;
 using org.apache.calcite.plan;
 using org.apache.calcite.rel;
 using org.apache.calcite.rel.type;
+using org.apache.calcite.util;
 using org.apache.calcite.schema;
 using org.apache.calcite.sql.type;
 
@@ -64,6 +65,28 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         /// Gets the EF Core entity type metadata.
         /// </summary>
         public IEntityType EntityType => _entityType;
+
+        /// <inheritdoc />
+        public override Statistic getStatistic()
+        {
+            var pk = _entityType.FindPrimaryKey();
+            if (pk == null)
+                return Statistics.UNKNOWN;
+
+            // Build an ImmutableBitSet of the PK column ordinals within the declared row type.
+            var declaredProperties = _entityType.GetDeclaredProperties().ToList();
+            var keyBits = ImmutableBitSet.builder();
+            foreach (var property in pk.Properties)
+            {
+                var ordinal = declaredProperties.IndexOf(property);
+                if (ordinal >= 0)
+                    keyBits.set(ordinal);
+            }
+
+            var keyList = new java.util.ArrayList();
+            keyList.add(keyBits.build());
+            return Statistics.of(keyList);
+        }
 
         /// <inheritdoc />
         public override RelDataType getRowType(RelDataTypeFactory typeFactory)

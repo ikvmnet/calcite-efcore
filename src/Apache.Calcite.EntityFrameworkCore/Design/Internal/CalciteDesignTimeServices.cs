@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.EntityFrameworkCore.Scaffolding;
 using Microsoft.Extensions.DependencyInjection;
 
-[assembly: DesignTimeProviderServices("Microsoft.EntityFrameworkCore.Calcite.Design.Internal.CalciteDesignTimeServices")]
+[assembly: DesignTimeProviderServices("Apache.Calcite.EntityFrameworkCore.Design.Internal.CalciteDesignTimeServices")]
 
 namespace Apache.Calcite.EntityFrameworkCore.Design.Internal
 {

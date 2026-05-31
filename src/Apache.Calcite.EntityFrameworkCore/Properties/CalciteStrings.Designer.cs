@@ -77,6 +77,24 @@ namespace Apache.Calcite.EntityFrameworkCore.Properties {
                 return ResourceManager.GetString("LogTransactionsNotSupported", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The migration operation &apos;{0}&apos; is not supported by the Calcite provider and has been ignored.
+        /// </summary>
+        internal static string LogMigrationOperationIgnored {
+            get {
+                return ResourceManager.GetString("LogMigrationOperationIgnored", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The &apos;{0}&apos; feature is not supported by the Calcite provider and has been ignored while creating table &apos;{1}&apos;.
+        /// </summary>
+        internal static string LogMigrationTableFeatureIgnored {
+            get {
+                return ResourceManager.GetString("LogMigrationTableFeatureIgnored", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to A connection of an unexpected type ({type}) is being used..

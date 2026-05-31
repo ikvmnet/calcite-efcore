@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Text;
 
+using Apache.Calcite.EntityFrameworkCore.Diagnostics.Internal;
+
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
@@ -38,31 +40,33 @@ namespace Apache.Calcite.EntityFrameworkCore.Migrations
         /// <inheritdoc/>
         protected override void CreateTablePrimaryKeyConstraint(CreateTableOperation operation, IModel? model, MigrationCommandListBuilder builder)
         {
-            throw new NotSupportedException();
+            if (operation.PrimaryKey != null)
+                Dependencies.MigrationsLogger.MigrationTableFeatureIgnoredWarning("PrimaryKeyConstraint", operation.Name);
         }
 
         /// <inheritdoc/>
         protected override void CreateTableForeignKeys(CreateTableOperation operation, IModel? model, MigrationCommandListBuilder builder)
         {
-            throw new NotSupportedException();
+            if (operation.ForeignKeys.Count > 0)
+                Dependencies.MigrationsLogger.MigrationTableFeatureIgnoredWarning("ForeignKeys", operation.Name);
         }
 
         /// <inheritdoc />
         protected override void Generate(AddColumnOperation operation, IModel? model, MigrationCommandListBuilder builder, bool terminate = true)
         {
-            throw new NotSupportedException();
+            Dependencies.MigrationsLogger.MigrationOperationIgnoredWarning(nameof(AddColumnOperation));
         }
 
         /// <inheritdoc />
         protected override void Generate(AlterColumnOperation operation, IModel? model, MigrationCommandListBuilder builder)
         {
-            throw new NotSupportedException();
+            Dependencies.MigrationsLogger.MigrationOperationIgnoredWarning(nameof(AlterColumnOperation));
         }
 
         /// <inheritdoc />
         protected override void Generate(AlterSequenceOperation operation, IModel? model, MigrationCommandListBuilder builder)
         {
-            throw new NotSupportedException();
+            Dependencies.MigrationsLogger.MigrationOperationIgnoredWarning(nameof(AlterSequenceOperation));
         }
 
         /// <summary>
@@ -86,13 +90,13 @@ namespace Apache.Calcite.EntityFrameworkCore.Migrations
         /// <inheritdoc />
         protected override void Generate(CreateIndexOperation operation, IModel? model, MigrationCommandListBuilder builder, bool terminate = true)
         {
-            throw new NotSupportedException();
+            Dependencies.MigrationsLogger.MigrationOperationIgnoredWarning(nameof(CreateIndexOperation));
         }
 
         /// <inheritdoc />
         protected override void Generate(DropIndexOperation operation, IModel? model, MigrationCommandListBuilder builder, bool terminate = true)
         {
-            throw new NotSupportedException();
+            Dependencies.MigrationsLogger.MigrationOperationIgnoredWarning(nameof(DropIndexOperation));
         }
 
         /// <inheritdoc />

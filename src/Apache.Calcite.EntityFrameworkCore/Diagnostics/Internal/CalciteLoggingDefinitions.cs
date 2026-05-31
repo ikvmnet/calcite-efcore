@@ -11,6 +11,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Diagnostics.Internal
 
         public EventDefinitionBase? LogTransactionsNotSupported;
 
+        public EventDefinitionBase? LogMigrationOperationIgnored;
+
+        public EventDefinitionBase? LogMigrationTableFeatureIgnored;
+
     }
 
 }

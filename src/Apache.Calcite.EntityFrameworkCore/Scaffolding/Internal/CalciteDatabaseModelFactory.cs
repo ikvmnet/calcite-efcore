@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Linq;
 
 using Apache.Calcite.Data;
 
@@ -141,8 +142,27 @@ namespace Apache.Calcite.EntityFrameworkCore.Scaffolding.Internal
             databaseTable.Name = tableName;
 
             var rowType = table.getRowType(typeFactory);
+            var fields = rowType.getFieldList();
             foreach (var column in GetColumns(databaseTable, rowType))
                 databaseTable.Columns.Add(column);
+
+            // Reconstruct the primary key from Calcite's Statistic key sets.
+            // getKeys() returns all unique key sets with no PK/UK distinction;
+            var keys = table.getStatistic()?.getKeys();
+            if (keys != null && !keys.isEmpty())
+            {
+                var firstKey = (org.apache.calcite.util.ImmutableBitSet)keys.iterator().next();
+                var pk = new DatabasePrimaryKey { Table = databaseTable, Name = "PK_" + tableName };
+                foreach (int bit in firstKey.AsEnumerable().AsEnumerable<java.lang.Integer>())
+                {
+                    var field = (RelDataTypeField)fields.get(bit);
+                    var col = databaseTable.Columns.FirstOrDefault(c => c.Name == field.getName());
+                    if (col != null)
+                        pk.Columns.Add(col);
+                }
+                if (pk.Columns.Count > 0)
+                    databaseTable.PrimaryKey = pk;
+            }
 
             return databaseTable;
         }

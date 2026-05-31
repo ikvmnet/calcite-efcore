@@ -76,11 +76,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Metadata.Conventions
             conventionSet.Replace<ValueGenerationConvention>(new CalciteValueGenerationConvention(Dependencies, RelationalDependencies));
             conventionSet.Replace<QueryFilterRewritingConvention>(new CalciteQueryFilterRewritingConvention(Dependencies, RelationalDependencies));
 
-            // primary keys and foreign keys are not supported
-            conventionSet.Remove(typeof(KeyDiscoveryConvention));
-            conventionSet.Remove(typeof(ForeignKeyAttributeConvention));
-            conventionSet.Remove(typeof(ForeignKeyPropertyDiscoveryConvention));
-
             // indexes not supported so remove conventions that might add indexes
             conventionSet.Remove(typeof(ForeignKeyIndexConvention));
             conventionSet.Remove(typeof(IndexAttributeConvention));

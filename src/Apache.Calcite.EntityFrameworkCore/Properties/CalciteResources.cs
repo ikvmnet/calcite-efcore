@@ -61,6 +61,52 @@ namespace Apache.Calcite.EntityFrameworkCore.Properties
             return (EventDefinition)definition;
         }
 
+        /// <summary>
+        /// A table feature (e.g. primary key constraint, foreign key) is not supported by the Calcite provider.
+        /// </summary>
+        public static EventDefinition<string, string> LogMigrationTableFeatureIgnored(IDiagnosticsLogger logger)
+        {
+            var definition = ((CalciteLoggingDefinitions)logger.Definitions).LogMigrationTableFeatureIgnored;
+            if (definition == null)
+                definition = NonCapturingLazyInitializer.EnsureInitialized(
+                    ref ((CalciteLoggingDefinitions)logger.Definitions).LogMigrationTableFeatureIgnored,
+                    logger,
+                    static logger => new EventDefinition<string, string>(
+                        logger.Options,
+                        CalciteEventId.MigrationTableFeatureIgnoredWarning,
+                        LogLevel.Warning,
+                        "CalciteEventId.MigrationTableFeatureIgnoredWarning",
+                        level => LoggerMessage.Define<string, string>(
+                            level,
+                            CalciteEventId.MigrationTableFeatureIgnoredWarning,
+                            CalciteStrings.LogMigrationTableFeatureIgnored)));
+
+            return (EventDefinition<string, string>)definition;
+        }
+
+        /// <summary>
+        /// A migration operation is not supported by the Calcite provider.
+        /// </summary>
+        public static EventDefinition<string> LogMigrationOperationIgnored(IDiagnosticsLogger logger)
+        {
+            var definition = ((CalciteLoggingDefinitions)logger.Definitions).LogMigrationOperationIgnored;
+            if (definition == null)
+                definition = NonCapturingLazyInitializer.EnsureInitialized(
+                    ref ((CalciteLoggingDefinitions)logger.Definitions).LogMigrationOperationIgnored,
+                    logger,
+                    static logger => new EventDefinition<string>(
+                        logger.Options,
+                        CalciteEventId.MigrationOperationIgnoredWarning,
+                        LogLevel.Warning,
+                        "CalciteEventId.MigrationOperationIgnoredWarning",
+                        level => LoggerMessage.Define<string>(
+                            level,
+                            CalciteEventId.MigrationOperationIgnoredWarning,
+                            CalciteStrings.LogMigrationOperationIgnored)));
+
+            return (EventDefinition<string>)definition;
+        }
+
     }
 
 }

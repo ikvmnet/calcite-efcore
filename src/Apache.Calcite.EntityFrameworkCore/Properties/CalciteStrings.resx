@@ -128,6 +128,14 @@
     <value>Transactions are not supported by the Calcite store</value>
     <comment>Warning CalciteEventId.TransactionIgnoredWarning</comment>
   </data>
+  <data name="LogMigrationOperationIgnored" xml:space="preserve">
+    <value>The migration operation '{operation}' is not supported by the Calcite provider and has been ignored</value>
+    <comment>Warning CalciteEventId.MigrationOperationIgnoredWarning</comment>
+  </data>
+  <data name="LogMigrationTableFeatureIgnored" xml:space="preserve">
+    <value>The '{feature}' feature is not supported by the Calcite provider and has been ignored while creating table '{table}'</value>
+    <comment>Warning CalciteEventId.MigrationTableFeatureIgnoredWarning</comment>
+  </data>
   <data name="BadGeneratorTableType" xml:space="preserve">
     <value>Invalid type for generator table. Valid types are 'long' (the default), 'int', 'short', 'byte' and 'decimal'.</value>
   </data>

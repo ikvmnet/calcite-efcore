@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using Apache.Calcite.EntityFrameworkCore.Diagnostics;
 using Apache.Calcite.EntityFrameworkCore.Infrastructure;
@@ -214,6 +214,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Extensions
 
             coreOptionsExtension = RelationalOptionsExtension.WithDefaultWarningConfiguration(coreOptionsExtension);
             coreOptionsExtension = coreOptionsExtension.WithWarningsConfiguration(coreOptionsExtension.WarningsConfiguration.TryWithExplicit(CalciteEventId.TransactionIgnoredWarning, WarningBehavior.Log));
+            coreOptionsExtension = coreOptionsExtension.WithWarningsConfiguration(coreOptionsExtension.WarningsConfiguration.TryWithExplicit(CalciteEventId.MigrationOperationIgnoredWarning, WarningBehavior.Throw));
+            coreOptionsExtension = coreOptionsExtension.WithWarningsConfiguration(coreOptionsExtension.WarningsConfiguration.TryWithExplicit(CalciteEventId.MigrationTableFeatureIgnoredWarning, WarningBehavior.Log));
             ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(coreOptionsExtension);
         }
 

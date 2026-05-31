@@ -34,6 +34,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Diagnostics.Internal
             var p = (UnexpectedConnectionTypeEventData)payload;
             return d.GenerateMessage(p.ConnectionType.ShortDisplayName());
         }
+
         public static void TransactionIgnoredWarning(this IDiagnosticsLogger<DbLoggerCategory.Database.Transaction> diagnostics)
         {
             var definition = CalciteResources.LogTransactionsNotSupported(diagnostics);
@@ -44,6 +45,34 @@ namespace Apache.Calcite.EntityFrameworkCore.Diagnostics.Internal
             if (diagnostics.NeedsEventData(definition, out var diagnosticSourceEnabled, out var simpleLogEnabled))
             {
                 var eventData = new EventData(definition, (d, _) => ((EventDefinition)d).GenerateMessage());
+                diagnostics.DispatchEventData(definition, eventData, diagnosticSourceEnabled, simpleLogEnabled);
+            }
+        }
+
+        public static void MigrationTableFeatureIgnoredWarning(this IDiagnosticsLogger<DbLoggerCategory.Migrations> diagnostics, string featureName, string tableName)
+        {
+            var definition = CalciteResources.LogMigrationTableFeatureIgnored(diagnostics);
+
+            if (diagnostics.ShouldLog(definition))
+                definition.Log(diagnostics, featureName, tableName);
+
+            if (diagnostics.NeedsEventData(definition, out var diagnosticSourceEnabled, out var simpleLogEnabled))
+            {
+                var eventData = new EventData(definition, (d, _) => ((EventDefinition<string, string>)d).GenerateMessage(featureName, tableName));
+                diagnostics.DispatchEventData(definition, eventData, diagnosticSourceEnabled, simpleLogEnabled);
+            }
+        }
+
+        public static void MigrationOperationIgnoredWarning(this IDiagnosticsLogger<DbLoggerCategory.Migrations> diagnostics, string operationName)
+        {
+            var definition = CalciteResources.LogMigrationOperationIgnored(diagnostics);
+
+            if (diagnostics.ShouldLog(definition))
+                definition.Log(diagnostics, operationName);
+
+            if (diagnostics.NeedsEventData(definition, out var diagnosticSourceEnabled, out var simpleLogEnabled))
+            {
+                var eventData = new EventData(definition, (d, _) => ((EventDefinition<string>)d).GenerateMessage(operationName));
                 diagnostics.DispatchEventData(definition, eventData, diagnosticSourceEnabled, simpleLogEnabled);
             }
         }

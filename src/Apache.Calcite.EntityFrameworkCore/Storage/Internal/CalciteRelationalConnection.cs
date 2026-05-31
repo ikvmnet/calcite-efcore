@@ -39,8 +39,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
             RuntimeHelpers.RunClassConstructor(typeof(org.apache.calcite.linq4j.tree.OptimizeShuttle).TypeHandle);
         }
 
+        static readonly IDbContextTransaction StubTransaction = new CalciteIgnoredTransaction();
+
         readonly IRawSqlCommandBuilder _rawSqlCommandBuilder;
         readonly IDiagnosticsLogger<DbLoggerCategory.Infrastructure> _logger;
+        readonly IDiagnosticsLogger<DbLoggerCategory.Database.Transaction> _transactionLogger;
         readonly int? _commandTimeout;
 
         /// <summary>
@@ -49,11 +52,12 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
         /// <param name="dependencies"></param>
         /// <param name="rawSqlCommandBuilder"></param>
         /// <param name="logger"></param>
-        public CalciteRelationalConnection(RelationalConnectionDependencies dependencies, IRawSqlCommandBuilder rawSqlCommandBuilder, IDiagnosticsLogger<DbLoggerCategory.Infrastructure> logger) :
+        public CalciteRelationalConnection(RelationalConnectionDependencies dependencies, IRawSqlCommandBuilder rawSqlCommandBuilder, IDiagnosticsLogger<DbLoggerCategory.Infrastructure> logger, IDiagnosticsLogger<DbLoggerCategory.Database.Transaction> transactionLogger) :
             base(dependencies)
         {
             _rawSqlCommandBuilder = rawSqlCommandBuilder;
             _logger = logger;
+            _transactionLogger = transactionLogger;
 
             var optionsExtension = dependencies.ContextOptions.Extensions.OfType<CalciteOptionsExtension>().FirstOrDefault();
             if (optionsExtension != null)
@@ -107,49 +111,62 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
         /// <inheritdoc/>
         public override IDbContextTransaction BeginTransaction()
         {
-            throw new NotSupportedException(CalciteStrings.LogTransactionsNotSupported);
+            _transactionLogger.TransactionIgnoredWarning();
+            return StubTransaction;
         }
 
         /// <inheritdoc/>
         public override IDbContextTransaction BeginTransaction(System.Data.IsolationLevel isolationLevel)
         {
-            throw new NotSupportedException(CalciteStrings.LogTransactionsNotSupported);
+            _transactionLogger.TransactionIgnoredWarning();
+            return StubTransaction;
         }
 
         /// <inheritdoc/>
         public override Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
         {
-            throw new NotSupportedException(CalciteStrings.LogTransactionsNotSupported);
+            _transactionLogger.TransactionIgnoredWarning();
+            return Task.FromResult(StubTransaction);
         }
 
         /// <inheritdoc/>
         public override Task<IDbContextTransaction> BeginTransactionAsync(System.Data.IsolationLevel isolationLevel, CancellationToken cancellationToken = default)
         {
-            throw new NotSupportedException(CalciteStrings.LogTransactionsNotSupported);
+            _transactionLogger.TransactionIgnoredWarning();
+            return Task.FromResult(StubTransaction);
         }
 
         /// <inheritdoc/>
         public override void CommitTransaction()
-        {
-            throw new NotSupportedException(CalciteStrings.LogTransactionsNotSupported);
-        }
+            => _transactionLogger.TransactionIgnoredWarning();
 
         /// <inheritdoc/>
         public override Task CommitTransactionAsync(CancellationToken cancellationToken = default)
         {
-            throw new NotSupportedException(CalciteStrings.LogTransactionsNotSupported);
+            _transactionLogger.TransactionIgnoredWarning();
+            return Task.CompletedTask;
         }
 
         /// <inheritdoc/>
         public override void RollbackTransaction()
-        {
-            throw new NotSupportedException(CalciteStrings.LogTransactionsNotSupported);
-        }
+            => _transactionLogger.TransactionIgnoredWarning();
 
         /// <inheritdoc/>
         public override Task RollbackTransactionAsync(CancellationToken cancellationToken = default)
         {
-            throw new NotSupportedException(CalciteStrings.LogTransactionsNotSupported);
+            _transactionLogger.TransactionIgnoredWarning();
+            return Task.CompletedTask;
+        }
+
+        sealed class CalciteIgnoredTransaction : IDbContextTransaction
+        {
+            public Guid TransactionId { get; } = Guid.NewGuid();
+            public void Commit() { }
+            public Task CommitAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+            public void Rollback() { }
+            public Task RollbackAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+            public void Dispose() { }
+            public ValueTask DisposeAsync() => default;
         }
 
     }

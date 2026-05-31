@@ -3,6 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>false</ImplicitUsings>
+        <PreserveCompilationContext>true</PreserveCompilationContext>
         <NoWarn>$(NoWarn);MAVEN0012;CS1591</NoWarn>
         <MavenAdditionalRepositories>$(MavenAdditionalRepositories);redhat=https://maven.repository.redhat.com/ga/</MavenAdditionalRepositories>
     </PropertyGroup>
