@@ -4,7 +4,6 @@ using Apache.Calcite.EntityFrameworkCore.Adapter.Rel;
 
 using Microsoft.EntityFrameworkCore;
 
-using org.apache.calcite.linq4j.tree;
 using org.apache.calcite.plan;
 using org.apache.calcite.rel.rules;
 
@@ -24,36 +23,32 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         public const double CostMultiplier = .8d;
 
         /// <summary>
-        /// Creates a new <see cref="EfCoreConvention"/> for the given schema expression.
+        /// Creates a new <see cref="EfCoreConvention"/> for the given schema.
         /// </summary>
         /// <param name="schema">The <see cref="EfCoreSchema"/> this convention is bound to.</param>
         /// <param name="schemaName">Unique name for this convention instance (usually the schema name).</param>
         /// <param name="contextFactory">Factory that produces a fresh <see cref="DbContext"/> on demand.</param>
-        /// <param name="expression">Expression by which this schema can be retrieved in generated code.</param>
-        public static EfCoreConvention Create(EfCoreSchema schema, string schemaName, Func<DbContext> contextFactory, Expression expression)
+        public static EfCoreConvention Create(EfCoreSchema schema, string schemaName, Func<DbContext> contextFactory)
         {
-            return new EfCoreConvention(schema, schemaName, contextFactory, expression);
+            return new EfCoreConvention(schema, schemaName, contextFactory);
         }
 
         readonly EfCoreSchema _schema;
         readonly Func<DbContext> _contextFactory;
-        readonly Expression _expression;
 
         /// <summary>
         /// Initializes a new instance.
         /// </summary>
         /// <param name="schema">The <see cref="EfCoreSchema"/> this convention is bound to.</param>
         /// <param name="schemaName">Unique name for this convention instance.</param>
-        /// <param name="expression">Expression by which this schema can be retrieved in generated code.</param>
         /// <param name="contextFactory">Factory that produces a fresh <see cref="DbContext"/> on demand.</param>
-        public EfCoreConvention(EfCoreSchema schema, string schemaName, Func<DbContext> contextFactory, Expression expression) :
+        public EfCoreConvention(EfCoreSchema schema, string schemaName, Func<DbContext> contextFactory) :
             base("EFCORE." + schemaName, typeof(EfCoreRel))
         {
             if (string.IsNullOrEmpty(schemaName))
                 throw new ArgumentException($"'{nameof(schemaName)}' cannot be null or empty.", nameof(schemaName));
 
             _schema = schema ?? throw new ArgumentNullException(nameof(schema));
-            _expression = expression ?? throw new ArgumentNullException(nameof(expression));
             _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
         }
 
@@ -66,11 +61,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         /// Gets the factory that creates a <see cref="DbContext"/> for this convention's schema.
         /// </summary>
         public Func<DbContext> ContextFactory => _contextFactory;
-
-        /// <summary>
-        /// Gets the expression that identifies this schema in generated Linq4j code.
-        /// </summary>
-        public Expression Expression => _expression;
 
         /// <inheritdoc />
         public override void register(RelOptPlanner planner)

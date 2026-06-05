@@ -1696,7 +1696,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// Translates a <see cref="RexLiteral"/> into a <see cref="ConstantExpression"/> of the appropriate CLR type.
         /// </summary>
         protected virtual Expression TranslateLiteral(RexLiteral literal)
-            => TranslateConstant(literal.isNull(), literal.getType(), literal.getValue());
+        {
+            return TranslateConstant(literal.isNull(), literal.getType(), literal.getValue());
+        }
 
         /// <summary>
         /// Translates a constant defined by its nullability, Calcite <see cref="RelDataType"/>, and raw Java value
@@ -1726,10 +1728,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
 
             return value switch
             {
-                org.apache.calcite.util.NlsString nls => TranslateNlsString(nls),
-                org.apache.calcite.util.DateString ds => TranslateDateString(ds),
-                org.apache.calcite.util.TimeString ts => TranslateTimeString(ts),
-                org.apache.calcite.util.TimestampString tss => TranslateTimestampString(tss, sqlTypeName),
+                NlsString nls => TranslateNlsString(nls),
+                DateString ds => TranslateDateString(ds),
+                TimeString ts => TranslateTimeString(ts),
+                TimestampString tss => TranslateTimestampString(tss, sqlTypeName),
                 org.apache.calcite.avatica.util.ByteString bs => TranslateByteString(bs),
                 java.lang.Boolean b => TranslateBoolean(b),
                 java.lang.Number n => TranslateNumber(n, sqlTypeName),

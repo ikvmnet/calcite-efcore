@@ -1,13 +1,13 @@
-﻿using System;
-using System.Linq;
-using System.Reflection;
-
-using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
+﻿using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
 using Apache.Calcite.EntityFrameworkCore.Core;
 
 using Microsoft.EntityFrameworkCore;
 
 using org.apache.calcite.linq4j;
+
+using System;
+using System.Linq;
+using System.Reflection;
 
 using CalciteEnumerable = org.apache.calcite.linq4j.Enumerable;
 
@@ -22,15 +22,31 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
 
         /// <summary>
         /// Executes the query described by <paramref name="templateQueryable"/> against a fresh <see cref="DbContext"/>
-        /// and returns a lazy Calcite <see cref="CalciteEnumerable"/> that streams <c>object?[]</c> rows.
+        /// and returns a lazy Calcite <see cref="CalciteEnumerable"/> that streams <c>object?[]</c> rows (ARRAY format).
         /// </summary>
-        public static CalciteEnumerable Execute(EfCoreConvention convention, IQueryable templateQueryable, string[] columnNames)
+        public static CalciteEnumerable ExecuteArray(EfCoreConvention convention, IQueryable templateQueryable, string[] columnNames)
         {
             ArgumentNullException.ThrowIfNull(convention);
             ArgumentNullException.ThrowIfNull(templateQueryable);
             ArgumentNullException.ThrowIfNull(columnNames);
 
-            return Linq4j.asEnumerable(new LazyEfCoreIterable(convention, templateQueryable, columnNames));
+            return Linq4j.asEnumerable(new LazyEfCoreArrayIterable(convention, templateQueryable, columnNames));
+        }
+
+        /// <summary>
+        /// Executes the query described by <paramref name="templateQueryable"/> against a fresh <see cref="DbContext"/>
+        /// and returns a lazy Calcite <see cref="CalciteEnumerable"/> that streams bare scalar values (SCALAR format).
+        /// Use this overload when <c>PhysTypeImpl.of</c> has resolved the row format to <c>SCALAR</c>.
+        /// The IQueryable produces typed record objects; the iterator reads the single property via reflection
+        /// so that Calcite's generated code receives the bare value it expects for single-field row types.
+        /// </summary>
+        public static CalciteEnumerable ExecuteScalar(EfCoreConvention convention, IQueryable templateQueryable, string[] columnNames)
+        {
+            ArgumentNullException.ThrowIfNull(convention);
+            ArgumentNullException.ThrowIfNull(templateQueryable);
+            ArgumentNullException.ThrowIfNull(columnNames);
+
+            return Linq4j.asEnumerable(new LazyEfCoreScalarIterable(convention, templateQueryable, columnNames));
         }
 
         // -----------------------------------------------------------------------------------------
@@ -38,14 +54,14 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         // -----------------------------------------------------------------------------------------
 
         /// <summary>
-        /// A <c>java.lang.Iterable</c> that defers <see cref="DbContext"/> creation and query execution until <c>iterator()</c> is called by Calcite.
+        /// Base <c>java.lang.Iterable</c> that defers <see cref="DbContext"/> creation until <c>iterator()</c> is called.
         /// </summary>
-        sealed class LazyEfCoreIterable : java.lang.Iterable
+        abstract class LazyEfCoreIterableBase : java.lang.Iterable
         {
 
-            readonly EfCoreConvention _convention;
-            readonly IQueryable _template;
-            readonly string[] _columnNames;
+            protected readonly EfCoreConvention _convention;
+            protected readonly IQueryable _template;
+            protected readonly string[] _columnNames;
 
             /// <summary>
             /// Initializes a new instance.
@@ -53,17 +69,14 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             /// <param name="convention"></param>
             /// <param name="template"></param>
             /// <param name="columnNames"></param>
-            internal LazyEfCoreIterable(EfCoreConvention convention, IQueryable template, string[] columnNames)
+            protected LazyEfCoreIterableBase(EfCoreConvention convention, IQueryable template, string[] columnNames)
             {
                 _convention = convention;
                 _template = template;
                 _columnNames = columnNames;
             }
 
-            public java.util.Iterator iterator()
-            {
-                return new LazyEfCoreIterator(_convention, _template, _columnNames);
-            }
+            public abstract java.util.Iterator iterator();
 
             public void forEach(java.util.function.Consumer action)
             {
@@ -79,26 +92,51 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
 
         }
 
-        /// <summary>
-        /// A <c>java.util.Iterator</c> that creates the <see cref="DbContext"/>, folds the step pipeline, opens the EF Core cursor, and streams rows on demand.
-        /// The context is disposed when iteration finishes or <c>remove()</c> is used as a close signal.
-        ///
-        /// <para>
-        /// When the folded <see cref="IQueryable"/> still returns entity objects (i.e. no <c>Select</c> step has been applied), each entity is projected to an <c>object?[]</c>
-        /// row using reflection over the property names in <c>columnNames</c>, with each value boxed via <see cref="CalciteValueConverter.ToJavaObject"/>.
-        /// </para>
-        /// </summary>
-        sealed class LazyEfCoreIterator : java.util.Iterator
+        sealed class LazyEfCoreArrayIterable : LazyEfCoreIterableBase
         {
 
-            readonly EfCoreConvention _convention;
-            readonly IQueryable _template;
-            readonly string[] _columnNames;
+            internal LazyEfCoreArrayIterable(EfCoreConvention convention, IQueryable template, string[] columnNames) :
+                base(convention, template, columnNames)
+            {
+
+            }
+
+            public override java.util.Iterator iterator()
+            {
+                return new LazyEfCoreArrayIterator(_convention, _template, _columnNames);
+            }
+
+        }
+
+        sealed class LazyEfCoreScalarIterable : LazyEfCoreIterableBase
+        {
+
+            internal LazyEfCoreScalarIterable(EfCoreConvention convention, IQueryable template, string[] columnNames) :
+                base(convention, template, columnNames)
+            {
+
+            }
+
+            public override java.util.Iterator iterator()
+            {
+                return new LazyEfCoreScalarIterator(_convention, _template, _columnNames);
+            }
+        }
+
+        /// <summary>
+        /// Base iterator that opens the EF Core query and manages context lifetime. Subclasses implement <c>next()</c>
+        /// to emit either <c>object?[]</c> rows (ARRAY format) or bare scalar values (SCALAR format).
+        /// </summary>
+        abstract class LazyEfCoreIteratorBase : java.util.Iterator
+        {
+
+            protected readonly EfCoreConvention _convention;
+            protected readonly IQueryable _template;
+            protected readonly PropertyInfo[] _projectionProps;
 
             DbContext? _context;
             System.Collections.IEnumerator? _inner;
             bool _done;
-            PropertyInfo[]? _projectionProps;
 
             bool _hasPeeked;
             bool _peekResult;
@@ -109,11 +147,14 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             /// <param name="convention"></param>
             /// <param name="template"></param>
             /// <param name="columnNames"></param>
-            internal LazyEfCoreIterator(EfCoreConvention convention, IQueryable template, string[] columnNames)
+            protected LazyEfCoreIteratorBase(EfCoreConvention convention, IQueryable template, string[] columnNames)
             {
                 _convention = convention;
                 _template = template;
-                _columnNames = columnNames;
+
+                _projectionProps = new PropertyInfo[columnNames.Length];
+                for (int i = 0; i < columnNames.Length; i++)
+                    _projectionProps[i] = template.ElementType.GetProperty(columnNames[i], BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)!;
             }
 
             void EnsureStarted()
@@ -122,31 +163,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
                     return;
 
                 _context = _convention.ContextFactory();
-                var query = TemplateQueryable.Apply(_template, _context);
-
-                if (query is IQueryable<object?[]>)
-                {
-                    _inner = ((IQueryable<object?[]>)query).GetEnumerator();
-                    _projectionProps = null;
-                }
-                else
-                {
-                    var entityType = query.ElementType;
-                    _projectionProps = new PropertyInfo[_columnNames.Length];
-                    for (int i = 0; i < _columnNames.Length; i++)
-                        _projectionProps[i] = entityType.GetProperty(_columnNames[i], BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)!;
-
-                    _inner = query.GetEnumerator();
-                }
-            }
-
-            object?[] ProjectResult(object result)
-            {
-                var row = new object?[_projectionProps!.Length];
-                for (int i = 0; i < _projectionProps.Length; i++)
-                    row[i] = CalciteValueConverter.ToJavaObject(_projectionProps[i]?.GetValue(result));
-
-                return row;
+                _inner = TemplateQueryable.Apply(_template, _context).GetEnumerator();
             }
 
             void Close()
@@ -164,34 +181,80 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
                 if (_hasPeeked) return _peekResult;
 
                 EnsureStarted();
+
                 _hasPeeked = true;
                 _peekResult = _inner!.MoveNext();
                 if (!_peekResult)
                     Close();
+
                 return _peekResult;
             }
 
-            public object next()
+            protected object GetCurrent()
             {
                 if (!hasNext())
                     throw new java.util.NoSuchElementException();
 
                 _hasPeeked = false;
-                var current = _inner!.Current!;
-                return _projectionProps is null ? current : ProjectResult(current);
+                return _inner!.Current!;
             }
 
+            public abstract object next();
+
             // remove() is not used for iteration; use it as a close signal when needed.
-            public void remove()
-            {
-                Close();
-            }
+            public void remove() => Close();
 
             public void forEachRemaining(java.util.function.Consumer action)
             {
                 while (hasNext())
                     action.accept(next());
             }
+        }
+
+        /// <summary>
+        /// Iterator that emits <c>object?[]</c> rows (ARRAY format). Each element of the array is one field value,
+        /// boxed via <see cref="CalciteValueConverter.ToJavaObject"/>.
+        /// </summary>
+        sealed class LazyEfCoreArrayIterator : LazyEfCoreIteratorBase
+        {
+
+            internal LazyEfCoreArrayIterator(EfCoreConvention convention, IQueryable template, string[] columnNames) :
+                base(convention, template, columnNames)
+            {
+
+            }
+
+            public override object next()
+            {
+                var current = GetCurrent();
+                var row = new object?[_projectionProps.Length];
+                for (int i = 0; i < _projectionProps.Length; i++)
+                    row[i] = CalciteValueConverter.ToJavaObject(_projectionProps[i]?.GetValue(current));
+                return row;
+            }
+        }
+
+        /// <summary>
+        /// Iterator that emits bare scalar values (SCALAR format). The IQueryable always produces
+        /// typed record objects with properties; <see cref="LazyEfCoreIteratorBase._projectionProps"/>
+        /// is therefore always set and element [0] is read directly via reflection so that Calcite's
+        /// generated code receives the bare value it expects for single-field row types.
+        /// </summary>
+        sealed class LazyEfCoreScalarIterator : LazyEfCoreIteratorBase
+        {
+
+            internal LazyEfCoreScalarIterator(EfCoreConvention convention, IQueryable template, string[] columnNames) :
+                base(convention, template, columnNames)
+            {
+
+            }
+
+            public override object next()
+            {
+                var current = GetCurrent();
+                return CalciteValueConverter.ToJavaObject(_projectionProps[0]?.GetValue(current))!;
+            }
+
         }
 
     }

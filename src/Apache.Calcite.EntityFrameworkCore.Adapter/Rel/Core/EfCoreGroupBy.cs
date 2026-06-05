@@ -104,6 +104,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
                 for (int i = 0; i < groupKeyIndices.Count; i++)
                     keyFields.Add((RelDataTypeField)inputFields.get(groupKeyIndices[i]));
                 keyType = CalciteTypeMapper.ToClrType((IReadOnlyList<RelDataTypeField>)keyFields);
+
                 var keyBindings = new MemberBinding[groupKeyIndices.Count];
                 for (int i = 0; i < groupKeyIndices.Count; i++)
                 {
@@ -112,6 +113,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
                     var dstProp = keyType.GetProperty(fieldName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)!;
                     keyBindings[i] = Expression.Bind(dstProp, Expression.Property(elementParam, srcProp));
                 }
+
                 keySelectorBody = Expression.MemberInit(Expression.New(keyType), keyBindings);
             }
 
@@ -153,6 +155,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
 
                 if (keyValue.Type != dstProp.PropertyType)
                     keyValue = Expression.Convert(keyValue, dstProp.PropertyType);
+
                 bindings[i] = Expression.Bind(dstProp, keyValue);
             }
 

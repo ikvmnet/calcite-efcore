@@ -93,8 +93,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
                 {
 
                 }
-
-                calciteConnection.RegisterHook(Hook.ENABLE_BINDABLE, true);
             }
             else
             {

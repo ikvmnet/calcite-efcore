@@ -160,13 +160,13 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests.Rex
         }
 
         [Fact]
-        public void Literal_Null_ProducesNullObjectConstant()
+        public void Literal_Null_ProducesNullDefaultString()
         {
             var (t, ctx, _, rex, tf) = Build();
             var node = rex.makeNullLiteral(tf.createSqlType(SqlTypeName.VARCHAR));
             var expr = t.Translate(node, ctx);
-            var constant = Assert.IsType<ConstantExpression>(expr);
-            Assert.Null(constant.Value);
+            var constant = Assert.IsType<DefaultExpression>(expr);
+            Assert.Equal(typeof(string), constant.Type);
         }
 
         // -----------------------------------------------------------------------------------------

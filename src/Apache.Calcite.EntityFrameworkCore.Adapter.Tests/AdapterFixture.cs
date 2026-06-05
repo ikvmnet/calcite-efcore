@@ -59,7 +59,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             // Open the CalciteConnection and register the EF Core schema.
             Connection = new CalciteConnection("caseSensitive=false");
             Connection.Open();
-            Connection.RegisterHook(Hook.ENABLE_BINDABLE, true);
 
             var schema = EfCoreSchema.Create(Connection.RootSchema, SchemaName, () => new ProductDbContext(connectionString));
             Connection.RootSchema.add(SchemaName, schema);

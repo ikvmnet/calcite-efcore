@@ -88,7 +88,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Query
     /// <summary>
     /// The strongly-typed implementation of a template queryable node.
     /// </summary>
-    public sealed class TemplateQueryable<T> : IQueryable<T>, ITemplateRoot
+    public sealed class TemplateQueryable<T> : IOrderedQueryable<T>, ITemplateRoot
     {
 
         readonly Expression _expression;
@@ -125,7 +125,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Query
         /// <inheritdoc />
         public IEnumerator<T> GetEnumerator()
         {
-            throw new NotSupportedException("TemplateQueryable is not executable. Call TemplateQueryable.Replay() to obtain a real IQueryable.");
+            throw new NotSupportedException("TemplateQueryable is not executable. Call TemplateQueryable.Apply() to obtain a real IQueryable.");
         }
 
         IEnumerator IEnumerable.GetEnumerator()

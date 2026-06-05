@@ -7,6 +7,7 @@ using System.Linq;
 using Apache.Calcite.Data;
 
 using java.lang;
+using java.util;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -152,16 +153,20 @@ namespace Apache.Calcite.EntityFrameworkCore.Scaffolding.Internal
             if (keys != null && !keys.isEmpty())
             {
                 var firstKey = (org.apache.calcite.util.ImmutableBitSet)keys.iterator().next();
-                var pk = new DatabasePrimaryKey { Table = databaseTable, Name = "PK_" + tableName };
-                foreach (int bit in firstKey.AsEnumerable().AsEnumerable<java.lang.Integer>())
+                if (firstKey is not null)
                 {
-                    var field = (RelDataTypeField)fields.get(bit);
-                    var col = databaseTable.Columns.FirstOrDefault(c => c.Name == field.getName());
-                    if (col != null)
-                        pk.Columns.Add(col);
+                    var pk = new DatabasePrimaryKey { Table = databaseTable, Name = "PK_" + tableName };
+                    foreach (int bit in firstKey.asList().AsList<Integer>().Select(i => i.intValue()))
+                    {
+                        var field = (RelDataTypeField)fields.get(bit);
+                        var col = databaseTable.Columns.FirstOrDefault(c => c.Name == field.getName());
+                        if (col != null)
+                            pk.Columns.Add(col);
+                    }
+
+                    if (pk.Columns.Count > 0)
+                        databaseTable.PrimaryKey = pk;
                 }
-                if (pk.Columns.Count > 0)
-                    databaseTable.PrimaryKey = pk;
             }
 
             return databaseTable;

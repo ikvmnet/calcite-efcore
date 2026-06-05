@@ -24,9 +24,14 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
     public class EfCoreToEnumerableConverter : ConverterImpl, EnumerableRel
     {
 
-        static readonly Method ExecuteMethod =
+        static readonly Method ExecuteArrayMethod =
             ((Class)typeof(EfCoreEnumerable)).getDeclaredMethod(
-                nameof(EfCoreEnumerable.Execute),
+                nameof(EfCoreEnumerable.ExecuteArray),
+                [(Class)typeof(EfCoreConvention), (Class)typeof(IQueryable), (Class)typeof(string[])]);
+
+        static readonly Method ExecuteScalarMethod =
+            ((Class)typeof(EfCoreEnumerable)).getDeclaredMethod(
+                nameof(EfCoreEnumerable.ExecuteScalar),
                 [(Class)typeof(EfCoreConvention), (Class)typeof(IQueryable), (Class)typeof(string[])]);
 
         /// <summary>
@@ -52,8 +57,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         {
             var list = new BlockBuilder();
 
-            var input = getInput() as EfCoreRel
-                ?? throw new InvalidOperationException("Input to EfCoreToEnumerableConverter must be an EfCoreRel.");
+            var input = getInput() as EfCoreRel;
+            if (input is null)
+                throw new InvalidOperationException("Input to EfCoreToEnumerableConverter must be an EfCoreRel.");
 
             var physType = PhysTypeImpl.of(
                 implementor.getTypeFactory(),
@@ -61,24 +67,34 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
                 pref.prefer(JavaRowFormat.ARRAY));
 
             var efImplementor = new EfCoreRelImplementor();
-            var queryable = efImplementor.visitChild(getInput());
+            var queryable = efImplementor.visitChild(input);
 
             Hook.QUERY_PLAN.run(queryable);
 
-            var convention = (EfCoreConvention?)
-                (input as RelNode)?.getConvention()
-                ?? throw new InvalidOperationException("Cannot resolve EfCoreConvention from input.");
+            var convention = (EfCoreConvention?)input.getConvention();
+            if (convention is null)
+                throw new InvalidOperationException("Cannot resolve EfCoreConvention from input.");
 
-            var conventionExpr = convention.Expression;
             var fieldList = getRowType().getFieldList();
             var columnNames = new string[fieldList.size()];
             for (int i = 0; i < fieldList.size(); i++)
                 columnNames[i] = ((RelDataTypeField)fieldList.get(i)).getName();
 
-            var queryableExpr = implementor.stash(queryable, (Class)typeof(IQueryable));
-            var columnNamesExpr = implementor.stash(columnNames, (Class)typeof(string[]));
+            // PhysTypeImpl.of internally calls format.optimize(rowType), which may promote ARRAY → SCALAR
+            // (e.g. single-field row types). Read the resolved format from physType directly so the
+            // iterator emits exactly the row shape that Calcite's generated parent code expects.
+            var executeMethod = (JavaRowFormat.__Enum)physType.getFormat().ordinal() switch
+            {
+                JavaRowFormat.__Enum.ARRAY => ExecuteArrayMethod,
+                JavaRowFormat.__Enum.SCALAR => ExecuteScalarMethod,
+                var fmt => throw new NotSupportedException($"JavaRowFormat.{fmt} is not supported by EfCoreToEnumerableConverter.")
+            };
 
-            var enumerable_ = list.append("enumerable", Expressions.call(null, ExecuteMethod, conventionExpr, queryableExpr, columnNamesExpr));
+            var enumerable_ = list.append("enumerable",
+                Expressions.call(null, executeMethod,
+                implementor.stash(convention, (Class)typeof(EfCoreConvention)),
+                implementor.stash(queryable, (Class)typeof(IQueryable)),
+                implementor.stash(columnNames, (Class)typeof(string[]))));
 
             list.add(Expressions.return_(null, enumerable_));
 

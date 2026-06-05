@@ -51,7 +51,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         /// <exception cref="ArgumentNullException"></exception>
         EfCoreSchema(SchemaPlus? parentSchema, string name, Func<DbContext> contextFactory)
         {
-            _convention = EfCoreConvention.Create(this, name, contextFactory, Schemas.subSchemaExpression(parentSchema, name, typeof(EfCoreSchema)));
+            _convention = EfCoreConvention.Create(this, name, contextFactory);
         }
 
         /// <inheritdoc />

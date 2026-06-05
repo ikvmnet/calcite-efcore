@@ -57,7 +57,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
                 columnNames[i] = ((RelDataTypeField)fieldList.get(i)).getName();
 
             var efImplementor = new EfCoreRelImplementor();
-            return EfCoreEnumerable.Execute(_convention, efImplementor.visitChild(getInput()), columnNames);
+            return EfCoreEnumerable.ExecuteArray(_convention, efImplementor.visitChild(getInput()), columnNames);
         }
 
     }
