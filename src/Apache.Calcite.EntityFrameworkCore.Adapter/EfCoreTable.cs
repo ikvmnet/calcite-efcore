@@ -16,9 +16,8 @@ using org.apache.calcite.linq4j;
 using org.apache.calcite.plan;
 using org.apache.calcite.rel;
 using org.apache.calcite.rel.type;
-using org.apache.calcite.util;
 using org.apache.calcite.schema;
-using org.apache.calcite.sql.type;
+using org.apache.calcite.util;
 
 using CalciteEnumerable = org.apache.calcite.linq4j.Enumerable;
 using CalciteQueryable = org.apache.calcite.linq4j.Queryable;

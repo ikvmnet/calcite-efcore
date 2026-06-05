@@ -1,14 +1,14 @@
-﻿using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
+﻿using System;
+using System.Linq;
+using System.Reflection;
+
+using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
 using Apache.Calcite.EntityFrameworkCore.Core;
 
 using Microsoft.EntityFrameworkCore;
 
 using org.apache.calcite;
 using org.apache.calcite.linq4j;
-
-using System;
-using System.Linq;
-using System.Reflection;
 
 using CalciteEnumerable = org.apache.calcite.linq4j.Enumerable;
 

@@ -17,7 +17,6 @@ using org.apache.calcite.rel.core;
 using org.apache.calcite.rel.metadata;
 using org.apache.calcite.rel.type;
 using org.apache.calcite.sql;
-using org.apache.calcite.sql.type;
 using org.apache.calcite.util;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core

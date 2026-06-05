@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
@@ -100,6 +100,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
                 .Single(m => m.Name == nameof(Enumerable.LastOrDefault) && m.GetParameters().Length == 1)
                 .MakeGenericMethod(typeof(char));
 
+        static readonly MethodInfo ReverseMethodInfo
+            = typeof(CalciteFunctions).GetRuntimeMethod(nameof(CalciteFunctions.Reverse), [typeof(string)])!;
+
         readonly CalciteSqlExpressionFactory _sqlExpressionFactory;
 
         /// <summary>
@@ -125,6 +128,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
 
             if (Equals(method, IsNullOrWhiteSpaceMethodInfo))
                 return TranslateIsNullOrWhiteSpace(arguments);
+
+            if (Equals(method, ReverseMethodInfo))
+                return TranslateReverse(arguments);
 
             if (instance is null)
                 return null;
@@ -267,6 +273,20 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators
                     typeof(int)),
                 _sqlExpressionFactory.Constant(0));
             return _sqlExpressionFactory.OrElse(isNull, isWhiteSpace);
+        }
+
+        /// <summary>
+        /// Translates <see cref="CalciteFunctions.Reverse(string)"/> into <c>REVERSE(str)</c>.
+        /// </summary>
+        SqlExpression TranslateReverse(IReadOnlyList<SqlExpression> arguments)
+        {
+            var str = arguments[0];
+            return _sqlExpressionFactory.Function(
+                "REVERSE",
+                [str],
+                nullable: true,
+                argumentsPropagateNullability: [true],
+                typeof(string));
         }
 
         /// <summary>

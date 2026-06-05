@@ -1,7 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage;
 
-using org.apache.calcite.sql.type;
-
 namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal.Mapping
 {
 

@@ -15,22 +15,22 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Represents one input relation's contribution to the global field-index space.
         /// </summary>
-        /// <param name="Fields">The Calcite field list for this input's row type.</param>
+        /// <param name="Fields">The Calcite field list for this input's row type.</param>?
         /// <param name="Param">The CLR lambda parameter representing a row from this input.</param>
         public sealed record InputSegment(java.util.List Fields, ParameterExpression Param);
 
         readonly IReadOnlyList<InputSegment> _inputs;
         readonly Func<string, Type, ParameterExpression?> _getCorrelation;
-        readonly Func<int, Type, ParameterExpression> _getDynamicParam;
+        readonly bool _isCalciteProvider;
 
         /// <summary>
         /// Initializes a new context.
         /// </summary>
-        public RexTranslationContext(IReadOnlyList<InputSegment> inputs, Func<string, Type, ParameterExpression?> getCorrelation, Func<int, Type, ParameterExpression> getDynamicParam)
+        public RexTranslationContext(IReadOnlyList<InputSegment> inputs, Func<string, Type, ParameterExpression?> getCorrelation, bool isCalciteProvider = false)
         {
             _inputs = inputs;
             _getCorrelation = getCorrelation;
-            _getDynamicParam = getDynamicParam;
+            _isCalciteProvider = isCalciteProvider;
         }
 
         /// <summary>
@@ -48,12 +48,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         public ParameterExpression? GetCorrelation(string name, Type type) => _getCorrelation(name, type);
 
         /// <summary>
-        /// 
+        /// Indicates whether the underlying DbContext uses the Calcite EF Core provider.
+        /// When <see langword="true"/>, Calcite-specific SQL functions (e.g. <c>REVERSE</c>) can be translated
+        /// via <see cref="CalciteFunctions"/> marker methods.
         /// </summary>
-        /// <param name="index"></param>
-        /// <param name="type"></param>
-        /// <returns></returns>
-        public ParameterExpression GetDynamicParam(int index, Type type) => _getDynamicParam(index, type);
+        public bool IsCalciteProvider => _isCalciteProvider;
 
     }
 

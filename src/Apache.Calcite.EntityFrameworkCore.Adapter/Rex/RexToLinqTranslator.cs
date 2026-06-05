@@ -1,4 +1,9 @@
-﻿using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
+﻿using System;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
+
+using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
 using Apache.Calcite.EntityFrameworkCore.Core;
 
 using com.google.common.collect;
@@ -10,11 +15,6 @@ using org.apache.calcite.rex;
 using org.apache.calcite.sql;
 using org.apache.calcite.sql.type;
 using org.apache.calcite.util;
-
-using System;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
 {
@@ -1686,7 +1686,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// </summary>
         protected virtual ParameterExpression ResolveDynamicParam(RexDynamicParam dynParam, RexTranslationContext context)
         {
-            return context.GetDynamicParam(dynParam.getIndex(), ResolveDynamicParamType(dynParam, context));
+            return Expression.Parameter(ResolveDynamicParamType(dynParam, context), $"?{dynParam.getIndex()}");
         }
 
         /// <summary>

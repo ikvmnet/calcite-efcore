@@ -1,23 +1,19 @@
-﻿using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
+﻿using System;
+using System.Linq;
+using System.Linq.Expressions;
+
+using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
 using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 using Apache.Calcite.EntityFrameworkCore.Core;
 
 using com.google.common.collect;
 
-using java.util;
-
 using org.apache.calcite.plan;
-using org.apache.calcite.plan.volcano;
 using org.apache.calcite.rel;
 using org.apache.calcite.rel.core;
 using org.apache.calcite.rel.metadata;
 using org.apache.calcite.rel.type;
 using org.apache.calcite.rex;
-
-using System;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
 
 using static Apache.Calcite.EntityFrameworkCore.Adapter.Rex.RexTranslationContext;
 
@@ -71,7 +67,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             var program = getProgram();
             var exprs = program.getExprList();
             var param = Expression.Parameter(inputType, "e");
-            var context = new RexTranslationContext([new InputSegment(inputFields, param)], (n, t) => null, implementor.GetDynamicParam);
+            var context = new RexTranslationContext([new InputSegment(inputFields, param)], (n, t) => null);
 
             // ── 1. Apply the optional filter condition ───────────────────────────────────
             if (program.getCondition() != null)
@@ -88,7 +84,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             var projects = program.getProjectList();
             var clrElementType = CalciteTypeMapper.ToClrType(getRowType());
             var selectParam = Expression.Parameter(source.ElementType, "e");
-            var selectContext = new RexTranslationContext([new InputSegment(inputFields, selectParam)], (n, t) => null, implementor.GetDynamicParam);
+            var selectContext = new RexTranslationContext([new InputSegment(inputFields, selectParam)], (n, t) => null);
             var n = projects.size();
             var bindings = new MemberBinding[n];
 

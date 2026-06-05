@@ -3,7 +3,6 @@ using System.Linq.Expressions;
 
 using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 
-using org.apache.calcite.adapter.java;
 using org.apache.calcite.jdbc;
 using org.apache.calcite.rel.type;
 using org.apache.calcite.rex;
@@ -59,7 +58,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests.Rex
 
             var rexBuilder = new RexBuilder(typeFactory);
             var param = Expression.Parameter(typeof(Row), "e");
-            var context = new RexTranslationContext([new InputSegment(rowType.getFieldList(), param)], (n, t) => null, (i, t) => Expression.Parameter(t, $"?{i}"));
+            var context = new RexTranslationContext([new InputSegment(rowType.getFieldList(), param)], (n, t) => null);
             var translator = RexToLinqTranslator.Default;
 
             return (translator, context, param, rexBuilder, typeFactory);

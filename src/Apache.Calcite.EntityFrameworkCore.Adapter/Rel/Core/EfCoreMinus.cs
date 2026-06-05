@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 
 using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
 

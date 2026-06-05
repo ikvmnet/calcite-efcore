@@ -9,7 +9,6 @@ using org.apache.calcite.plan;
 using org.apache.calcite.rel;
 using org.apache.calcite.rel.core;
 using org.apache.calcite.rel.metadata;
-using org.apache.calcite.rel.type;
 using org.apache.calcite.rex;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
