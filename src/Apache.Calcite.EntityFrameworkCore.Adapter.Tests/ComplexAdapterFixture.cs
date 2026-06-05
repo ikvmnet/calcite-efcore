@@ -9,7 +9,9 @@ using java.util.function;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
+using org.apache.calcite.config;
 using org.apache.calcite.runtime;
+using org.apache.calcite.sql.validate;
 
 using Xunit.Abstractions;
 
@@ -84,7 +86,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
                 ctx.SaveChanges();
             }
 
-            Connection = new CalciteConnection("caseSensitive=false");
+            var str = new CalciteConnectionStringBuilder();
+            str.CaseSensitive = false;
+            str.Conformance = "DEFAULT";
+
+            Connection = new CalciteConnection(str.ConnectionString);
             Connection.RegisterHook(Hook.QUERY_PLAN, new DelegateConsumer<object>((object q) => Console.WriteLine($"IQueryable: {((IQueryable)q).Expression}")));
             Connection.Open();
 

@@ -1,20 +1,20 @@
-﻿using System;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-
-using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
+﻿using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
 using Apache.Calcite.EntityFrameworkCore.Core;
 
-using java.util;
-
 using com.google.common.collect;
+
+using java.util;
 
 using org.apache.calcite.rel.type;
 using org.apache.calcite.rex;
 using org.apache.calcite.sql;
 using org.apache.calcite.sql.type;
 using org.apache.calcite.util;
+
+using System;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
 {
@@ -1605,6 +1605,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
             var (param, fieldName) = ResolveInputRefSegment(inputRef, context);
             var prop = param.Type.GetProperty(fieldName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)
                 ?? throw new InvalidOperationException($"RexToLinqTranslator: property '{fieldName}' not found on '{param.Type.Name}'.");
+
             return Expression.Property(param, prop);
         }
 
@@ -1657,11 +1658,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// </summary>
         protected virtual ParameterExpression ResolveCorrelParam(RexCorrelVariable correlVar, RexTranslationContext context)
         {
-            var name = correlVar.getName();
-            if (context.Correlations.TryGetValue(name, out var param) == false)
-                throw new InvalidOperationException($"RexToLinqTranslator: correlation variable '{name}' is not in scope.");
+            var expression = context.GetCorrelation(correlVar.getName(), ResolveCorrelVariableType(correlVar, context));
+            if (expression is null)
+                throw new InvalidOperationException($"RexToLinqTranslator: correlation '{correlVar.getName()}' does not resolve to a ParameterExpression (got '{expression?.GetType().Name ?? "null"}').");
 
-            return param;
+            return expression;
         }
 
         /// <summary>
@@ -1685,11 +1686,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// </summary>
         protected virtual ParameterExpression ResolveDynamicParam(RexDynamicParam dynParam, RexTranslationContext context)
         {
-            var index = dynParam.getIndex();
-            if (index < 0 || index >= context.DynamicParams.Count)
-                throw new InvalidOperationException($"RexToLinqTranslator: RexDynamicParam index {index} is out of range (count={context.DynamicParams.Count}).");
-
-            return context.DynamicParams[index];
+            return context.GetDynamicParam(dynParam.getIndex(), ResolveDynamicParamType(dynParam, context));
         }
 
         /// <summary>

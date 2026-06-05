@@ -484,12 +484,15 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
         public void CaseWhen_PriceLabel()
         {
             var rows = Execute($@"
-                SELECT ""Id"",
-                       CASE WHEN ""Price"" < 5 THEN 'Cheap'
-                            WHEN ""Price"" < 20 THEN 'Mid'
-                            ELSE 'Expensive'
-                       END AS ""Label""
-                FROM ""{S}"".""Product""
+                SELECT      ""Id"",
+                            CASE
+                            WHEN ""Price"" < 5
+                            THEN CAST('Cheap' AS VARCHAR(256))
+                            WHEN ""Price"" < 20
+                            THEN CAST('Mid' AS VARCHAR(256))
+                            ELSE CAST('Expensive' AS VARCHAR(256))
+                            END AS ""Label""
+                FROM        ""{S}"".""Product""
                 ORDER BY ""Id""");
             Assert.Equal(6, rows.Count);
             Assert.Equal("Mid", rows[0]["Label"]); // Widget  9.99

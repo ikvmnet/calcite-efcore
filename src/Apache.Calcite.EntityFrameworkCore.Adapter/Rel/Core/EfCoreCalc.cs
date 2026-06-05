@@ -1,9 +1,4 @@
-﻿using System;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-
-using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
+﻿using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
 using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 using Apache.Calcite.EntityFrameworkCore.Core;
 
@@ -18,6 +13,13 @@ using org.apache.calcite.rel.core;
 using org.apache.calcite.rel.metadata;
 using org.apache.calcite.rel.type;
 using org.apache.calcite.rex;
+
+using System;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
+
+using static Apache.Calcite.EntityFrameworkCore.Adapter.Rex.RexTranslationContext;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
 {
@@ -69,13 +71,13 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             var program = getProgram();
             var exprs = program.getExprList();
             var param = Expression.Parameter(inputType, "e");
-            var context = RexTranslationContext.ForSingleInput(inputFields, param);
+            var context = new RexTranslationContext([new InputSegment(inputFields, param)], (n, t) => null, implementor.GetDynamicParam);
 
             // ── 1. Apply the optional filter condition ───────────────────────────────────
             if (program.getCondition() != null)
             {
-                var conditionLocalRef = (RexLocalRef)program.getCondition();
-                var conditionRex = (RexNode)exprs.get(conditionLocalRef.getIndex());
+                var conditionLocalRef = program.getCondition();
+                var conditionRex = program.expandLocalRef(conditionLocalRef);
                 var conditionExpr = RexToLinqTranslator.Default.Translate(conditionRex, context);
                 var whereLambda = Expression.Lambda(typeof(Func<,>).MakeGenericType(inputType, typeof(bool)), conditionExpr, param);
                 source = (IQueryable)QueryableMethods.Where.MakeGenericMethod(inputType).Invoke(null, [source, whereLambda])!;
@@ -86,14 +88,14 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             var projects = program.getProjectList();
             var clrElementType = CalciteTypeMapper.ToClrType(getRowType());
             var selectParam = Expression.Parameter(source.ElementType, "e");
-            var selectContext = RexTranslationContext.ForSingleInput(inputFields, selectParam);
+            var selectContext = new RexTranslationContext([new InputSegment(inputFields, selectParam)], (n, t) => null, implementor.GetDynamicParam);
             var n = projects.size();
             var bindings = new MemberBinding[n];
 
             for (int i = 0; i < n; i++)
             {
                 var localRef = (RexLocalRef)projects.get(i);
-                var projectRex = (RexNode)exprs.get(localRef.getIndex());
+                var projectRex = program.expandLocalRef(localRef);
                 var prop = clrElementType.GetProperty(((RelDataTypeField)outputFields.get(i)).getName())!;
                 var value = RexToLinqTranslator.Default.Translate(projectRex, selectContext);
                 var coerced = value.Type == prop.PropertyType ? value : Expression.Convert(value, prop.PropertyType);

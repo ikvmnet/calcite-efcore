@@ -1,11 +1,11 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-
-using Microsoft.EntityFrameworkCore;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Query
 {
@@ -53,27 +53,42 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Query
         /// A composed <see cref="TemplateQueryable{T}"/> chain whose
         /// <see cref="IQueryable.Expression"/> contains one or more template-root constants.
         /// </param>
+        /// <param name="getDynamicValue"></param>
         /// <param name="context">
         /// The <see cref="DbContext"/> from which <see cref="DbContext.Set{TEntity}"/> is called
         /// to supply the real query roots.
         /// </param>
-        public static IQueryable Apply(IQueryable template, DbContext context)
+        public static IQueryable Apply(IQueryable template, Func<int, object> getDynamicValue, DbContext context)
         {
-            var replacer = new TemplateRootReplacer(context);
+            var replacer = new TemplateRootReplacer(getDynamicValue, context);
             var rewritten = replacer.Visit(template.Expression);
             return replacer.Provider!.CreateQuery(rewritten);
         }
 
-        sealed class TemplateRootReplacer(DbContext context) : ExpressionVisitor
+        sealed class TemplateRootReplacer(Func<int, object> GetDynamicValue, DbContext Context) : ExpressionVisitor
         {
 
             public IQueryProvider? Provider { get; private set; }
 
+            /// <inheritdoc />
+            protected override Expression VisitParameter(ParameterExpression node)
+            {
+                // replace parameters that represent a DynamicParam (e.g. ?0, ?1, ?2) with the corresponding entry from the constants array
+                var name = (node.Name ?? "").AsSpan();
+                if (name.StartsWith("?"))
+                    if (int.TryParse(name.Slice(1), out var index))
+                        return Expression.Constant(GetDynamicValue(index));
+
+                return base.VisitParameter(node);
+            }
+
+            /// <inheritdoc />
             protected override Expression VisitConstant(ConstantExpression node)
             {
+                // replace the root Expression in the template with the appropriate DbSet queryable
                 if (node.Value is IQueryable root and ITemplateRoot)
                 {
-                    var dbSet = (IQueryable)SetMethod.MakeGenericMethod(root.ElementType).Invoke(context, null)!;
+                    var dbSet = (IQueryable)SetMethod.MakeGenericMethod(root.ElementType).Invoke(Context, null)!;
                     Provider ??= dbSet.Provider;
                     return dbSet.Expression;
                 }

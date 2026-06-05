@@ -1,11 +1,11 @@
-﻿using System;
-
-using java.util;
+﻿using java.util;
 
 using org.apache.calcite.adapter.enumerable;
 using org.apache.calcite.interpreter;
 using org.apache.calcite.rel;
 using org.apache.calcite.rel.type;
+
+using System;
 
 using CalciteEnumerable = org.apache.calcite.linq4j.Enumerable;
 
@@ -57,7 +57,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
                 columnNames[i] = ((RelDataTypeField)fieldList.get(i)).getName();
 
             var efImplementor = new EfCoreRelImplementor();
-            return EfCoreEnumerable.ExecuteArray(_convention, efImplementor.visitChild(getInput()), columnNames);
+            return EfCoreEnumerable.ExecuteArray(_convention, efImplementor.visitChild(getInput()), columnNames, dataContext);
         }
 
     }

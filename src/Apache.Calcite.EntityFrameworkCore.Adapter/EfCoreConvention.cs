@@ -69,6 +69,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
                 planner.addRule(rule);
 
             planner.addRule(CoreRules.PROJECT_REMOVE);
+            planner.addRule(CoreRules.FILTER_TO_CALC);
+            planner.addRule(CoreRules.PROJECT_TO_CALC);
+            planner.addRule(CoreRules.CALC_MERGE);
         }
 
     }

@@ -1,16 +1,17 @@
-﻿using System;
-using System.Linq;
-using System.Linq.Expressions;
-
-using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
+﻿using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
 using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 
 using org.apache.calcite.plan;
-using org.apache.calcite.plan.volcano;
 using org.apache.calcite.rel;
 using org.apache.calcite.rel.core;
 using org.apache.calcite.rel.metadata;
 using org.apache.calcite.rex;
+
+using System;
+using System.Linq;
+using System.Linq.Expressions;
+
+using static Apache.Calcite.EntityFrameworkCore.Adapter.Rex.RexTranslationContext;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
 {
@@ -53,7 +54,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             var source = implementor.visitChild(getInput());
             var elementType = source.ElementType;
             var param = Expression.Parameter(elementType, "e");
-            var context = RexTranslationContext.ForSingleInput(efRel.getRowType().getFieldList(), param);
+            var context = new RexTranslationContext([new InputSegment(efRel.getRowType().getFieldList(), param)], (n, t) => null, implementor.GetDynamicParam);
             var body = RexToLinqTranslator.Default.Translate(getCondition(), context);
             var lambda = Expression.Lambda(typeof(Func<,>).MakeGenericType(elementType, typeof(bool)), body, param);
             return (IQueryable)QueryableMethods.Where.MakeGenericMethod(elementType).Invoke(null, [source, lambda])!;

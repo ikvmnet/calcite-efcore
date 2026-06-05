@@ -1,10 +1,8 @@
-﻿using System;
-using System.Linq;
-
-using java.lang;
+﻿using java.lang;
 using java.lang.reflect;
 using java.util;
 
+using org.apache.calcite;
 using org.apache.calcite.adapter.enumerable;
 using org.apache.calcite.linq4j.tree;
 using org.apache.calcite.plan;
@@ -12,8 +10,10 @@ using org.apache.calcite.rel;
 using org.apache.calcite.rel.convert;
 using org.apache.calcite.rel.type;
 using org.apache.calcite.runtime;
-using org.apache.calcite.schema;
 using org.apache.calcite.util;
+
+using System;
+using System.Linq;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
 {
@@ -27,12 +27,12 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         static readonly Method ExecuteArrayMethod =
             ((Class)typeof(EfCoreEnumerable)).getDeclaredMethod(
                 nameof(EfCoreEnumerable.ExecuteArray),
-                [(Class)typeof(EfCoreConvention), (Class)typeof(IQueryable), (Class)typeof(string[])]);
+                [(Class)typeof(EfCoreConvention), (Class)typeof(IQueryable), (Class)typeof(string[]), (Class)typeof(DataContext)]);
 
         static readonly Method ExecuteScalarMethod =
             ((Class)typeof(EfCoreEnumerable)).getDeclaredMethod(
                 nameof(EfCoreEnumerable.ExecuteScalar),
-                [(Class)typeof(EfCoreConvention), (Class)typeof(IQueryable), (Class)typeof(string[])]);
+                [(Class)typeof(EfCoreConvention), (Class)typeof(IQueryable), (Class)typeof(string[]), (Class)typeof(DataContext)]);
 
         /// <summary>
         /// Initializes a new instance.
@@ -94,7 +94,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
                 Expressions.call(null, executeMethod,
                 implementor.stash(convention, (Class)typeof(EfCoreConvention)),
                 implementor.stash(queryable, (Class)typeof(IQueryable)),
-                implementor.stash(columnNames, (Class)typeof(string[]))));
+                implementor.stash(columnNames, (Class)typeof(string[])),
+                implementor.getRootExpression()));
 
             list.add(Expressions.return_(null, enumerable_));
 

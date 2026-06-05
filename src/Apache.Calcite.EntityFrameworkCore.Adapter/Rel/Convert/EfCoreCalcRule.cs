@@ -54,15 +54,15 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
             for (int i = 0, n = projects.size(); i < n; i++)
             {
                 var localRef = (RexLocalRef)projects.get(i);
-                var rex = (RexNode)exprs.get(localRef.getIndex());
+                var rex = program.expandLocalRef(localRef);
                 if (!RexToLinqTranslator.Default.CanTranslate(rex, inputRowType))
                     return null;
             }
 
             if (program.getCondition() != null)
             {
-                var conditionLocalRef = (RexLocalRef)program.getCondition();
-                var conditionRex = (RexNode)exprs.get(conditionLocalRef.getIndex());
+                var conditionLocalRef = program.getCondition();
+                var conditionRex = program.expandLocalRef(conditionLocalRef);
                 if (!RexToLinqTranslator.Default.CanTranslate(conditionRex, inputRowType))
                     return null;
             }

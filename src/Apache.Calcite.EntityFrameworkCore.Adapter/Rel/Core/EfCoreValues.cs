@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-
-using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
+﻿using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 using Apache.Calcite.EntityFrameworkCore.Core;
 
 using com.google.common.collect;
@@ -12,12 +6,16 @@ using com.google.common.collect;
 using java.util;
 
 using org.apache.calcite.plan;
-using org.apache.calcite.rel;
 using org.apache.calcite.rel.core;
 using org.apache.calcite.rel.metadata;
 using org.apache.calcite.rel.type;
 using org.apache.calcite.rex;
-using org.apache.calcite.sql.type;
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
 {
@@ -76,7 +74,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
                     var field = (RelDataTypeField)fields.get(c);
                     var literal = (RexLiteral)tuple.get(c);
                     var prop = elementType.GetProperty(field.getName(), BindingFlags.Public | BindingFlags.Instance)!;
-                    var valueExpr = RexToLinqTranslator.Default.Translate(literal, RexTranslationContext.Empty);
+                    var valueExpr = RexToLinqTranslator.Default.Translate(literal, new RexTranslationContext([], (n, t) => null, implementor.GetDynamicParam));
                     var coerced = valueExpr.Type == prop.PropertyType ? valueExpr : Expression.Convert(valueExpr, prop.PropertyType);
                     bindings[c] = Expression.Bind(prop, coerced);
                 }
@@ -97,6 +95,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             return (IQueryable)asQueryableMethod.Invoke(null, [array])!;
         }
 
-            }
+    }
 
-        }
+}

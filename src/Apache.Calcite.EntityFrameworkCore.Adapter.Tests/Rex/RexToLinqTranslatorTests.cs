@@ -12,6 +12,8 @@ using org.apache.calcite.sql.type;
 
 using Xunit;
 
+using static Apache.Calcite.EntityFrameworkCore.Adapter.Rex.RexTranslationContext;
+
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests.Rex
 {
 
@@ -57,7 +59,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests.Rex
 
             var rexBuilder = new RexBuilder(typeFactory);
             var param = Expression.Parameter(typeof(Row), "e");
-            var context = RexTranslationContext.ForSingleInput(rowType.getFieldList(), param);
+            var context = new RexTranslationContext([new InputSegment(rowType.getFieldList(), param)], (n, t) => null, (i, t) => Expression.Parameter(t, $"?{i}"));
             var translator = RexToLinqTranslator.Default;
 
             return (translator, context, param, rexBuilder, typeFactory);

@@ -1,12 +1,16 @@
-﻿using System.Data;
-using System.Data.Common;
-
-using Microsoft.EntityFrameworkCore.ChangeTracking;
+﻿using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.Json;
 
+using org.apache.calcite.sql;
 using org.apache.calcite.sql.dialect;
+using org.apache.calcite.sql.fun;
+using org.apache.calcite.sql.parser;
+using org.apache.calcite.sql.type;
 using org.apache.calcite.util;
+
+using System.Data;
+using System.Data.Common;
 
 namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal.Mapping;
 
@@ -122,7 +126,17 @@ public class CalciteStringTypeMapping : StringTypeMapping
     protected override string GenerateNonNullSqlLiteral(object value)
     {
         var s = value is char c ? c.ToString() : (string)value;
-        return new NlsString(s, _charsetName, null).asSql(true, false, CalciteSqlDialect.DEFAULT);
+        if (IsFixedLength)
+        {
+            return new NlsString(s, _charsetName, null).asSql(true, false, CalciteSqlDialect.DEFAULT);
+        }
+        else
+        {
+            var strLiteral = SqlLiteral.createCharString(s, _charsetName, SqlParserPos.ZERO);
+            var typeSpec = new SqlDataTypeSpec(new SqlBasicTypeNameSpec(SqlTypeName.VARCHAR, SqlParserPos.ZERO), SqlParserPos.ZERO);
+            var castCall = SqlStdOperatorTable.CAST.createCall(SqlParserPos.ZERO, strLiteral, typeSpec);
+            return castCall.toSqlString(CalciteSqlDialect.DEFAULT).getSql();
+        }
     }
 
 }

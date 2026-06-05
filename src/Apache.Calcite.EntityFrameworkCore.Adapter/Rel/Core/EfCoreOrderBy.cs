@@ -1,9 +1,4 @@
-﻿using System;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-
-using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
+﻿using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
 using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 
 using org.apache.calcite.plan;
@@ -11,6 +6,13 @@ using org.apache.calcite.rel;
 using org.apache.calcite.rel.core;
 using org.apache.calcite.rel.metadata;
 using org.apache.calcite.rex;
+
+using System;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
+
+using static Apache.Calcite.EntityFrameworkCore.Adapter.Rex.RexTranslationContext;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
 {
@@ -57,7 +59,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             var elementType = source.ElementType;
             var inputFields = efRel.getRowType().getFieldList();
             var param = Expression.Parameter(elementType, "e");
-            var context = RexTranslationContext.ForSingleInput(inputFields, param);
+            var context = new RexTranslationContext([new InputSegment(inputFields, param)], (n, t) => null, implementor.GetDynamicParam);
             var fieldKeys = collation.getFieldCollations();
             var n = fieldKeys.size();
 
