@@ -1,19 +1,23 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using JsonApiDotNetCore.Resources;
+using JsonApiDotNetCore.Resources.Annotations;
+
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Apache.Calcite.HotChocolateSample
 {
 
     [Table("FakeProduct")]
-    public class FakeProduct
+    [Resource]
+    public class FakeProduct : Identifiable<int>
     {
 
-        [Column("Id")]
-        [Key]
-        public int Id { get; set; }
+        [Column("Name")]
+        [Attr]
+        public string Name { get; set; }
 
-        //[Column("Name")]
-        //public string Name { get; set; }
+        [Column("Price")]
+        [Attr]
+        public decimal Price { get; set; }
 
     }
 

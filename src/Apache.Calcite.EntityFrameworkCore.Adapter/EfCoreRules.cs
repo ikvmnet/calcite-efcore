@@ -66,6 +66,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             yield return EfCoreIntersectRule.Create(convention);
             yield return EfCoreMinusRule.Create(convention);
             yield return EfCoreValuesRule.Create(convention);
+            yield return EfCoreCalcRule.Create(convention);
             yield return EfCoreInheritanceJoinRule.Instance;
         }
 
@@ -89,6 +90,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             yield return EfCoreIntersectRule.Create(convention).config.withRelBuilderFactory(relBuilderFactory).toRule();
             yield return EfCoreMinusRule.Create(convention).config.withRelBuilderFactory(relBuilderFactory).toRule();
             yield return EfCoreValuesRule.Create(convention).config.withRelBuilderFactory(relBuilderFactory).toRule();
+            yield return EfCoreCalcRule.Create(convention).config.withRelBuilderFactory(relBuilderFactory).toRule();
             yield return EfCoreInheritanceJoinRule.Instance;
         }
 

@@ -93,7 +93,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
                 if (offsetExpr.Type != typeof(int))
                     offsetExpr = Expression.Convert(offsetExpr, typeof(int));
 
-                result = (IQueryable)QueryableMethods.Skip.MakeGenericMethod(elementType).Invoke(null, [result, offsetExpr])!;
+                var skipCall = Expression.Call(
+                    QueryableMethods.Skip.MakeGenericMethod(elementType),
+                    result.Expression,
+                    offsetExpr);
+                result = result.Provider.CreateQuery(skipCall);
             }
 
             if (fetch != null)
@@ -102,7 +106,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
                 if (fetchExpr.Type != typeof(int))
                     fetchExpr = Expression.Convert(fetchExpr, typeof(int));
 
-                result = (IQueryable)QueryableMethods.Take.MakeGenericMethod(elementType).Invoke(null, [result, fetchExpr])!;
+                var takeCall = Expression.Call(
+                    QueryableMethods.Take.MakeGenericMethod(elementType),
+                    result.Expression,
+                    fetchExpr);
+                result = result.Provider.CreateQuery(takeCall);
             }
 
             return result;

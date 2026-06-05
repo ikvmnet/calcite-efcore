@@ -5,7 +5,12 @@ using Apache.Calcite.Data;
 using Apache.Calcite.EntityFrameworkCore.Adapter;
 using Apache.Calcite.EntityFrameworkCore.Extensions;
 
+using java.util.function;
+
 using Microsoft.EntityFrameworkCore;
+
+using org.apache.calcite.rel;
+using org.apache.calcite.runtime;
 
 namespace Apache.Calcite.HotChocolateSample
 {
@@ -28,7 +33,7 @@ namespace Apache.Calcite.HotChocolateSample
                             {
                                 "name": "FakeProduct",
                                 "type": "view",
-                                "sql": "SELECT \"real1\".\"Real1Product\".\"Id\", \"real2\".\"Real2Product\".\"Name\" FROM \"real1\".\"Real1Product\" INNER JOIN \"real2\".\"Real2Product\" ON \"real1\".\"Real1Product\".\"Id\" = \"real2\".\"Real2Product\".\"Id\""
+                                "sql": "SELECT \"real1\".\"Real1Product\".\"Id\", \"real1\".\"Real1Product\".\"Name\" AS \"Name\", \"real2\".\"Real2Product\".\"Price\" AS \"Price\" FROM \"real1\".\"Real1Product\" INNER JOIN \"real2\".\"Real2Product\" ON \"real1\".\"Real1Product\".\"Id\" = \"real2\".\"Real2Product\".\"Id\""
                             }
                         ]
                     }
@@ -43,6 +48,9 @@ namespace Apache.Calcite.HotChocolateSample
                 Model = "inline:" + model
             }.ConnectionString);
 
+            connection.RegisterHook(Hook.QUERY_PLAN, new DelegateConsumer<object>((object q) => Console.WriteLine($"QUERY_PLAN: {((IQueryable)q).Expression}")));
+            connection.RegisterHook(Hook.CONVERTED, new DelegateConsumer<object>((object q) => Console.WriteLine($"CONVERTED: {((RelNode)q).ToString()}")));
+            connection.RegisterHook(Hook.PLAN_BEFORE_IMPLEMENTATION, new DelegateConsumer<object>((object q) => Console.WriteLine($"PLAN_BEFORE_IMPLEMENTATION: {((RelRoot)q).ToString()}"))); 
             connection.Open();
 
             var real1Schema = EfCoreSchema.Create(connection.RootSchema, "real1", () => new Real1DbContext());

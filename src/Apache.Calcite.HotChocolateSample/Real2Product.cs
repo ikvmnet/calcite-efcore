@@ -15,6 +15,9 @@ namespace Apache.Calcite.HotChocolateSample
         [Column("Name")]
         public string Name { get; set; }
 
+        [Column("Price")]
+        public decimal Price { get; set; }
+
     }
 
 }
