@@ -153,7 +153,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Scaffolding.Internal
             {
                 var firstKey = (org.apache.calcite.util.ImmutableBitSet)keys.iterator().next();
                 var pk = new DatabasePrimaryKey { Table = databaseTable, Name = "PK_" + tableName };
-                foreach (int bit in firstKey.AsEnumerable().AsEnumerable<java.lang.Integer>())
+                foreach (int bit in firstKey.toArray())
                 {
                     var field = (RelDataTypeField)fields.get(bit);
                     var col = databaseTable.Columns.FirstOrDefault(c => c.Name == field.getName());

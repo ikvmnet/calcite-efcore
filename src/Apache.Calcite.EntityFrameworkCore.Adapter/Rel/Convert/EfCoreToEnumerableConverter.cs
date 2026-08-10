@@ -69,7 +69,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
                 (input as RelNode)?.getConvention()
                 ?? throw new InvalidOperationException("Cannot resolve EfCoreConvention from input.");
 
-            var conventionExpr = convention.Expression;
+            var conventionExpr = implementor.stash(convention, (Class)typeof(EfCoreConvention));
             var fieldList = getRowType().getFieldList();
             var columnNames = new string[fieldList.size()];
             for (int i = 0; i < fieldList.size(); i++)
