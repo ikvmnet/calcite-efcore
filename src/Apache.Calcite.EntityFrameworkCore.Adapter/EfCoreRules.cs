@@ -55,7 +55,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         /// <returns>An enumerable of <see cref="RelOptRule"/> instances.</returns>
         public static IEnumerable<RelOptRule> GetRules(EfCoreConvention convention)
         {
-            yield return EfCoreToEnumerableConverterRule.Create(convention);
+            yield return EfCoreToClrEnumerableConverterRule.Create(convention);
+            yield return EfCoreToClrAsyncEnumerableConverterRule.Create(convention);
             yield return EfCoreToBindableConverterRule.Create(convention);
             yield return EfCoreSelectRule.Create(convention);
             yield return EfCoreWhereRule.Create(convention);
@@ -78,7 +79,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         /// <returns>An enumerable of <see cref="RelOptRule"/> instances.</returns>
         public static IEnumerable<RelOptRule> GetRules(EfCoreConvention convention, RelBuilderFactory relBuilderFactory)
         {
-            yield return EfCoreToEnumerableConverterRule.Create(convention).config.withRelBuilderFactory(relBuilderFactory).toRule();
+            yield return EfCoreToClrEnumerableConverterRule.Create(convention).config.withRelBuilderFactory(relBuilderFactory).toRule();
+            yield return EfCoreToClrAsyncEnumerableConverterRule.Create(convention).config.withRelBuilderFactory(relBuilderFactory).toRule();
             yield return EfCoreToBindableConverterRule.Create(convention).config.withRelBuilderFactory(relBuilderFactory).toRule();
             yield return EfCoreSelectRule.Create(convention).config.withRelBuilderFactory(relBuilderFactory).toRule();
             yield return EfCoreWhereRule.Create(convention).config.withRelBuilderFactory(relBuilderFactory).toRule();

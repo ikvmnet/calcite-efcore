@@ -84,7 +84,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
                 ctx.SaveChanges();
             }
 
-            Connection = new CalciteConnection("caseSensitive=false");
+            Connection = new CalciteConnection("caseSensitive=false;fun=standard,mysql");
             Connection.RegisterHook(Hook.ENABLE_BINDABLE, true);
             Connection.RegisterHook(Hook.QUERY_PLAN, new DelegateConsumer<object>((object q) => Console.WriteLine($"IQueryable: {((IQueryable)q).Expression}")));
             Connection.Open();

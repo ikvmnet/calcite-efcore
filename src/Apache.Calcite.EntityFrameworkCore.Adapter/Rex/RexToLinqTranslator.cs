@@ -1720,7 +1720,15 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         protected virtual Expression TranslateConstant(bool isNull, RelDataType type, object value)
         {
             if (isNull)
-                return Expression.Default(CalciteTypeMapper.ToClrType(type));
+            {
+                var clrType = CalciteTypeMapper.ToClrType(type);
+
+                // a constant rather than a default expression, so consumers that inspect values
+                // (EF Core's query translator among them) see the null itself
+                return clrType.IsValueType && Nullable.GetUnderlyingType(clrType) is null
+                    ? Expression.Constant(Activator.CreateInstance(clrType), clrType)
+                    : Expression.Constant(null, clrType);
+            }
 
             var sqlTypeName = (SqlTypeName.__Enum)type.getSqlTypeName().ordinal();
 

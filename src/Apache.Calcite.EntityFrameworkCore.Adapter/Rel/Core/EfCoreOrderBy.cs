@@ -89,23 +89,31 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
 
             if (offset != null)
             {
-                var offsetExpr = RexToLinqTranslator.Default.Translate(offset, context);
-                if (offsetExpr.Type != typeof(int))
-                    offsetExpr = Expression.Convert(offsetExpr, typeof(int));
+                var offsetValue = EvaluateToInt32(RexToLinqTranslator.Default.Translate(offset, context));
 
-                result = (IQueryable)QueryableMethods.Skip.MakeGenericMethod(elementType).Invoke(null, [result, offsetExpr])!;
+                result = (IQueryable)QueryableMethods.Skip.MakeGenericMethod(elementType).Invoke(null, [result, offsetValue])!;
             }
 
             if (fetch != null)
             {
-                var fetchExpr = RexToLinqTranslator.Default.Translate(fetch, context);
-                if (fetchExpr.Type != typeof(int))
-                    fetchExpr = Expression.Convert(fetchExpr, typeof(int));
+                var fetchValue = EvaluateToInt32(RexToLinqTranslator.Default.Translate(fetch, context));
 
-                result = (IQueryable)QueryableMethods.Take.MakeGenericMethod(elementType).Invoke(null, [result, fetchExpr])!;
+                result = (IQueryable)QueryableMethods.Take.MakeGenericMethod(elementType).Invoke(null, [result, fetchValue])!;
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Reduces a translated OFFSET/FETCH expression to the <see cref="int"/> the LINQ operator takes.
+        /// </summary>
+        /// <param name="expression"></param>
+        static int EvaluateToInt32(Expression expression)
+        {
+            if (expression is ConstantExpression constant)
+                return System.Convert.ToInt32(constant.Value);
+
+            return Expression.Lambda<Func<int>>(Expression.Convert(expression, typeof(int))).Compile()();
         }
 
     }

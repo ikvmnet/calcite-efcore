@@ -88,7 +88,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Query
     /// <summary>
     /// The strongly-typed implementation of a template queryable node.
     /// </summary>
-    public sealed class TemplateQueryable<T> : IQueryable<T>, ITemplateRoot
+    public sealed class TemplateQueryable<T> : IOrderedQueryable<T>, ITemplateRoot
     {
 
         readonly Expression _expression;

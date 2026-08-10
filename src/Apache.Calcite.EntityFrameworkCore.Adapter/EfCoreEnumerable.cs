@@ -1,6 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
 using Apache.Calcite.EntityFrameworkCore.Core;
@@ -31,6 +35,101 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             ArgumentNullException.ThrowIfNull(columnNames);
 
             return Linq4j.asEnumerable(new LazyEfCoreIterable(convention, templateQueryable, columnNames));
+        }
+
+        /// <summary>
+        /// Executes the query described by <paramref name="templateQueryable"/> against a fresh <see cref="DbContext"/>
+        /// and returns a lazy sequence of <c>object?[]</c> rows for the CLR enumerable convention.
+        /// </summary>
+        public static IEnumerable<object[]> ExecuteClr(EfCoreConvention convention, IQueryable templateQueryable, string[] columnNames)
+        {
+            ArgumentNullException.ThrowIfNull(convention);
+            ArgumentNullException.ThrowIfNull(templateQueryable);
+            ArgumentNullException.ThrowIfNull(columnNames);
+
+            return ExecuteClrCore(convention, templateQueryable, columnNames);
+        }
+
+        static IEnumerable<object[]> ExecuteClrCore(EfCoreConvention convention, IQueryable templateQueryable, string[] columnNames)
+        {
+            using var context = convention.ContextFactory();
+            var query = TemplateQueryable.Apply(templateQueryable, context);
+
+            if (query is IQueryable<object?[]> rows)
+            {
+                foreach (var row in rows)
+                    yield return row!;
+            }
+            else
+            {
+                var props = ResolveProjection(query.ElementType, columnNames);
+                foreach (var entity in query)
+                    yield return ProjectRow(entity!, props);
+            }
+        }
+
+        /// <summary>
+        /// Executes the query described by <paramref name="templateQueryable"/> against a fresh <see cref="DbContext"/>
+        /// and returns a lazy asynchronous sequence of <c>object?[]</c> rows for the CLR async enumerable convention.
+        /// The EF Core provider's native <see cref="IAsyncEnumerable{T}"/> support is used when available, so rows
+        /// stream without blocking a thread; otherwise the synchronous cursor is pulled.
+        /// </summary>
+        public static async IAsyncEnumerable<object[]> ExecuteClrAsync(EfCoreConvention convention, IQueryable templateQueryable, string[] columnNames, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(convention);
+            ArgumentNullException.ThrowIfNull(templateQueryable);
+            ArgumentNullException.ThrowIfNull(columnNames);
+
+            var context = convention.ContextFactory();
+            await using (context.ConfigureAwait(false))
+            {
+                var query = TemplateQueryable.Apply(templateQueryable, context);
+
+                if (query is IAsyncEnumerable<object?[]> asyncRows)
+                {
+                    await foreach (var row in asyncRows.WithCancellation(cancellationToken).ConfigureAwait(false))
+                        yield return row!;
+                }
+                else if (query is IQueryable<object?[]> rows)
+                {
+                    foreach (var row in rows)
+                        yield return row!;
+                }
+                else
+                {
+                    var props = ResolveProjection(query.ElementType, columnNames);
+
+                    // IAsyncEnumerable<out T> is covariant, so an EF Core entity query is an IAsyncEnumerable<object>
+                    if (query is IAsyncEnumerable<object> asyncEntities)
+                    {
+                        await foreach (var entity in asyncEntities.WithCancellation(cancellationToken).ConfigureAwait(false))
+                            yield return ProjectRow(entity, props);
+                    }
+                    else
+                    {
+                        foreach (var entity in query)
+                            yield return ProjectRow(entity!, props);
+                    }
+                }
+            }
+        }
+
+        static PropertyInfo[] ResolveProjection(Type entityType, string[] columnNames)
+        {
+            var props = new PropertyInfo[columnNames.Length];
+            for (int i = 0; i < columnNames.Length; i++)
+                props[i] = entityType.GetProperty(columnNames[i], BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)!;
+
+            return props;
+        }
+
+        static object[] ProjectRow(object entity, PropertyInfo[] props)
+        {
+            var row = new object?[props.Length];
+            for (int i = 0; i < props.Length; i++)
+                row[i] = CalciteValueConverter.ToJavaObject(props[i]?.GetValue(entity));
+
+            return row!;
         }
 
         // -----------------------------------------------------------------------------------------

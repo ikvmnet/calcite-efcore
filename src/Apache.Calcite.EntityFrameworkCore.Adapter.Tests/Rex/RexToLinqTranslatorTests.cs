@@ -165,7 +165,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests.Rex
             var (t, ctx, _, rex, tf) = Build();
             var node = rex.makeNullLiteral(tf.createSqlType(SqlTypeName.VARCHAR));
             var expr = t.Translate(node, ctx);
-            var constant = Assert.IsType<ConstantExpression>(expr);
+            var constant = Assert.IsAssignableFrom<ConstantExpression>(expr);
             Assert.Null(constant.Value);
         }
 
