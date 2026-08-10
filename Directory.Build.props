@@ -46,10 +46,10 @@
     </ItemGroup>
 
     <PropertyGroup>
-        <CalciteVersion>1.42.0-SNAPSHOT</CalciteVersion>
+        <CalciteVersion>1.43.0-SNAPSHOT</CalciteVersion>
         <AvaticaVersion>1.27.0</AvaticaVersion>
-        <CalciteLocalMavenRepo>$(MSBuildThisFileDirectory)ext\maven-repo</CalciteLocalMavenRepo>
-        <MavenAdditionalRepositories>$(MavenAdditionalRepositories);jboss=https://repository.jboss.org/nexus/content/groups/public;calcite-local=file:///$([MSBuild]::NormalizePath('$(CalciteLocalMavenRepo)').Replace('\','/'))</MavenAdditionalRepositories>
+        <!-- 1.43 is unreleased. Apache publishes it as a snapshot, so it is read from there. -->
+        <MavenAdditionalRepositories>$(MavenAdditionalRepositories);jboss=https://repository.jboss.org/nexus/content/groups/public;apache-snapshots=https://repository.apache.org/content/repositories/snapshots/</MavenAdditionalRepositories>
     </PropertyGroup>
 
     </Project>
