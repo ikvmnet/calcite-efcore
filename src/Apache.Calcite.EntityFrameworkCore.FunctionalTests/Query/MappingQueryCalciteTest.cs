@@ -14,7 +14,7 @@ public class MappingQueryCalciteTest(MappingQueryCalciteTest.MappingQueryCalcite
 
         protected override ITestStoreFactory TestStoreFactory => CalciteTestStoreFactory.Instance;
 
-        protected override string DatabaseSchema => throw new System.NotImplementedException();
+        protected override string DatabaseSchema => null!;
 
     }
 

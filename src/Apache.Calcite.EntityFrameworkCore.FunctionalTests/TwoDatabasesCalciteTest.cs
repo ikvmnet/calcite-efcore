@@ -1,3 +1,4 @@
+using Apache.Calcite.EntityFrameworkCore.Extensions;
 using Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities;
 
 using Microsoft.EntityFrameworkCore;
@@ -14,16 +15,23 @@ public class TwoDatabasesCalciteTest(TwoDatabasesCalciteTest.TwoDatabasesFixture
 
     protected new TwoDatabasesFixture Fixture => (TwoDatabasesFixture)base.Fixture;
 
-    protected override string DummyConnectionString => throw new System.NotImplementedException();
+    /// <inheritdoc />
+    protected override string DummyConnectionString => "Model=inline:{\"version\":\"1.0\",\"schemas\":[{\"name\":\"dummy\"}]}";
 
+    /// <inheritdoc />
     protected override TwoDatabasesWithDataContext CreateBackingContext(string databaseName)
     {
-        throw new System.NotImplementedException();
+        return new(Fixture.CreateOptions(CalciteTestStore.Create(databaseName)));
     }
 
+    /// <inheritdoc />
     protected override DbContextOptionsBuilder CreateTestOptions(DbContextOptionsBuilder optionsBuilder, bool withConnectionString = false, bool withNullConnectionString = false)
     {
-        throw new System.NotImplementedException();
+        return withConnectionString
+            ? withNullConnectionString
+                ? optionsBuilder.UseCalcite((string?)null)
+                : optionsBuilder.UseCalcite(DummyConnectionString)
+            : optionsBuilder.UseCalcite();
     }
 
     public class TwoDatabasesFixture : ServiceProviderFixtureBase

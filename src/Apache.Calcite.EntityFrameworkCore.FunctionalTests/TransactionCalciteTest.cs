@@ -1,3 +1,4 @@
+using Apache.Calcite.EntityFrameworkCore.Extensions;
 using Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities;
 
 using Microsoft.EntityFrameworkCore;
@@ -8,11 +9,19 @@ namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 public class TransactionCalciteTest(TransactionCalciteTest.TransactionCalciteFixture fixture) :
     TransactionTestBase<TransactionCalciteTest.TransactionCalciteFixture>(fixture)
 {
-    protected override bool SnapshotSupported => throw new System.NotImplementedException();
+    /// <inheritdoc />
+    protected override bool SnapshotSupported => false;
 
+    /// <inheritdoc />
     protected override DbContext CreateContextWithConnectionString()
     {
-        throw new System.NotImplementedException();
+        var options = Fixture.AddOptions(
+                new DbContextOptionsBuilder()
+                    .UseCalcite(TestStore.ConnectionString)
+                    .ConfigureWarnings(w => w.Log(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.AmbientTransactionWarning)))
+            .UseInternalServiceProvider(Fixture.ServiceProvider);
+
+        return new DbContext(options.Options);
     }
 
     public class TransactionCalciteFixture : TransactionFixtureBase

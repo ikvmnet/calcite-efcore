@@ -12,9 +12,10 @@ public class JsonUpdateCalciteTest : JsonUpdateTestBase<JsonUpdateCalciteFixture
         ClearLog();
     }
 
+    /// <inheritdoc />
     protected override void ClearLog()
     {
-        throw new NotImplementedException();
+        Fixture.TestSqlLoggerFactory.Clear();
     }
 
 }

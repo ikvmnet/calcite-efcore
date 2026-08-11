@@ -1,3 +1,6 @@
+using Apache.Calcite.EntityFrameworkCore.Infrastructure;
+
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.TestModels.NullSemanticsModel;
 
@@ -13,9 +16,20 @@ public class NullSemanticsQueryCalciteTest : NullSemanticsQueryTestBase<NullSema
         Fixture.TestSqlLoggerFactory.Clear();
     }
 
+    /// <inheritdoc />
     protected override NullSemanticsContext CreateContext(bool useRelationalNulls = false)
     {
-        throw new System.NotImplementedException();
+        var options = new DbContextOptionsBuilder(Fixture.CreateOptions());
+        if (useRelationalNulls)
+        {
+            new CalciteDbContextOptionsBuilder(options).UseRelationalNulls();
+        }
+
+        var context = new NullSemanticsContext(options.Options);
+
+        context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+
+        return context;
     }
 
 }

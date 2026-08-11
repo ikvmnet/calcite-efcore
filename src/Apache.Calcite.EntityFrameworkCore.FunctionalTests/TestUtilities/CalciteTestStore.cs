@@ -81,7 +81,8 @@ namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities
                     // normal report that constraint DDL is metadata-only on Calcite.
                     .ConfigureWarnings(w => w.Ignore(
                         Apache.Calcite.EntityFrameworkCore.Diagnostics.CalciteEventId.MigrationOperationIgnoredWarning,
-                        Apache.Calcite.EntityFrameworkCore.Diagnostics.CalciteEventId.MigrationTableFeatureIgnoredWarning));
+                        Apache.Calcite.EntityFrameworkCore.Diagnostics.CalciteEventId.MigrationTableFeatureIgnoredWarning,
+                        Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.TpcStoreGeneratedIdentityWarning));
             }
 
             if (Connection is not CalciteConnection connection)
@@ -97,7 +98,8 @@ namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities
                 // normal report that constraint DDL is metadata-only on Calcite.
                 .ConfigureWarnings(w => w.Ignore(
                     Apache.Calcite.EntityFrameworkCore.Diagnostics.CalciteEventId.MigrationOperationIgnoredWarning,
-                    Apache.Calcite.EntityFrameworkCore.Diagnostics.CalciteEventId.MigrationTableFeatureIgnoredWarning));
+                    Apache.Calcite.EntityFrameworkCore.Diagnostics.CalciteEventId.MigrationTableFeatureIgnoredWarning,
+                    Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.TpcStoreGeneratedIdentityWarning));
         }
 
         /// <inheritdoc/>
