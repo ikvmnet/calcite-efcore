@@ -27,12 +27,12 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         static readonly Method ExecuteArrayMethod =
             ((Class)typeof(EfCoreEnumerable)).getDeclaredMethod(
                 nameof(EfCoreEnumerable.ExecuteArray),
-                [(Class)typeof(EfCoreConvention), (Class)typeof(IQueryable), (Class)typeof(string[]), (Class)typeof(DataContext)]);
+                [(Class)typeof(EfCoreConvention), (Class)typeof(System.Linq.Expressions.Expression), (Class)typeof(string[]), (Class)typeof(DataContext)]);
 
         static readonly Method ExecuteScalarMethod =
             ((Class)typeof(EfCoreEnumerable)).getDeclaredMethod(
                 nameof(EfCoreEnumerable.ExecuteScalar),
-                [(Class)typeof(EfCoreConvention), (Class)typeof(IQueryable), (Class)typeof(string[]), (Class)typeof(DataContext)]);
+                [(Class)typeof(EfCoreConvention), (Class)typeof(System.Linq.Expressions.Expression), (Class)typeof(string[]), (Class)typeof(DataContext)]);
 
         /// <summary>
         /// Initializes a new instance.
@@ -67,13 +67,25 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
                 pref.prefer(JavaRowFormat.ARRAY));
 
             var efImplementor = new EfCoreRelImplementor();
-            var queryable = efImplementor.visitChild(input);
 
-            Hook.QUERY_PLAN.run(queryable);
-
+            // Create initial root context with the implementor
             var convention = (EfCoreConvention?)input.getConvention();
             if (convention is null)
                 throw new InvalidOperationException("Cannot resolve EfCoreConvention from input.");
+
+            var rootContext = EfCoreTranslationContext.CreateRoot(efImplementor, isCalciteProvider: false);
+
+            System.Linq.Expressions.Expression queryExpression;
+            try
+            {
+                queryExpression = efImplementor.VisitChild(input, rootContext);
+            }
+            catch (System.Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to implement EfCore rel tree: {ex.Message}", ex);
+            }
+
+            Hook.QUERY_PLAN.run(queryExpression);
 
             var fieldList = getRowType().getFieldList();
             var columnNames = new string[fieldList.size()];
@@ -93,7 +105,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
             var enumerable_ = list.append("enumerable",
                 Expressions.call(null, executeMethod,
                 implementor.stash(convention, (Class)typeof(EfCoreConvention)),
-                implementor.stash(queryable, (Class)typeof(IQueryable)),
+                implementor.stash(queryExpression, (Class)typeof(System.Linq.Expressions.Expression)),
                 implementor.stash(columnNames, (Class)typeof(string[])),
                 implementor.getRootExpression()));
 

@@ -4,6 +4,8 @@ using System.Linq.Expressions;
 using System.Reflection;
 
 using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
+using Apache.Calcite.EntityFrameworkCore.Adapter.Rel;
+using Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core;
 using Apache.Calcite.EntityFrameworkCore.Core;
 
 using com.google.common.collect;
@@ -25,7 +27,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Scope is carried explicitly via <see cref="RexTranslationContext"/> passed to each method;
+    /// Scope is carried explicitly via <see cref="EfCoreTranslationContext"/> passed to each method;
     /// the only instance state is the <see cref="SqlOperatorTranslationProvider"/> supplied at construction.
     /// Subclasses may override any <c>protected virtual Translate*</c> method to customise translation
     /// for specific node kinds; calling <c>base.Translate(...)</c> delegates back to the default implementation.
@@ -34,9 +36,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
     /// <list type="bullet">
     ///   <item><see cref="RexInputRef"/> — property access on the matching input-segment parameter.</item>
     ///   <item><see cref="RexLiteral"/> — <see cref="ConstantExpression"/> of the appropriate CLR type.</item>
-    ///   <item><see cref="RexCorrelVariable"/> — the outer-row <see cref="ParameterExpression"/> registered in <see cref="RexTranslationContext.Correlations"/>.</item>
+    ///   <item><see cref="RexCorrelVariable"/> — the outer-row <see cref="ParameterExpression"/> registered in <see cref="EfCoreTranslationContext.Correlations"/>.</item>
     ///   <item><see cref="RexFieldAccess"/> over a <see cref="RexCorrelVariable"/> — property access on the correlated outer-row parameter.</item>
-    ///   <item><see cref="RexDynamicParam"/> — the <see cref="ParameterExpression"/> at the matching index in <see cref="RexTranslationContext.DynamicParams"/>.</item>
+    ///   <item><see cref="RexDynamicParam"/> — the <see cref="ParameterExpression"/> at the matching index in <see cref="EfCoreTranslationContext.DynamicParams"/>.</item>
     ///   <item>
     ///     <see cref="RexCall"/> with kinds:
     ///     <c>AND</c>, <c>OR</c>, <c>NOT</c>,
@@ -47,7 +49,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
     ///   </item>
     /// </list>
     /// </remarks>
-    public class RexToLinqTranslator
+    public class RexToLinqTranslator : IRexToLinqTranslator
     {
 
         /// <summary>
@@ -55,7 +57,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// </summary>
         public static readonly RexToLinqTranslator Default = new();
 
-        readonly SqlOperatorTranslationProvider operatorTranslations;
+        readonly ISqlOperatorTranslationProvider operatorTranslations;
 
         /// <summary>
         /// Initializes a new instance using <see cref="SqlOperatorTranslationProvider.Default"/>.
@@ -63,9 +65,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         public RexToLinqTranslator() : this(SqlOperatorTranslationProvider.Default) { }
 
         /// <summary>
-        /// Initializes a new instance with a custom <see cref="SqlOperatorTranslationProvider"/>.
+        /// Initializes a new instance with a custom <see cref="ISqlOperatorTranslationProvider"/>.
         /// </summary>
-        public RexToLinqTranslator(SqlOperatorTranslationProvider functionBindings)
+        public RexToLinqTranslator(ISqlOperatorTranslationProvider functionBindings)
         {
             operatorTranslations = functionBindings ?? throw new ArgumentNullException(nameof(functionBindings));
         }
@@ -75,7 +77,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// without building a full expression tree. Useful for sizing output shapes at plan time.
         /// Mirrors <see cref="Translate"/> — supports the same node kinds.
         /// </summary>
-        public virtual Type ResolveType(RexNode rex, RexTranslationContext context) => rex switch
+        public virtual Type ResolveType(RexNode rex, EfCoreTranslationContext context) => rex switch
         {
             RexCall call => ResolveCallType(call, context),
             RexInputRef inputRef => ResolveInputRefType(inputRef, context),
@@ -83,14 +85,21 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
             RexCorrelVariable correlVar => ResolveCorrelVariableType(correlVar, context),
             RexFieldAccess fieldAccess => ResolveFieldAccessType(fieldAccess, context),
             RexDynamicParam dynParam => ResolveDynamicParamType(dynParam, context),
+            RexLambdaRef lambdaRef => ResolveLambdaRefType(lambdaRef, context),
             _ => throw new NotSupportedException($"RexToLinqTranslator: cannot resolve CLR type for RexNode '{rex.GetType().Name}' (kind={rex.getKind()}).")
         };
 
         /// <summary>
         /// Resolves the CLR type of a <see cref="RexCall"/> by dispatching on its <see cref="SqlKind"/>.
         /// </summary>
-        protected virtual Type ResolveCallType(RexCall call, RexTranslationContext context)
+        protected virtual Type ResolveCallType(RexCall call, EfCoreTranslationContext context)
         {
+            // Check if this is a RexSubQuery (which is a subclass of RexCall)
+            if (call is RexSubQuery subQuery)
+            {
+                return ResolveSubQueryType(subQuery, context);
+            }
+
             switch ((SqlKind.__Enum)call.getKind().ordinal())
             {
                 // Boolean-returning calls
@@ -394,14 +403,14 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// nodes directly, so the return type is read from Calcite's own type system rather than inspecting
         /// method reflection metadata.
         /// </summary>
-        protected virtual Type ResolveOtherFunctionType(RexCall call, RexTranslationContext context)
+        protected virtual Type ResolveOtherFunctionType(RexCall call, EfCoreTranslationContext context)
             => ResolveDeclaredType(call);
 
         /// <summary>
         /// Dispatches an <c>OTHER_FUNCTION</c> <see cref="RexCall"/> by translating its operands and
         /// passing them to the <see cref="SqlOperatorTranslator"/> registered in the binding table.
         /// </summary>
-        protected virtual Expression TranslateOtherFunction(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateOtherFunction(RexCall call, EfCoreTranslationContext context)
         {
             if (operatorTranslations.TryGet(call, out var translator) == false)
                 throw new NotSupportedException($"RexToLinqTranslator: unsupported function '{call.getOperator().getName()}'.");
@@ -417,7 +426,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Resolves the CLR type of a <see cref="RexInputRef"/> by scanning the input segments in <paramref name="context"/>.
         /// </summary>
-        protected virtual Type ResolveInputRefType(RexInputRef inputRef, RexTranslationContext context)
+        protected virtual Type ResolveInputRefType(RexInputRef inputRef, EfCoreTranslationContext context)
         {
             var (param, fieldName) = ResolveInputRefSegment(inputRef, context);
             var prop = param.Type.GetProperty(fieldName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)
@@ -429,7 +438,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Resolves the CLR type of a <see cref="RexCorrelVariable"/> from the corresponding outer-row parameter type.
         /// </summary>
-        protected virtual Type ResolveCorrelVariableType(RexCorrelVariable correlVar, RexTranslationContext context)
+        protected virtual Type ResolveCorrelVariableType(RexCorrelVariable correlVar, EfCoreTranslationContext context)
         {
             return ResolveCorrelParam(correlVar, context).Type;
         }
@@ -437,7 +446,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Resolves the CLR type of a <see cref="RexFieldAccess"/> whose reference is a <see cref="RexCorrelVariable"/>.
         /// </summary>
-        protected virtual Type ResolveFieldAccessType(RexFieldAccess fieldAccess, RexTranslationContext context)
+        protected virtual Type ResolveFieldAccessType(RexFieldAccess fieldAccess, EfCoreTranslationContext context)
         {
             var (_, prop) = ResolveFieldAccessProperty(fieldAccess, context);
             return prop.PropertyType;
@@ -446,9 +455,23 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Resolves the CLR type of a <see cref="RexDynamicParam"/> from the corresponding registered parameter.
         /// </summary>
-        protected virtual Type ResolveDynamicParamType(RexDynamicParam dynParam, RexTranslationContext context)
+        protected virtual Type ResolveDynamicParamType(RexDynamicParam dynParam, EfCoreTranslationContext context)
         {
             return ResolveDynamicParam(dynParam, context).Type;
+        }
+
+        /// <summary>
+        /// Resolves the CLR type of a <see cref="RexLambdaRef"/> from the corresponding lambda parameter.
+        /// </summary>
+        protected virtual Type ResolveLambdaRefType(RexLambdaRef lambdaRef, EfCoreTranslationContext context)
+        {
+            if (context.LambdaParameters == null)
+                throw new InvalidOperationException($"RexToLinqTranslator: RexLambdaRef encountered but context has no lambda parameters.");
+
+            if (!context.LambdaParameters.TryGetValue(lambdaRef, out var param))
+                throw new InvalidOperationException($"RexToLinqTranslator: RexLambdaRef '{lambdaRef.getName()}' (index {lambdaRef.getIndex()}) not found in lambda parameter scope.");
+
+            return param.Type;
         }
 
         /// <summary>
@@ -717,7 +740,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <paramref name="rex"/> into a CLR <see cref="Expression"/> under <paramref name="context"/>.
         /// </summary>
-        public virtual Expression Translate(RexNode rex, RexTranslationContext context)
+        public virtual Expression Translate(RexNode rex, EfCoreTranslationContext context)
         {
             return rex switch
             {
@@ -727,6 +750,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
                 RexCorrelVariable correlVar => TranslateCorrelVariable(correlVar, context),
                 RexFieldAccess fieldAccess => TranslateFieldAccess(fieldAccess, context),
                 RexDynamicParam dynParam => TranslateDynamicParam(dynParam, context),
+                RexLambdaRef lambdaRef => TranslateLambdaRef(lambdaRef, context),
                 _ => throw new NotSupportedException($"RexToLinqTranslator: unsupported RexNode '{rex.GetType().Name}' (kind={rex.getKind()}).")
             };
         }
@@ -734,8 +758,14 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Dispatches a <see cref="RexCall"/> to the appropriate translation method based on its <see cref="SqlKind"/>.
         /// </summary>
-        protected virtual Expression TranslateCall(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateCall(RexCall call, EfCoreTranslationContext context)
         {
+            // Check if this is a RexSubQuery (which is a subclass of RexCall)
+            if (call is RexSubQuery subQuery)
+            {
+                return TranslateSubQuery(subQuery, context);
+            }
+
             switch ((SqlKind.__Enum)call.getKind().ordinal())
             {
                 // SEARCH(ref, Sarg) — translate directly from the embedded RangeSet
@@ -1065,7 +1095,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates a logical AND into <see cref="Expression.AndAlso"/>.
         /// </summary>
-        protected virtual Expression TranslateAnd(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateAnd(RexCall call, EfCoreTranslationContext context)
         {
             return Expression.AndAlso(Translate((RexNode)call.getOperands().get(0), context), Translate((RexNode)call.getOperands().get(1), context));
         }
@@ -1073,7 +1103,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates a logical OR into <see cref="Expression.OrElse"/>.
         /// </summary>
-        protected virtual Expression TranslateOr(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateOr(RexCall call, EfCoreTranslationContext context)
         {
             return Expression.OrElse(Translate((RexNode)call.getOperands().get(0), context), Translate((RexNode)call.getOperands().get(1), context));
         }
@@ -1081,7 +1111,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates a logical NOT into <see cref="Expression.Not"/>.
         /// </summary>
-        protected virtual Expression TranslateNot(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateNot(RexCall call, EfCoreTranslationContext context)
         {
             return Expression.Not(Translate((RexNode)call.getOperands().get(0), context));
         }
@@ -1089,7 +1119,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>=</c> into <see cref="Expression.Equal"/>.
         /// </summary>
-        protected virtual Expression TranslateEquals(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateEquals(RexCall call, EfCoreTranslationContext context)
         {
             var (l, r) = CoercedOperands(call, context);
             return Expression.Equal(l, r);
@@ -1098,7 +1128,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>&lt;&gt;</c> into <see cref="Expression.NotEqual"/>.
         /// </summary>
-        protected virtual Expression TranslateNotEquals(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateNotEquals(RexCall call, EfCoreTranslationContext context)
         {
             var (l, r) = CoercedOperands(call, context);
             return Expression.NotEqual(l, r);
@@ -1107,7 +1137,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>&lt;</c> into <see cref="Expression.LessThan"/>.
         /// </summary>
-        protected virtual Expression TranslateLessThan(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateLessThan(RexCall call, EfCoreTranslationContext context)
         {
             var (l, r) = CoercedOperands(call, context);
             return Expression.LessThan(l, r);
@@ -1116,7 +1146,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>&lt;=</c> into <see cref="Expression.LessThanOrEqual"/>.
         /// </summary>
-        protected virtual Expression TranslateLessThanOrEqual(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateLessThanOrEqual(RexCall call, EfCoreTranslationContext context)
         {
             var (l, r) = CoercedOperands(call, context);
             return Expression.LessThanOrEqual(l, r);
@@ -1125,7 +1155,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>&gt;</c> into <see cref="Expression.GreaterThan"/>.
         /// </summary>
-        protected virtual Expression TranslateGreaterThan(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateGreaterThan(RexCall call, EfCoreTranslationContext context)
         {
             var (l, r) = CoercedOperands(call, context);
             return Expression.GreaterThan(l, r);
@@ -1134,7 +1164,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>&gt;=</c> into <see cref="Expression.GreaterThanOrEqual"/>.
         /// </summary>
-        protected virtual Expression TranslateGreaterThanOrEqual(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateGreaterThanOrEqual(RexCall call, EfCoreTranslationContext context)
         {
             var (l, r) = CoercedOperands(call, context);
             return Expression.GreaterThanOrEqual(l, r);
@@ -1143,7 +1173,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>IS NULL</c> into a null equality check.
         /// </summary>
-        protected virtual Expression TranslateIsNull(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateIsNull(RexCall call, EfCoreTranslationContext context)
         {
             var operand = Translate((RexNode)call.getOperands().get(0), context);
             return Expression.Equal(Expression.Convert(operand, typeof(object)), Expression.Constant(null, typeof(object)));
@@ -1152,7 +1182,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>IS NOT NULL</c> into a null inequality check.
         /// </summary>
-        protected virtual Expression TranslateIsNotNull(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateIsNotNull(RexCall call, EfCoreTranslationContext context)
         {
             var operand = Translate((RexNode)call.getOperands().get(0), context);
             return Expression.NotEqual(Expression.Convert(operand, typeof(object)), Expression.Constant(null, typeof(object)));
@@ -1161,7 +1191,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>IS TRUE</c>: operand is boolean, so equivalent to the operand itself coerced to <see cref="bool"/>.
         /// </summary>
-        protected virtual Expression TranslateIsTrue(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateIsTrue(RexCall call, EfCoreTranslationContext context)
         {
             var operand = Translate((RexNode)call.getOperands().get(0), context);
             return operand.Type == typeof(bool) ? operand : Expression.Equal(Expression.Convert(operand, typeof(object)), Expression.Constant(true, typeof(object)));
@@ -1170,13 +1200,13 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>IS NOT TRUE</c>: <c>!(IS TRUE)</c>.
         /// </summary>
-        protected virtual Expression TranslateIsNotTrue(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateIsNotTrue(RexCall call, EfCoreTranslationContext context)
             => Expression.Not(TranslateIsTrue(call, context));
 
         /// <summary>
         /// Translates <c>IS FALSE</c>: operand equals <see langword="false"/>.
         /// </summary>
-        protected virtual Expression TranslateIsFalse(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateIsFalse(RexCall call, EfCoreTranslationContext context)
         {
             var operand = Translate((RexNode)call.getOperands().get(0), context);
             return operand.Type == typeof(bool)
@@ -1187,20 +1217,20 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>IS NOT FALSE</c>: <c>!(IS FALSE)</c>.
         /// </summary>
-        protected virtual Expression TranslateIsNotFalse(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateIsNotFalse(RexCall call, EfCoreTranslationContext context)
             => Expression.Not(TranslateIsFalse(call, context));
 
         /// <summary>
         /// Translates <c>IS UNKNOWN</c> (SQL three-valued NULL test) into a null equality check — same as <c>IS NULL</c>.
         /// </summary>
-        protected virtual Expression TranslateIsUnknown(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateIsUnknown(RexCall call, EfCoreTranslationContext context)
             => TranslateIsNull(call, context);
 
         /// <summary>
         /// Translates <c>BETWEEN … AND …</c> (and the Druid variant) into <c>low &lt;= value AND value &lt;= high</c>.
         /// Calcite emits BETWEEN as a three-operand call: value, low, high.
         /// </summary>
-        protected virtual Expression TranslateBetween(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateBetween(RexCall call, EfCoreTranslationContext context)
         {
             var operands = call.getOperands();
             var value = Translate((RexNode)operands.get(0), context);
@@ -1218,7 +1248,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// When <c>nullAs == TRUE</c> an additional <c>ref IS NULL</c> branch is prepended.
         /// The degenerate cases <c>isAll</c> and <c>isNone</c> produce <c>true</c>/<c>false</c> constants.
         /// </summary>
-        protected virtual Expression TranslateSearch(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateSearch(RexCall call, EfCoreTranslationContext context)
         {
             var operands = call.getOperands();
             var refOperand = (RexNode)operands.get(0);
@@ -1289,25 +1319,25 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates the unary-plus prefix operator: returns the operand unchanged.
         /// </summary>
-        protected virtual Expression TranslateUnaryPlus(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateUnaryPlus(RexCall call, EfCoreTranslationContext context)
             => Translate((RexNode)call.getOperands().get(0), context);
 
         /// <summary>
         /// Translates the unary-minus prefix operator into <see cref="Expression.Negate"/>.
         /// </summary>
-        protected virtual Expression TranslateNegate(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateNegate(RexCall call, EfCoreTranslationContext context)
             => Expression.Negate(Translate((RexNode)call.getOperands().get(0), context));
 
         /// <summary>
         /// Translates the checked unary-minus prefix operator into <see cref="Expression.NegateChecked"/>.
         /// </summary>
-        protected virtual Expression TranslateCheckedNegate(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateCheckedNegate(RexCall call, EfCoreTranslationContext context)
             => Expression.NegateChecked(Translate((RexNode)call.getOperands().get(0), context));
 
         /// <summary>
         /// Translates <c>IF(condition, thenValue, elseValue)</c> into a conditional expression.
         /// </summary>
-        protected virtual Expression TranslateIf(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateIf(RexCall call, EfCoreTranslationContext context)
         {
             var operands = call.getOperands();
             var test = Translate((RexNode)operands.get(0), context);
@@ -1321,7 +1351,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// Translates a Calcite <c>CASE WHEN c1 THEN v1 … ELSE vN</c> expression.
         /// Operands are interleaved as <c>[when1, then1, when2, then2, …, else]</c>.
         /// </summary>
-        protected virtual Expression TranslateCase(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateCase(RexCall call, EfCoreTranslationContext context)
         {
             var operands = call.getOperands();
             var count = operands.size();
@@ -1343,7 +1373,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// Translates <c>NVL(value, default)</c>: returns <paramref name="value"/> when non-null, otherwise <c>default</c>.
         /// Equivalent to <c>value ?? default</c>.
         /// </summary>
-        protected virtual Expression TranslateNvl(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateNvl(RexCall call, EfCoreTranslationContext context)
         {
             var operands = call.getOperands();
             var value = Translate((RexNode)operands.get(0), context);
@@ -1357,7 +1387,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// Translates <c>NVL2(value, notNullResult, nullResult)</c>:
         /// returns <c>notNullResult</c> when <c>value</c> is non-null, otherwise <c>nullResult</c>.
         /// </summary>
-        protected virtual Expression TranslateNvl2(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateNvl2(RexCall call, EfCoreTranslationContext context)
         {
             var operands = call.getOperands();
             var value = Translate((RexNode)operands.get(0), context);
@@ -1371,7 +1401,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>NULLIF(value, comparand)</c>: returns null when <c>value = comparand</c>, otherwise <c>value</c>.
         /// </summary>
-        protected virtual Expression TranslateNullIf(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateNullIf(RexCall call, EfCoreTranslationContext context)
         {
             var (left, right) = CoercedOperands(call, context);
             var nullValue = Expression.Constant(null, typeof(object));
@@ -1382,7 +1412,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>COALESCE(a, b, …)</c> into a left-folded chain of null-conditional expressions.
         /// </summary>
-        protected virtual Expression TranslateCoalesce(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateCoalesce(RexCall call, EfCoreTranslationContext context)
         {
             var operands = call.getOperands();
             var exprs = new Expression[operands.size()];
@@ -1417,7 +1447,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
             return fmt.getValue() is org.apache.calcite.util.NlsString nls ? nls.getValue() : null;
         }
 
-        protected virtual Expression TranslateCast(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateCast(RexCall call, EfCoreTranslationContext context)
         {
             var operand = Translate((RexNode)call.getOperands().get(0), context);
             var targetType = ResolveDeclaredType(call);
@@ -1447,7 +1477,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <c>ToString(string format)</c> is not handled by any provider and will fail at query execution time.
         /// Accordingly, CAST with a FORMAT clause is not supported and throws <see cref="NotImplementedException"/>.
         /// </summary>
-        protected virtual Expression TranslateCastToString(Expression operand, Type sourceType, string? format, RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateCastToString(Expression operand, Type sourceType, string? format, RexCall call, EfCoreTranslationContext context)
         {
             if (format is not null)
                 throw new NotImplementedException($"RexToLinqTranslator: CAST(... AS VARCHAR FORMAT '{format}') is not supported — EF Core providers do not translate ToString(string) to SQL.");
@@ -1460,7 +1490,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// EF Core providers do not translate <c>DateTime.Parse</c> / <c>ParseExact</c> to SQL,
         /// so this is not yet implementable through the EF Core LINQ translation pipeline.
         /// </summary>
-        protected virtual Expression TranslateCastToDateTime(Expression operand, Type sourceType, Type targetType, string? format, RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateCastToDateTime(Expression operand, Type sourceType, Type targetType, string? format, RexCall call, EfCoreTranslationContext context)
         {
             throw new NotImplementedException($"RexToLinqTranslator: CAST from '{sourceType.Name}' to '{targetType.Name}' is not yet implemented — EF Core providers do not translate date/time parse methods to SQL.");
         }
@@ -1470,7 +1500,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// EF Core providers do not translate <see cref="Convert"/> methods to SQL,
         /// so this is not yet implementable through the EF Core LINQ translation pipeline.
         /// </summary>
-        protected virtual Expression TranslateCastFromString(Expression operand, Type targetType, string? format, RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateCastFromString(Expression operand, Type targetType, string? format, RexCall call, EfCoreTranslationContext context)
         {
             throw new NotImplementedException($"RexToLinqTranslator: CAST from string to '{targetType.Name}' is not yet implemented — EF Core providers do not translate Convert methods to SQL.");
         }
@@ -1478,13 +1508,13 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates a numeric or value-type <c>CAST</c> via <see cref="Expression.Convert"/>.
         /// </summary>
-        protected virtual Expression TranslateCastNumeric(Expression operand, Type targetType, RexCall call, RexTranslationContext context) =>
+        protected virtual Expression TranslateCastNumeric(Expression operand, Type targetType, RexCall call, EfCoreTranslationContext context) =>
             Expression.Convert(operand, targetType);
 
         /// <summary>
         /// Translates <c>BITAND</c> / <c>BIT_AND</c> into <see cref="Expression.And"/>.
         /// </summary>
-        protected virtual Expression TranslateBitwiseAnd(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateBitwiseAnd(RexCall call, EfCoreTranslationContext context)
         {
             var (l, r) = CoercedOperands(call, context);
             return Expression.And(l, r);
@@ -1493,7 +1523,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>BITOR</c> / <c>BIT_OR</c> into <see cref="Expression.Or"/>.
         /// </summary>
-        protected virtual Expression TranslateBitwiseOr(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateBitwiseOr(RexCall call, EfCoreTranslationContext context)
         {
             var (l, r) = CoercedOperands(call, context);
             return Expression.Or(l, r);
@@ -1502,7 +1532,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>BITXOR</c> / <c>BIT_XOR</c> into <see cref="Expression.ExclusiveOr"/>.
         /// </summary>
-        protected virtual Expression TranslateBitwiseXor(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateBitwiseXor(RexCall call, EfCoreTranslationContext context)
         {
             var (l, r) = CoercedOperands(call, context);
             return Expression.ExclusiveOr(l, r);
@@ -1511,7 +1541,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>BITNOT</c> into <see cref="Expression.OnesComplement"/>.
         /// </summary>
-        protected virtual Expression TranslateBitwiseNot(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateBitwiseNot(RexCall call, EfCoreTranslationContext context)
         {
             var operand = Translate((RexNode)call.getOperands().get(0), context);
             return Expression.OnesComplement(operand);
@@ -1523,7 +1553,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// This implementation maps both to <see cref="string.Concat"/> which treats null arguments as empty strings,
         /// matching the more permissive CONCAT2 contract. Override for stricter NULL propagation.
         /// </summary>
-        protected virtual Expression TranslateConcat2(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateConcat2(RexCall call, EfCoreTranslationContext context)
         {
             var left = Translate((RexNode)call.getOperands().get(0), context);
             var right = Translate((RexNode)call.getOperands().get(1), context);
@@ -1533,7 +1563,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>LTRIM(value)</c> into <see cref="string.TrimStart()"/>.
         /// </summary>
-        protected virtual Expression TranslateLTrim(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateLTrim(RexCall call, EfCoreTranslationContext context)
         {
             var operand = Translate((RexNode)call.getOperands().get(0), context);
             return Expression.Call(Expression.Convert(operand, typeof(string)), StringMethods.TrimStart);
@@ -1542,7 +1572,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>RTRIM(value)</c> into <see cref="string.TrimEnd()"/>.
         /// </summary>
-        protected virtual Expression TranslateRTrim(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateRTrim(RexCall call, EfCoreTranslationContext context)
         {
             var operand = Translate((RexNode)call.getOperands().get(0), context);
             return Expression.Call(Expression.Convert(operand, typeof(string)), StringMethods.TrimEnd);
@@ -1551,7 +1581,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>ENDS_WITH(value, suffix)</c> into <see cref="string.EndsWith(string)"/>.
         /// </summary>
-        protected virtual Expression TranslateEndsWith(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateEndsWith(RexCall call, EfCoreTranslationContext context)
         {
             var str = Expression.Convert(Translate((RexNode)call.getOperands().get(0), context), typeof(string));
             var suffix = Expression.Convert(Translate((RexNode)call.getOperands().get(1), context), typeof(string));
@@ -1561,7 +1591,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>STARTS_WITH(value, prefix)</c> into <see cref="string.StartsWith(string)"/>.
         /// </summary>
-        protected virtual Expression TranslateStartsWith(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateStartsWith(RexCall call, EfCoreTranslationContext context)
         {
             var str = Expression.Convert(Translate((RexNode)call.getOperands().get(0), context), typeof(string));
             var prefix = Expression.Convert(Translate((RexNode)call.getOperands().get(1), context), typeof(string));
@@ -1571,7 +1601,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates <c>CONTAINS_SUBSTR(value, substr)</c> into <see cref="string.Contains(string)"/>.
         /// </summary>
-        protected virtual Expression TranslateContainsSubstr(RexCall call, RexTranslationContext context)
+        protected virtual Expression TranslateContainsSubstr(RexCall call, EfCoreTranslationContext context)
         {
             var str = Expression.Convert(Translate((RexNode)call.getOperands().get(0), context), typeof(string));
             var substr = Expression.Convert(Translate((RexNode)call.getOperands().get(1), context), typeof(string));
@@ -1581,7 +1611,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates a binary arithmetic call using the supplied <see cref="Expression"/> factory.
         /// </summary>
-        protected virtual Expression TranslateBinaryArithmetic(RexCall call, RexTranslationContext context, Func<Expression, Expression, Expression> factory)
+        protected virtual Expression TranslateBinaryArithmetic(RexCall call, EfCoreTranslationContext context, Func<Expression, Expression, Expression> factory)
         {
             var (l, r) = CoercedOperands(call, context);
             return factory(l, r);
@@ -1590,7 +1620,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates both operands of a binary call and coerces them to a common type.
         /// </summary>
-        protected (Expression Left, Expression Right) CoercedOperands(RexCall call, RexTranslationContext context)
+        protected (Expression Left, Expression Right) CoercedOperands(RexCall call, EfCoreTranslationContext context)
         {
             var left = Translate((RexNode)call.getOperands().get(0), context);
             var right = Translate((RexNode)call.getOperands().get(1), context);
@@ -1600,7 +1630,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates a <see cref="RexInputRef"/> into a property access on the owning input-segment parameter.
         /// </summary>
-        protected virtual Expression TranslateInputRef(RexInputRef inputRef, RexTranslationContext context)
+        protected virtual Expression TranslateInputRef(RexInputRef inputRef, EfCoreTranslationContext context)
         {
             var (param, fieldName) = ResolveInputRefSegment(inputRef, context);
             var prop = param.Type.GetProperty(fieldName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)
@@ -1612,7 +1642,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates a <see cref="RexCorrelVariable"/> into the outer-row <see cref="ParameterExpression"/> registered in <paramref name="context"/>.
         /// </summary>
-        protected virtual Expression TranslateCorrelVariable(RexCorrelVariable correlVar, RexTranslationContext context)
+        protected virtual Expression TranslateCorrelVariable(RexCorrelVariable correlVar, EfCoreTranslationContext context)
         {
             return ResolveCorrelParam(correlVar, context);
         }
@@ -1620,7 +1650,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates a <see cref="RexFieldAccess"/> over a <see cref="RexCorrelVariable"/> into a property access on the outer-row parameter.
         /// </summary>
-        protected virtual Expression TranslateFieldAccess(RexFieldAccess fieldAccess, RexTranslationContext context)
+        protected virtual Expression TranslateFieldAccess(RexFieldAccess fieldAccess, EfCoreTranslationContext context)
         {
             var (param, prop) = ResolveFieldAccessProperty(fieldAccess, context);
             return Expression.Property(param, prop);
@@ -1629,16 +1659,16 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates a <see cref="RexDynamicParam"/> into the registered <see cref="ParameterExpression"/> for its index.
         /// </summary>
-        protected virtual Expression TranslateDynamicParam(RexDynamicParam dynParam, RexTranslationContext context)
+        protected virtual Expression TranslateDynamicParam(RexDynamicParam dynParam, EfCoreTranslationContext context)
         {
             return ResolveDynamicParam(dynParam, context);
         }
 
         /// <summary>
-        /// Scans <see cref="RexTranslationContext.Inputs"/> for the segment that owns the field at
+        /// Scans <see cref="EfCoreTranslationContext.Inputs"/> for the segment that owns the field at
         /// <paramref name="inputRef"/>'s global index and returns the owning parameter and field name.
         /// </summary>
-        protected virtual (ParameterExpression Param, string FieldName) ResolveInputRefSegment(RexInputRef inputRef, RexTranslationContext context)
+        protected virtual (ParameterExpression Param, string FieldName) ResolveInputRefSegment(RexInputRef inputRef, EfCoreTranslationContext context)
         {
             var remaining = inputRef.getIndex();
             foreach (var segment in context.Inputs)
@@ -1654,9 +1684,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         }
 
         /// <summary>
-        /// Resolves the <see cref="ParameterExpression"/> for a <see cref="RexCorrelVariable"/> from <see cref="RexTranslationContext.Correlations"/>.
+        /// Resolves the <see cref="ParameterExpression"/> for a <see cref="RexCorrelVariable"/> from <see cref="EfCoreTranslationContext.Correlations"/>.
         /// </summary>
-        protected virtual ParameterExpression ResolveCorrelParam(RexCorrelVariable correlVar, RexTranslationContext context)
+        protected virtual ParameterExpression ResolveCorrelParam(RexCorrelVariable correlVar, EfCoreTranslationContext context)
         {
             var expression = context.GetCorrelation(correlVar.getName(), ResolveCorrelVariableType(correlVar, context));
             if (expression is null)
@@ -1669,7 +1699,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// Resolves the outer-row parameter and the <see cref="PropertyInfo"/> for a
         /// <see cref="RexFieldAccess"/> whose reference is a <see cref="RexCorrelVariable"/>.
         /// </summary>
-        protected virtual (ParameterExpression Param, PropertyInfo Property) ResolveFieldAccessProperty(RexFieldAccess fieldAccess, RexTranslationContext context)
+        protected virtual (ParameterExpression Param, PropertyInfo Property) ResolveFieldAccessProperty(RexFieldAccess fieldAccess, EfCoreTranslationContext context)
         {
             if (fieldAccess.getReferenceExpr() is not RexCorrelVariable correlVar)
                 throw new NotSupportedException($"RexToLinqTranslator: RexFieldAccess is only supported over RexCorrelVariable (got '{fieldAccess.getReferenceExpr().GetType().Name}').");
@@ -1682,11 +1712,26 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         }
 
         /// <summary>
-        /// Resolves the <see cref="ParameterExpression"/> for a <see cref="RexDynamicParam"/> from <see cref="RexTranslationContext.DynamicParams"/>.
+        /// Resolves the <see cref="ParameterExpression"/> for a <see cref="RexDynamicParam"/> from <see cref="EfCoreTranslationContext.DynamicParams"/>.
         /// </summary>
-        protected virtual ParameterExpression ResolveDynamicParam(RexDynamicParam dynParam, RexTranslationContext context)
+        protected virtual ParameterExpression ResolveDynamicParam(RexDynamicParam dynParam, EfCoreTranslationContext context)
         {
             return Expression.Parameter(ResolveDynamicParamType(dynParam, context), $"?{dynParam.getIndex()}");
+        }
+
+        /// <summary>
+        /// Translates a <see cref="RexLambdaRef"/> into the corresponding <see cref="ParameterExpression"/>
+        /// from <see cref="EfCoreTranslationContext.LambdaParameters"/>.
+        /// </summary>
+        protected virtual Expression TranslateLambdaRef(RexLambdaRef lambdaRef, EfCoreTranslationContext context)
+        {
+            if (context.LambdaParameters == null)
+                throw new InvalidOperationException($"RexToLinqTranslator: RexLambdaRef encountered but context has no lambda parameters.");
+
+            if (!context.LambdaParameters.TryGetValue(lambdaRef, out var param))
+                throw new InvalidOperationException($"RexToLinqTranslator: RexLambdaRef '{lambdaRef.getName()}' (index {lambdaRef.getIndex()}) not found in lambda parameter scope.");
+
+            return param;
         }
 
         /// <summary>
@@ -1985,6 +2030,46 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
                 _ when t == typeof(decimal) => 11,
                 _ => 0
             };
+        }
+
+        /// <summary>
+        /// Resolves the CLR type of a <see cref="RexSubQuery"/>.
+        /// For SCALAR subqueries, returns IQueryable&lt;T&gt; where T is the row type of the subquery.
+        /// </summary>
+        protected virtual Type ResolveSubQueryType(RexSubQuery subQuery, EfCoreTranslationContext context)
+        {
+            var subQueryRowType = subQuery.rel.getRowType();
+            var elementType = CalciteTypeMapper.ToClrType(subQueryRowType);
+            return typeof(IQueryable<>).MakeGenericType(elementType);
+        }
+
+        /// <summary>
+        /// Translates a <see cref="RexSubQuery"/> into a CLR expression.
+        /// For SCALAR subqueries in collection selectors, this implements the relational subquery
+        /// by calling implement() with the current translation context.
+        /// </summary>
+        protected virtual Expression TranslateSubQuery(RexSubQuery subQuery, EfCoreTranslationContext context)
+        {
+            var subRel = subQuery.rel;
+
+            if (subRel is not EfCoreRel efCoreRel)
+            {
+                throw new NotSupportedException(
+                    $"RexSubQuery translation requires an EfCoreRel, but got {subRel.GetType().Name}");
+            }
+
+            // We need the implementor to call implement() on the RelNode
+            if (context.Implementor == null)
+            {
+                throw new InvalidOperationException(
+                    $"RexSubQuery translation requires an EfCoreRelImplementor in the context for {subRel.GetType().Name}. " +
+                    $"Ensure the context includes an implementor when translating subqueries.");
+            }
+
+            // Implement the subquery RelNode, passing the current translation context
+            // so that nodes like EfCoreCollectionScan can translate their RexNode expressions
+            // with access to correlation parameters
+            return efCoreRel.Implement(context.Implementor, context);
         }
 
     }

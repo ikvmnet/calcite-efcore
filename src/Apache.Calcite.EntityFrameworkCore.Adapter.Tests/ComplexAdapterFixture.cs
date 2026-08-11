@@ -91,7 +91,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             str.Conformance = "DEFAULT";
 
             Connection = new CalciteConnection(str.ConnectionString);
-            Connection.RegisterHook(Hook.QUERY_PLAN, new DelegateConsumer<object>((object q) => Console.WriteLine($"IQueryable: {((IQueryable)q).Expression}")));
+            Connection.RegisterHook(Hook.QUERY_PLAN, new DelegateConsumer<object>((object q) => Console.WriteLine($"Query: {q}")));
             Connection.Open();
 
             var schema = EfCoreSchema.Create(Connection.RootSchema, SchemaName, () => new ProductDbContext(ConnectionString));

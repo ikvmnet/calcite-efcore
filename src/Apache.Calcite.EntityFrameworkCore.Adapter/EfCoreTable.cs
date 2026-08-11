@@ -164,7 +164,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             var fields = rowType.getFieldList();
             var properties = _entityType.GetDeclaredProperties().ToList();
 
-            using var context = Convention.ContextFactory();
+            using var context = Convention.ContextFactory.CreateDbContext();
             var set = GetDbSetAsEnumerable(context);
 
             var rows = new java.util.ArrayList();
@@ -173,6 +173,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
                 var values = new object?[properties.Count];
                 for (int i = 0; i < properties.Count; i++)
                     values[i] = CalciteValueConverter.ToJavaObject(properties[i].PropertyInfo?.GetValue(entity));
+
                 rows.add(values);
             }
 

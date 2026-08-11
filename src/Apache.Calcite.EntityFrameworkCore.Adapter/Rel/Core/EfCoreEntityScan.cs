@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Linq.Expressions;
 
 using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
 
@@ -78,9 +79,13 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         public Type ClrElementType => _efCoreTable.EntityClrType;
 
         /// <inheritdoc />
-        public IQueryable implement(EfCoreRelImplementor implementor)
+        public Expression Implement(EfCoreRelImplementor implementor, EfCoreTranslationContext rexContext)
         {
-            return TemplateQueryable.Create(_efCoreTable.EntityClrType);
+            // Return a constant expression wrapping the template queryable
+            // Type the expression as IQueryable<T> so downstream nodes can recognize it
+            var queryable = TemplateQueryable.Create(_efCoreTable.EntityClrType);
+            var queryableType = typeof(IQueryable<>).MakeGenericType(_efCoreTable.EntityClrType);
+            return Expression.Constant(queryable, queryableType);
         }
 
     }

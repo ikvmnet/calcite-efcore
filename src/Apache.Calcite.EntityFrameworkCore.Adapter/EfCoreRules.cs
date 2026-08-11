@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 
-using Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert;
 using Apache.Calcite.EntityFrameworkCore.Adapter.Rel.RelFactories;
 using Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules;
+using Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules.Convert;
 
 using org.apache.calcite.plan;
 using org.apache.calcite.tools;

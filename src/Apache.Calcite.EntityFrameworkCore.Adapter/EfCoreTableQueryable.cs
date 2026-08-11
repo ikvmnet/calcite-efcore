@@ -45,7 +45,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         {
             var properties = _table.EntityType.GetDeclaredProperties().ToList();
 
-            using var context = _table.Convention.ContextFactory();
+            using var context = _table.Convention.ContextFactory.CreateDbContext();
 
             var set = GetDbSetAsEnumerable(context);
             var rows = new java.util.ArrayList();

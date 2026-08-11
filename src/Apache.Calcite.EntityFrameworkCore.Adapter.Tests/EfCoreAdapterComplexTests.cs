@@ -531,15 +531,16 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
 
         /// <summary>
         /// A projection containing an expression that <see cref="RexToLinqTranslator"/> does not support
-        /// (<c>REVERSE</c>) must not throw at runtime. Instead, the planner should fall back to
+        /// (<c>INITCAP</c>) must not throw at runtime. Instead, the planner should fall back to
         /// Calcite's bindable execution path and the query must still return correct results.
         /// </summary>
         [Fact]
         public void UnsupportedProjection_FallsBackToBindable()
         {
-            // REVERSE is not supported by RexToLinqTranslator; EfCoreSelectRule should decline the
-            // conversion and let Calcite execute the projection via the bindable path.
-            var sql = $@"SELECT REVERSE(""Name"") AS ""Rev"" FROM ""{S}"".""Product"" WHERE ""Id"" = 1";
+            // INITCAP validates against the standard operator table but is not supported by
+            // RexToLinqTranslator; EfCoreSelectRule should decline the conversion and let Calcite
+            // execute the projection via the bindable path.
+            var sql = $@"SELECT INITCAP(""Name"") AS ""Rev"" FROM ""{S}"".""Product"" WHERE ""Id"" = 1";
             var plan = GetPlan(sql);
             _output.WriteLine($"Plan: {plan}");
 
@@ -549,7 +550,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             // The query must still execute successfully and return the correct result.
             var rows = Execute(sql);
             Assert.Single(rows);
-            Assert.Equal("tegdiW", rows[0]["Rev"]?.ToString());
+            Assert.Equal("Widget", rows[0]["Rev"]?.ToString());
         }
 
         [Fact]

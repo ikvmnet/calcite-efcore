@@ -45,17 +45,43 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         }
 
         /// <inheritdoc />
-        public IQueryable implement(EfCoreRelImplementor implementor)
+        public System.Linq.Expressions.Expression Implement(EfCoreRelImplementor implementor, EfCoreTranslationContext rexContext)
         {
             var combine = all ? QueryableMethods.Concat : QueryableMethods.Union;
             var n = inputs.size();
 
-            var result = implementor.visitChild((RelNode)inputs.get(0));
-            var elementType = result.ElementType;
+            var result = implementor.VisitChild((RelNode)inputs.get(0), rexContext);
+
+            // Determine element type from the first input expression
+            var resultType = result.Type;
+            System.Type elementType;
+            if (resultType.IsGenericType && resultType.GetGenericTypeDefinition() == typeof(IQueryable<>))
+            {
+                elementType = resultType.GetGenericArguments()[0];
+            }
+            else if (resultType.IsAssignableTo(typeof(System.Linq.IQueryable)))
+            {
+                var queryableInterface = resultType.GetInterfaces()
+                    .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IQueryable<>));
+
+                if (queryableInterface != null)
+                {
+                    elementType = queryableInterface.GetGenericArguments()[0];
+                }
+                else
+                {
+                    throw new System.InvalidOperationException($"EfCoreUnion input expression type {resultType.Name} implements IQueryable but not IQueryable<T>");
+                }
+            }
+            else
+            {
+                throw new System.InvalidOperationException($"EfCoreUnion input expression type {resultType.Name} is not IQueryable<T>");
+            }
+
             for (int i = 1; i < n; i++)
             {
-                var right = implementor.visitChild((RelNode)inputs.get(i));
-                result = (IQueryable)combine.MakeGenericMethod(elementType).Invoke(null, [result, right])!;
+                var right = implementor.VisitChild((RelNode)inputs.get(i), rexContext);
+                result = System.Linq.Expressions.Expression.Call(combine.MakeGenericMethod(elementType), result, right);
             }
 
             return result;

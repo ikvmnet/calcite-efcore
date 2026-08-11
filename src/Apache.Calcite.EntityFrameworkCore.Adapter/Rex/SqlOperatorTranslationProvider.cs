@@ -24,7 +24,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
     /// <see cref="RexToLinqTranslator"/> constructor. The <see cref="Default"/> singleton covers the
     /// built-in SQL functions (<c>UPPER</c>, <c>LOWER</c>, math operators, etc.).
     /// </remarks>
-    public class SqlOperatorTranslationProvider
+    public class SqlOperatorTranslationProvider : ISqlOperatorTranslationProvider
     {
 
         /// <summary>

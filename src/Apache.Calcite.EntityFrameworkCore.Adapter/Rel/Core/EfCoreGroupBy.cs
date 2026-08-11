@@ -63,11 +63,23 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         }
 
         /// <inheritdoc />
-        public IQueryable implement(EfCoreRelImplementor implementor)
+        public Expression Implement(EfCoreRelImplementor implementor, EfCoreTranslationContext rexContext)
         {
-            var efRel = EfCoreRel.Unwrap(getInput());
-            var source = implementor.visitChild(getInput());
-            var elementType = source.ElementType;
+            var efRel = (EfCoreRel)getInput();
+            var sourceExpr = implementor.VisitChild(getInput(), rexContext);
+
+            // Determine element type from the source expression
+            var sourceType = sourceExpr.Type;
+            Type elementType;
+            if (sourceType.IsGenericType && sourceType.GetGenericTypeDefinition() == typeof(IQueryable<>))
+            {
+                elementType = sourceType.GetGenericArguments()[0];
+            }
+            else
+            {
+                throw new InvalidOperationException($"EfCoreGroupBy source expression type {sourceType.Name} is not IQueryable<T>");
+            }
+
             var inputFields = efRel.getRowType().getFieldList();
             var outputFields = getRowType().getFieldList();
 
@@ -122,9 +134,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
                 elementParam);
 
             // GroupBy(source, keySelector)  =>  IQueryable<IGrouping<TKey, TElement>>
-            var grouped = (IQueryable)QueryableMethods.GroupBy
-                .MakeGenericMethod(elementType, keyType)
-                .Invoke(null, [source, keySelector])!;
+            var groupByMethod = QueryableMethods.GroupBy.MakeGenericMethod(elementType, keyType);
+            var grouped = Expression.Call(groupByMethod, sourceExpr, keySelector);
 
             // ---- Build result selector: g => new OutputRow { ... } ----------------------
             var groupingType = typeof(IGrouping<,>).MakeGenericType(keyType, elementType);
@@ -174,9 +185,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
                 groupParam);
 
             // IQueryable<IGrouping<TKey, TElement>>.Select(g => new OutputRow { ... })
-            return (IQueryable)QueryableMethods.Select
-                .MakeGenericMethod(groupingType, outputType)
-                .Invoke(null, [grouped, resultSelector])!;
+            var selectMethod = QueryableMethods.Select.MakeGenericMethod(groupingType, outputType);
+            return Expression.Call(selectMethod, grouped, resultSelector);
         }
 
         /// <summary>
@@ -213,7 +223,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
 
                 // g.Select(x => x.Field)
                 source = Expression.Call(
-                    QueryableMethods.EnumerableSelect.MakeGenericMethod(elementType, fieldType),
+                    EnumerableMethods.Select.MakeGenericMethod(elementType, fieldType),
                     groupParam,
                     selector);
 
@@ -221,11 +231,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
                 {
                     // .Distinct()
                     source = Expression.Call(
-                        QueryableMethods.Distinct.MakeGenericMethod(fieldType),
+                        EnumerableMethods.Distinct.MakeGenericMethod(fieldType),
                         source);
                 }
 
-                var countOfField = QueryableMethods.Count.MakeGenericMethod(fieldType);
+                var countOfField = EnumerableMethods.Count.MakeGenericMethod(fieldType);
                 Expression expr = Expression.Call(countOfField, source);
                 if (expr.Type != targetType)
                     expr = Expression.Convert(expr, targetType);
@@ -234,7 +244,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             }
 
             // COUNT(*) — no column arg
-            var method = QueryableMethods.Count.MakeGenericMethod(elementType);
+            var method = EnumerableMethods.Count.MakeGenericMethod(elementType);
             Expression result = Expression.Call(method, source);
             if (result.Type != targetType)
                 result = Expression.Convert(result, targetType);
@@ -253,16 +263,16 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             var (fieldProp, selector) = BuildFieldSelector(elementType, inputFields, ((java.lang.Integer)argList.get(0)).intValue());
             var sumOpenMethod = fieldProp.PropertyType switch
             {
-                var t when t == typeof(int) => QueryableMethods.SumInt32,
-                var t when t == typeof(long) => QueryableMethods.SumInt64,
-                var t when t == typeof(float) => QueryableMethods.SumSingle,
-                var t when t == typeof(double) => QueryableMethods.SumDouble,
-                var t when t == typeof(decimal) => QueryableMethods.SumDecimal,
-                var t when t == typeof(int?) => QueryableMethods.SumNInt32,
-                var t when t == typeof(long?) => QueryableMethods.SumNInt64,
-                var t when t == typeof(float?) => QueryableMethods.SumNSingle,
-                var t when t == typeof(double?) => QueryableMethods.SumNDouble,
-                var t when t == typeof(decimal?) => QueryableMethods.SumNDecimal,
+                var t when t == typeof(int) => EnumerableMethods.SumInt32,
+                var t when t == typeof(long) => EnumerableMethods.SumInt64,
+                var t when t == typeof(float) => EnumerableMethods.SumSingle,
+                var t when t == typeof(double) => EnumerableMethods.SumDouble,
+                var t when t == typeof(decimal) => EnumerableMethods.SumDecimal,
+                var t when t == typeof(int?) => EnumerableMethods.SumNInt32,
+                var t when t == typeof(long?) => EnumerableMethods.SumNInt64,
+                var t when t == typeof(float?) => EnumerableMethods.SumNSingle,
+                var t when t == typeof(double?) => EnumerableMethods.SumNDouble,
+                var t when t == typeof(decimal?) => EnumerableMethods.SumNDecimal,
                 _ => throw new NotSupportedException($"EfCoreGroupBy: SUM is not supported for field type '{fieldProp.PropertyType.Name}'.")
             };
 
@@ -282,7 +292,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
                 throw new NotSupportedException("EfCoreGroupBy: MIN requires exactly one argument.");
 
             var (_, selector) = BuildFieldSelector(elementType, inputFields, ((java.lang.Integer)argList.get(0)).intValue());
-            var method = QueryableMethods.Min.MakeGenericMethod(elementType, selector.ReturnType);
+            var method = EnumerableMethods.Min.MakeGenericMethod(elementType, selector.ReturnType);
 
             Expression expr = Expression.Call(method, groupParam, selector);
             if (expr.Type != targetType)
@@ -300,7 +310,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
                 throw new NotSupportedException("EfCoreGroupBy: MAX requires exactly one argument.");
 
             var (_, selector) = BuildFieldSelector(elementType, inputFields, ((java.lang.Integer)argList.get(0)).intValue());
-            var method = QueryableMethods.Max.MakeGenericMethod(elementType, selector.ReturnType);
+            var method = EnumerableMethods.Max.MakeGenericMethod(elementType, selector.ReturnType);
 
             Expression expr = Expression.Call(method, groupParam, selector);
             if (expr.Type != targetType)
@@ -320,16 +330,16 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             var (fieldProp, selector) = BuildFieldSelector(elementType, inputFields, ((java.lang.Integer)argList.get(0)).intValue());
             var avgOpenMethod = fieldProp.PropertyType switch
             {
-                var t when t == typeof(int) => QueryableMethods.AverageInt32,
-                var t when t == typeof(long) => QueryableMethods.AverageInt64,
-                var t when t == typeof(float) => QueryableMethods.AverageSingle,
-                var t when t == typeof(double) => QueryableMethods.AverageDouble,
-                var t when t == typeof(decimal) => QueryableMethods.AverageDecimal,
-                var t when t == typeof(int?) => QueryableMethods.AverageNInt32,
-                var t when t == typeof(long?) => QueryableMethods.AverageNInt64,
-                var t when t == typeof(float?) => QueryableMethods.AverageNSingle,
-                var t when t == typeof(double?) => QueryableMethods.AverageNDouble,
-                var t when t == typeof(decimal?) => QueryableMethods.AverageNDecimal,
+                var t when t == typeof(int) => EnumerableMethods.AverageInt32,
+                var t when t == typeof(long) => EnumerableMethods.AverageInt64,
+                var t when t == typeof(float) => EnumerableMethods.AverageSingle,
+                var t when t == typeof(double) => EnumerableMethods.AverageDouble,
+                var t when t == typeof(decimal) => EnumerableMethods.AverageDecimal,
+                var t when t == typeof(int?) => EnumerableMethods.AverageNInt32,
+                var t when t == typeof(long?) => EnumerableMethods.AverageNInt64,
+                var t when t == typeof(float?) => EnumerableMethods.AverageNSingle,
+                var t when t == typeof(double?) => EnumerableMethods.AverageNDouble,
+                var t when t == typeof(decimal?) => EnumerableMethods.AverageNDecimal,
                 _ => throw new NotSupportedException($"EfCoreGroupBy: AVG is not supported for field type '{fieldProp.PropertyType.Name}'.")
             };
 

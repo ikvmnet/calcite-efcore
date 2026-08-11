@@ -3,7 +3,6 @@ using System.Linq;
 using System.Linq.Expressions;
 
 using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
-using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 using Apache.Calcite.EntityFrameworkCore.Core;
 
 using com.google.common.collect;
@@ -17,7 +16,7 @@ using org.apache.calcite.rel.metadata;
 using org.apache.calcite.rel.type;
 using org.apache.calcite.rex;
 
-using static Apache.Calcite.EntityFrameworkCore.Adapter.Rex.RexTranslationContext;
+using static Apache.Calcite.EntityFrameworkCore.Adapter.EfCoreTranslationContext;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
 {
@@ -58,17 +57,33 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         }
 
         /// <inheritdoc />
-        public IQueryable implement(EfCoreRelImplementor implementor)
+        public Expression Implement(EfCoreRelImplementor implementor, EfCoreTranslationContext rexContext)
         {
-            var efRel = EfCoreRel.Unwrap(getInput());
-            var source = implementor.visitChild(getInput());
-            var inputType = source.ElementType;
+            var efRel = (EfCoreRel)getInput();
+            var sourceExpr = implementor.VisitChild(getInput(), rexContext);
+
+            // Determine input element type from the source expression
+            var sourceType = sourceExpr.Type;
+            Type inputType;
+            if (sourceType.IsGenericType && sourceType.GetGenericTypeDefinition() == typeof(IQueryable<>))
+            {
+                inputType = sourceType.GetGenericArguments()[0];
+            }
+            else
+            {
+                throw new InvalidOperationException($"EfCoreSelect source expression type {sourceType.Name} is not IQueryable<T>");
+            }
+
             var inputFields = efRel.getRowType().getFieldList();
             var outputFields = getRowType().getFieldList();
             var projects = getProjects();
             var param = Expression.Parameter(inputType, "e");
-            var context = new RexTranslationContext([new InputSegment(inputFields, param)], (n, t) => null);
+            var context = rexContext.WithReplacedInputs(new InputSegment(inputFields, param));
             var clrElementType = CalciteTypeMapper.ToClrType(getRowType());
+
+            // Get the translator from the convention
+            var convention = (EfCoreConvention)getTraitSet().getConvention();
+            var translator = convention.TranslatorFactory.Create();
 
             // Translate each project expression and bind it to the corresponding DTO property.
             var n = projects.size();
@@ -76,7 +91,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             for (int i = 0; i < n; i++)
             {
                 var prop = clrElementType.GetProperty(((RelDataTypeField)outputFields.get(i)).getName())!;
-                var value = RexToLinqTranslator.Default.Translate((RexNode)projects.get(i), context);
+                var value = translator.Translate((RexNode)projects.get(i), context);
 
                 // Coerce when the translated expression type doesn't exactly match the property type (e.g. widening numerics).
                 var coerced = value.Type == prop.PropertyType ? value : Expression.Convert(value, prop.PropertyType);
@@ -88,7 +103,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
                 Expression.MemberInit(Expression.New(clrElementType), bindings),
                 param);
 
-            return (IQueryable)QueryableMethods.Select.MakeGenericMethod(inputType, clrElementType).Invoke(null, [source, selector])!;
+            // Build Expression.Call for Queryable.Select<TSource, TResult>(source, selector)
+            var selectMethod = QueryableMethods.Select.MakeGenericMethod(inputType, clrElementType);
+            return Expression.Call(selectMethod, sourceExpr, selector);
         }
 
     }

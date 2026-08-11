@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 
 using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
@@ -22,34 +23,60 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
     {
 
         /// <summary>
-        /// Executes the query described by <paramref name="templateQueryable"/> against a fresh <see cref="DbContext"/>
+        /// Executes the query described by <paramref name="queryExpression"/> against a fresh <see cref="DbContext"/>
         /// and returns a lazy Calcite <see cref="CalciteEnumerable"/> that streams <c>object?[]</c> rows (ARRAY format).
         /// </summary>
-        public static CalciteEnumerable ExecuteArray(EfCoreConvention convention, IQueryable templateQueryable, string[] columnNames, DataContext dataContext)
+        public static CalciteEnumerable ExecuteArray(EfCoreConvention convention, Expression queryExpression, string[] columnNames, DataContext dataContext)
         {
             ArgumentNullException.ThrowIfNull(convention);
-            ArgumentNullException.ThrowIfNull(templateQueryable);
+            ArgumentNullException.ThrowIfNull(queryExpression);
             ArgumentNullException.ThrowIfNull(columnNames);
             ArgumentNullException.ThrowIfNull(dataContext);
 
-            return Linq4j.asEnumerable(new LazyEfCoreArrayIterable(convention, templateQueryable, columnNames, i => dataContext.get("?" + i)));
+            // Convert the expression to an IQueryable by compiling and executing it
+            var queryable = ExpressionToQueryable(queryExpression);
+
+            return Linq4j.asEnumerable(new LazyEfCoreArrayIterable(convention, queryable, columnNames, i => dataContext.get("?" + i)));
         }
 
         /// <summary>
-        /// Executes the query described by <paramref name="templateQueryable"/> against a fresh <see cref="DbContext"/>
+        /// Executes the query described by <paramref name="queryExpression"/> against a fresh <see cref="DbContext"/>
         /// and returns a lazy Calcite <see cref="CalciteEnumerable"/> that streams bare scalar values (SCALAR format).
         /// Use this overload when <c>PhysTypeImpl.of</c> has resolved the row format to <c>SCALAR</c>.
         /// The IQueryable produces typed record objects; the iterator reads the single property via reflection
         /// so that Calcite's generated code receives the bare value it expects for single-field row types.
         /// </summary>
-        public static CalciteEnumerable ExecuteScalar(EfCoreConvention convention, IQueryable templateQueryable, string[] columnNames, DataContext dataContext)
+        public static CalciteEnumerable ExecuteScalar(EfCoreConvention convention, Expression queryExpression, string[] columnNames, DataContext dataContext)
         {
             ArgumentNullException.ThrowIfNull(convention);
-            ArgumentNullException.ThrowIfNull(templateQueryable);
+            ArgumentNullException.ThrowIfNull(queryExpression);
             ArgumentNullException.ThrowIfNull(columnNames);
             ArgumentNullException.ThrowIfNull(dataContext);
 
-            return Linq4j.asEnumerable(new LazyEfCoreScalarIterable(convention, templateQueryable, columnNames, i => dataContext.get("?" + i)));
+            // Convert the expression to an IQueryable by compiling and executing it
+            var queryable = ExpressionToQueryable(queryExpression);
+
+            return Linq4j.asEnumerable(new LazyEfCoreScalarIterable(convention, queryable, columnNames, i => dataContext.get("?" + i)));
+        }
+
+        /// <summary>
+        /// Converts an expression representing an IQueryable operation into an actual IQueryable.
+        /// </summary>
+        static IQueryable ExpressionToQueryable(Expression expression)
+        {
+            // The expression should be an IQueryable<T> expression
+            // Compile and evaluate it to get the queryable
+            var lambda = Expression.Lambda(expression);
+            var compiled = lambda.Compile();
+            var result = compiled.DynamicInvoke();
+
+            if (result is not IQueryable queryable)
+            {
+                throw new InvalidOperationException(
+                    $"Expected expression to evaluate to IQueryable, but got {result?.GetType().Name ?? "null"}");
+            }
+
+            return queryable;
         }
 
         // -----------------------------------------------------------------------------------------
@@ -184,7 +211,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
                 if (_inner is not null || _done)
                     return;
 
-                _context = _convention.ContextFactory();
+                _context = _convention.ContextFactory.CreateDbContext();
                 _inner = TemplateQueryable.Apply(_template, _getDynamicValueFunc, _context).GetEnumerator();
             }
 

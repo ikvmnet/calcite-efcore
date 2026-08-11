@@ -48,7 +48,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         /// <inheritdoc />
         public override CalciteEnumerable bind(org.apache.calcite.DataContext dataContext)
         {
-            var efInput = EfCoreRel.Unwrap(getInput());
+            var efInput = (EfCoreRel)getInput();
 
             // assemble the column names from the row type of the relational expression.
             var fieldList = efInput.getRowType().getFieldList();
@@ -57,7 +57,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
                 columnNames[i] = ((RelDataTypeField)fieldList.get(i)).getName();
 
             var efImplementor = new EfCoreRelImplementor();
-            return EfCoreEnumerable.ExecuteArray(_convention, efImplementor.visitChild(getInput()), columnNames, dataContext);
+            var rootRexContext = EfCoreTranslationContext.CreateRoot(efImplementor, isCalciteProvider: false);
+            return EfCoreEnumerable.ExecuteArray(_convention, efImplementor.VisitChild(getInput(), rootRexContext), columnNames, dataContext);
         }
 
     }

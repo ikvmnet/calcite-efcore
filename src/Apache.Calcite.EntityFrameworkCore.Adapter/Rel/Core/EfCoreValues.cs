@@ -4,7 +4,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 using Apache.Calcite.EntityFrameworkCore.Core;
 
 using com.google.common.collect;
@@ -55,12 +54,16 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         }
 
         /// <inheritdoc />
-        public IQueryable implement(EfCoreRelImplementor implementor)
+        public Expression Implement(EfCoreRelImplementor implementor, EfCoreTranslationContext rexContext)
         {
             var elementType = CalciteTypeMapper.ToClrType(getRowType());
             var rowType = getRowType();
             var fields = rowType.getFieldList();
             var n = fields.size();
+
+            // Get the translator from the convention
+            var convention = (EfCoreConvention)getTraitSet().getConvention();
+            var translator = convention.TranslatorFactory.Create();
 
             // Build one MemberInitExpression per tuple: new T { F0 = <literal>, F1 = <literal>, … }
             var tupleCount = tuples.size();
@@ -74,7 +77,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
                     var field = (RelDataTypeField)fields.get(c);
                     var literal = (RexLiteral)tuple.get(c);
                     var prop = elementType.GetProperty(field.getName(), BindingFlags.Public | BindingFlags.Instance)!;
-                    var valueExpr = RexToLinqTranslator.Default.Translate(literal, new RexTranslationContext([], (n, t) => null));
+                    var valueExpr = translator.Translate(literal, rexContext);
                     var coerced = valueExpr.Type == prop.PropertyType ? valueExpr : Expression.Convert(valueExpr, prop.PropertyType);
                     bindings[c] = Expression.Bind(prop, coerced);
                 }
@@ -92,7 +95,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
                 .GetMethod(nameof(Queryable.AsQueryable), 1, [typeof(IEnumerable<>).MakeGenericType(Type.MakeGenericMethodParameter(0))])!
                 .MakeGenericMethod(elementType);
 
-            return (IQueryable)asQueryableMethod.Invoke(null, [array])!;
+            var queryable = (IQueryable)asQueryableMethod.Invoke(null, [array])!;
+
+            // Return as Expression.Constant typed as IQueryable<T>
+            var queryableType = typeof(IQueryable<>).MakeGenericType(elementType);
+            return Expression.Constant(queryable, queryableType);
         }
 
     }

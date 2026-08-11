@@ -11,7 +11,7 @@ using org.apache.calcite.sql.type;
 
 using Xunit;
 
-using static Apache.Calcite.EntityFrameworkCore.Adapter.Rex.RexTranslationContext;
+using static Apache.Calcite.EntityFrameworkCore.Adapter.EfCoreTranslationContext;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests.Rex
 {
@@ -41,10 +41,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests.Rex
         }
 
         /// <summary>
-        /// Builds a <see cref="RexToLinqTranslator"/> and <see cref="RexTranslationContext"/> wired to <see cref="Row"/> with
+        /// Builds a <see cref="RexToLinqTranslator"/> and <see cref="EfCoreTranslationContext"/> wired to <see cref="Row"/> with
         /// fields: Id(INTEGER), Name(VARCHAR), Price(DECIMAL), InStock(BOOLEAN), Score(DOUBLE).
         /// </summary>
-        static (RexToLinqTranslator Translator, RexTranslationContext Context, ParameterExpression Param, RexBuilder Builder, RelDataTypeFactory TypeFactory) Build()
+        static (RexToLinqTranslator Translator, EfCoreTranslationContext Context, ParameterExpression Param, RexBuilder Builder, RelDataTypeFactory TypeFactory) Build()
         {
             var typeFactory = new JavaTypeFactoryImpl();
 
@@ -58,7 +58,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests.Rex
 
             var rexBuilder = new RexBuilder(typeFactory);
             var param = Expression.Parameter(typeof(Row), "e");
-            var context = new RexTranslationContext([new InputSegment(rowType.getFieldList(), param)], (n, t) => null);
+            var context = new EfCoreTranslationContext([new InputSegment(rowType.getFieldList(), param)]);
             var translator = RexToLinqTranslator.Default;
 
             return (translator, context, param, rexBuilder, typeFactory);

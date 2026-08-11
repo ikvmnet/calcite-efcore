@@ -48,7 +48,7 @@ namespace Apache.Calcite.HotChocolateSample
                 Model = "inline:" + model
             }.ConnectionString);
 
-            connection.RegisterHook(Hook.QUERY_PLAN, new DelegateConsumer<object>((object q) => Console.WriteLine($"QUERY_PLAN: {((IQueryable)q).Expression}")));
+            connection.RegisterHook(Hook.QUERY_PLAN, new DelegateConsumer<object>((object q) => Console.WriteLine($"QUERY_PLAN: {q}")));
             connection.RegisterHook(Hook.CONVERTED, new DelegateConsumer<object>((object q) => Console.WriteLine($"CONVERTED: {((RelNode)q).ToString()}")));
             connection.RegisterHook(Hook.PLAN_BEFORE_IMPLEMENTATION, new DelegateConsumer<object>((object q) => Console.WriteLine($"PLAN_BEFORE_IMPLEMENTATION: {((RelRoot)q).ToString()}"))); 
             connection.Open();

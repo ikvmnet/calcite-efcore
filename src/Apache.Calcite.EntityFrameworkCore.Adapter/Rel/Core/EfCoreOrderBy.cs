@@ -4,7 +4,6 @@ using System.Linq.Expressions;
 using System.Reflection;
 
 using Apache.Calcite.EntityFrameworkCore.Adapter.Reflection;
-using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 
 using org.apache.calcite.plan;
 using org.apache.calcite.rel;
@@ -12,7 +11,7 @@ using org.apache.calcite.rel.core;
 using org.apache.calcite.rel.metadata;
 using org.apache.calcite.rex;
 
-using static Apache.Calcite.EntityFrameworkCore.Adapter.Rex.RexTranslationContext;
+using static Apache.Calcite.EntityFrameworkCore.Adapter.EfCoreTranslationContext;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
 {
@@ -52,18 +51,34 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         }
 
         /// <inheritdoc />
-        public IQueryable implement(EfCoreRelImplementor implementor)
+        public Expression Implement(EfCoreRelImplementor implementor, EfCoreTranslationContext rexContext)
         {
-            var efRel = EfCoreRel.Unwrap(getInput());
-            var source = implementor.visitChild(getInput());
-            var elementType = source.ElementType;
+            var efRel = (EfCoreRel)getInput();
+            var sourceExpr = implementor.VisitChild(getInput(), rexContext);
+
+            // Determine element type from the source expression
+            var sourceType = sourceExpr.Type;
+            Type elementType;
+            if (sourceType.IsGenericType && sourceType.GetGenericTypeDefinition() == typeof(IQueryable<>))
+            {
+                elementType = sourceType.GetGenericArguments()[0];
+            }
+            else
+            {
+                throw new InvalidOperationException($"EfCoreOrderBy source expression type {sourceType.Name} is not IQueryable<T>");
+            }
+
             var inputFields = efRel.getRowType().getFieldList();
             var param = Expression.Parameter(elementType, "e");
-            var context = new RexTranslationContext([new InputSegment(inputFields, param)], (n, t) => null);
+            var context = rexContext.WithReplacedInputs(new InputSegment(inputFields, param));
             var fieldKeys = collation.getFieldCollations();
             var n = fieldKeys.size();
 
-            IQueryable result = source;
+            // Get the translator from the convention
+            var convention = (EfCoreConvention)getTraitSet().getConvention();
+            var translator = convention.TranslatorFactory.Create();
+
+            Expression result = sourceExpr;
 
             for (int i = 0; i < n; i++)
             {
@@ -86,33 +101,31 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
                 else
                     method = isDescending ? QueryableMethods.ThenByDescending : QueryableMethods.ThenBy;
 
-                result = (IQueryable)method.MakeGenericMethod(elementType, prop.PropertyType).Invoke(null, [result, keySelector])!;
+                result = Expression.Call(method.MakeGenericMethod(elementType, prop.PropertyType), result, keySelector);
             }
 
             if (offset != null)
             {
-                var offsetExpr = RexToLinqTranslator.Default.Translate(offset, context);
+                var offsetExpr = translator.Translate(offset, context);
                 if (offsetExpr.Type != typeof(int))
                     offsetExpr = Expression.Convert(offsetExpr, typeof(int));
 
-                var skipCall = Expression.Call(
+                result = Expression.Call(
                     QueryableMethods.Skip.MakeGenericMethod(elementType),
-                    result.Expression,
+                    result,
                     offsetExpr);
-                result = result.Provider.CreateQuery(skipCall);
             }
 
             if (fetch != null)
             {
-                var fetchExpr = RexToLinqTranslator.Default.Translate(fetch, context);
+                var fetchExpr = translator.Translate(fetch, context);
                 if (fetchExpr.Type != typeof(int))
                     fetchExpr = Expression.Convert(fetchExpr, typeof(int));
 
-                var takeCall = Expression.Call(
+                result = Expression.Call(
                     QueryableMethods.Take.MakeGenericMethod(elementType),
-                    result.Expression,
+                    result,
                     fetchExpr);
-                result = result.Provider.CreateQuery(takeCall);
             }
 
             return result;
