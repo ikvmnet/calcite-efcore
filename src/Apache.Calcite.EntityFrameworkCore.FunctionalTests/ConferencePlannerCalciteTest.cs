@@ -11,7 +11,6 @@ public class ConferencePlannerCalciteTest(ConferencePlannerCalciteTest.Conferenc
     ConferencePlannerTestBase<ConferencePlannerCalciteTest.ConferencePlannerCalciteFixture>(fixture)
 {
 
-    protected override void UseTransaction(DatabaseFacade facade, IDbContextTransaction transaction) => facade.UseTransaction(transaction.GetDbTransaction());
 
     public class ConferencePlannerCalciteFixture : ConferencePlannerFixtureBase
     {

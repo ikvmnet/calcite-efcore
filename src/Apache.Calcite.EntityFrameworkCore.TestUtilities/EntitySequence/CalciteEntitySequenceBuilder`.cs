@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Apache.Calcite.EntityFrameworkCore.Metadata.Builders
+namespace Apache.Calcite.EntityFrameworkCore.TestUtilities
 {
 
     public class CalciteEntitySequenceBuilder<TEntity, TValue> : CalciteEntitySequenceBuilder

@@ -13,7 +13,6 @@ public class StoreGeneratedFixupCalciteTest(StoreGeneratedFixupCalciteTest.Store
 
     protected override bool EnforcesFKs => true;
 
-    protected override void UseTransaction(DatabaseFacade facade, IDbContextTransaction transaction) => facade.UseTransaction(transaction.GetDbTransaction());
 
     public class StoreGeneratedFixupCalciteFixture : StoreGeneratedFixupRelationalFixtureBase
     {

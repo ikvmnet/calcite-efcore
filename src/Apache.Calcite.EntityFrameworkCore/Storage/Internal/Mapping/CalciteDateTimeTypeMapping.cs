@@ -27,6 +27,14 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal.Mapping
 
         }
 
+        /// <inheritdoc />
+        /// <remarks>
+        /// The base emits seven fractional digits; Calcite's default type system caps datetime
+        /// precision at 3 (<c>SqlTypeName.MAX_DATETIME_PRECISION</c>), so a literal with more is
+        /// rejected by the validator. Milliseconds is the store's actual capability.
+        /// </remarks>
+        protected override string SqlLiteralFormatString => @"TIMESTAMP '{0:yyyy-MM-dd HH\:mm\:ss.fff}'";
+
     }
 
 }

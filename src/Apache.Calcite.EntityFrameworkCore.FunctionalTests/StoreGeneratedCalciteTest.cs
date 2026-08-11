@@ -12,7 +12,6 @@ public class StoreGeneratedCalciteTest(StoreGeneratedCalciteTest.StoreGeneratedC
     StoreGeneratedTestBase<StoreGeneratedCalciteTest.StoreGeneratedCalciteFixture>(fixture)
 {
 
-    protected override void UseTransaction(DatabaseFacade facade, IDbContextTransaction transaction) => facade.UseTransaction(transaction.GetDbTransaction());
 
     public class StoreGeneratedCalciteFixture : StoreGeneratedFixtureBase
     {

@@ -27,6 +27,15 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal.Mapping
 
         }
 
+        /// <inheritdoc />
+        /// <remarks>
+        /// The base emits <c>TIMESTAMP '… .fffffff+02:00'</c>: a plain TIMESTAMP prefix, seven
+        /// fractional digits, and a bare offset — all three rejected by Calcite. The accepted
+        /// shape (per Calcite's own parser tests) is
+        /// <c>TIMESTAMP WITH TIME ZONE 'yyyy-MM-dd HH:mm:ss.fff GMT+hh:mm'</c>.
+        /// </remarks>
+        protected override string SqlLiteralFormatString => @"TIMESTAMP WITH TIME ZONE '{0:yyyy-MM-dd HH\:mm\:ss.fff} GMT{0:zzz}'";
+
     }
 
 }

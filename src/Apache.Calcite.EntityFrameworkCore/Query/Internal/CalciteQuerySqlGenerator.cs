@@ -535,7 +535,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
             // Calcite cannot infer the type of untyped parameters (they appear as <UNKNOWN>) when they
             // participate in arithmetic or are passed to typed built-in functions such as POSITION…FROM
             // or SUBSTRING. Wrapping typed parameters in an explicit CAST tells the validator the type.
-            // The full storeType (e.g. "VARCHAR(100)", "DECIMAL(28, 4)", "INTEGER") is used directly
+            // The full storeType (e.g. "VARCHAR(100)", "DECIMAL(19, 4)", "INTEGER") is used directly
             // so that size, precision, and scale are preserved.
             var storeType = sqlParameterExpression.TypeMapping?.StoreType;
             if (storeType is not null)

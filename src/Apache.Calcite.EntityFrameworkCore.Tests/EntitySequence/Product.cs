@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Apache.Calcite.EntityFrameworkCore.Tests.HiLo
+namespace Apache.Calcite.EntityFrameworkCore.Tests.EntitySequence
 {
 
     [Table("PRODUCTS")]

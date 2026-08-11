@@ -7,7 +7,7 @@ using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace Apache.Calcite.EntityFrameworkCore.Metadata.Internal
+namespace Apache.Calcite.EntityFrameworkCore.TestUtilities
 {
 
     /// <summary>
@@ -81,7 +81,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Metadata.Internal
         /// <returns></returns>
         public static IEnumerable<ICalciteEntitySequence> GetEntitySequences(IReadOnlyModel model)
         {
-            return ((Dictionary<string, ICalciteEntitySequence>?)model[CalciteAnnotationNames.EntitySequences])?.OrderBy(t => t.Key).Select(t => t.Value) ?? [];
+            return ((Dictionary<string, ICalciteEntitySequence>?)model[CalciteEntitySequenceAnnotationNames.EntitySequences])?.OrderBy(t => t.Key).Select(t => t.Value) ?? [];
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Metadata.Internal
         /// <returns></returns>
         public static ICalciteEntitySequence? FindEntitySequence(IReadOnlyModel model, string name)
         {
-            var sequences = (Dictionary<string, ICalciteEntitySequence>?)model[CalciteAnnotationNames.EntitySequences];
+            var sequences = (Dictionary<string, ICalciteEntitySequence>?)model[CalciteEntitySequenceAnnotationNames.EntitySequences];
             if (sequences == null || !sequences.TryGetValue(name, out var sequence))
             {
                 return null;
@@ -113,11 +113,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Metadata.Internal
         public static CalciteEntitySequence AddEntitySequence(IMutableModel model, string name, IReadOnlyEntityType entityType, IReadOnlyProperty valueProperty, ConfigurationSource configurationSource)
         {
             var sequence = new CalciteEntitySequence(name, entityType, valueProperty, model, configurationSource);
-            var sequences = (Dictionary<string, ICalciteEntitySequence>?)model[CalciteAnnotationNames.EntitySequences];
+            var sequences = (Dictionary<string, ICalciteEntitySequence>?)model[CalciteEntitySequenceAnnotationNames.EntitySequences];
             if (sequences == null)
             {
                 sequences = new Dictionary<string, ICalciteEntitySequence>();
-                model[CalciteAnnotationNames.EntitySequences] = sequences;
+                model[CalciteEntitySequenceAnnotationNames.EntitySequences] = sequences;
             }
 
             sequences.Add(name, sequence);

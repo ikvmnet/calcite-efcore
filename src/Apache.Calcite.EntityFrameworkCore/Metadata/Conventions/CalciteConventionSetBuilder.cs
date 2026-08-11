@@ -70,7 +70,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Metadata.Conventions
         {
             var conventionSet = base.CreateConventionSet();
 
-            conventionSet.Add(new CalciteValueGenerationStrategyConvention(Dependencies, RelationalDependencies));
 
             conventionSet.Replace<StoreGenerationConvention>(new CalciteStoreGenerationConvention(Dependencies, RelationalDependencies));
             conventionSet.Replace<ValueGenerationConvention>(new CalciteValueGenerationConvention(Dependencies, RelationalDependencies));

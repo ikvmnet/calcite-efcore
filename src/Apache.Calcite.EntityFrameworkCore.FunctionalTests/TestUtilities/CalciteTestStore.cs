@@ -45,7 +45,10 @@ namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities
             return new CalciteConnectionStringBuilder()
             {
                 Model = "inline:{\"version\":\"1.0\",\"schemas\":[{\"name\":\"adhoc\"}]}",
-                Conformance = "DEFAULT",
+                // LENIENT rather than DEFAULT: EF's SQL uses CROSS/OUTER APPLY for correlated
+                // collections, and Calcite's parser only accepts APPLY when the conformance
+                // allows it (SqlConformanceEnum.LENIENT does; DEFAULT does not).
+                Conformance = "LENIENT",
                 Fun = "all",
                 ParserFactory = "org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY",
                 Schema = "adhoc",
@@ -73,7 +76,12 @@ namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities
                     {
                         b.CommandTimeout(CommandTimeout);
                         b.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery);
-                    });
+                    })
+                    // The spec fixtures turn warnings into throws; these two are the provider's
+                    // normal report that constraint DDL is metadata-only on Calcite.
+                    .ConfigureWarnings(w => w.Ignore(
+                        Apache.Calcite.EntityFrameworkCore.Diagnostics.CalciteEventId.MigrationOperationIgnoredWarning,
+                        Apache.Calcite.EntityFrameworkCore.Diagnostics.CalciteEventId.MigrationTableFeatureIgnoredWarning));
             }
 
             if (Connection is not CalciteConnection connection)
@@ -84,7 +92,12 @@ namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities
                 {
                     b.CommandTimeout(CommandTimeout);
                     b.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery);
-                });
+                })
+                // The spec fixtures turn warnings into throws; these two are the provider's
+                // normal report that constraint DDL is metadata-only on Calcite.
+                .ConfigureWarnings(w => w.Ignore(
+                    Apache.Calcite.EntityFrameworkCore.Diagnostics.CalciteEventId.MigrationOperationIgnoredWarning,
+                    Apache.Calcite.EntityFrameworkCore.Diagnostics.CalciteEventId.MigrationTableFeatureIgnoredWarning));
         }
 
         /// <inheritdoc/>

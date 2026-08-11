@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace Apache.Calcite.EntityFrameworkCore.Metadata
+namespace Apache.Calcite.EntityFrameworkCore.TestUtilities
 {
 
     public interface ICalciteMutableEntitySequence : ICalciteReadOnlyEntitySequence, IMutableAnnotatable

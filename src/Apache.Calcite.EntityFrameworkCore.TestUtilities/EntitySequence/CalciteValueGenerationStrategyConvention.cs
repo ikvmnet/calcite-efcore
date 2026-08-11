@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 
 using Apache.Calcite.EntityFrameworkCore.Extensions;
-using Apache.Calcite.EntityFrameworkCore.Metadata.Internal;
+using Apache.Calcite.EntityFrameworkCore.Metadata;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
 
-namespace Apache.Calcite.EntityFrameworkCore.Metadata.Conventions
+namespace Apache.Calcite.EntityFrameworkCore.TestUtilities
 {
 
     public class CalciteValueGenerationStrategyConvention : IModelInitializedConvention, IModelFinalizingConvention

@@ -18,7 +18,6 @@ public class DataAnnotationCalciteTest : DataAnnotationRelationalTestBase<DataAn
         fixture.TestSqlLoggerFactory.SetTestOutputHelper(testOutputHelper);
     }
 
-    protected override void UseTransaction(DatabaseFacade facade, IDbContextTransaction transaction) => facade.UseTransaction(transaction.GetDbTransaction());
 
     protected override TestHelpers TestHelpers => CalciteTestHelpers.Instance;
 

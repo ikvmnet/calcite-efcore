@@ -8,7 +8,7 @@ using java.lang;
 
 using Xunit;
 
-namespace Apache.Calcite.EntityFrameworkCore.Tests.HiLo
+namespace Apache.Calcite.EntityFrameworkCore.Tests.EntitySequence
 {
 
     /// <summary>

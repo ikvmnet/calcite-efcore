@@ -2,8 +2,9 @@ using System;
 using System.Threading.Tasks;
 
 using Apache.Calcite.Data;
-using Apache.Calcite.EntityFrameworkCore.Tests.HiLo;
+using Apache.Calcite.EntityFrameworkCore.Extensions;
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -21,6 +22,47 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Storage
 
         const string Schema = "adhoc";
 
+        class Widget
+        {
+
+            public int Id { get; set; }
+
+            public string? Name { get; set; }
+
+        }
+
+        class CreatorDbContext : DbContext
+        {
+
+            readonly CalciteConnection _connection;
+
+            /// <summary>
+            /// Initializes a new instance over the specified connection.
+            /// </summary>
+            /// <param name="connection">The Calcite connection to attach to.</param>
+            public CreatorDbContext(CalciteConnection connection)
+            {
+                _connection = connection;
+            }
+
+            /// <inheritdoc />
+            protected override void OnModelCreating(ModelBuilder modelBuilder)
+            {
+                modelBuilder.Entity<Widget>(e =>
+                {
+                    e.ToTable("PRODUCTS");
+                    e.Property(x => x.Id).ValueGeneratedNever();
+                });
+            }
+
+            /// <inheritdoc />
+            protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+            {
+                optionsBuilder.UseCalcite(_connection);
+            }
+
+        }
+
         static CalciteConnection CreateConnection()
         {
             var str = new CalciteConnectionStringBuilder();
@@ -30,10 +72,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Storage
             return new CalciteConnection(str.ToString());
         }
 
-        static (CalciteConnection Connection, HiLoDbContext Context, IRelationalDatabaseCreator Creator) CreateContextAndCreator()
+        static (CalciteConnection Connection, DbContext Context, IRelationalDatabaseCreator Creator) CreateContextAndCreator()
         {
             var conn = CreateConnection();
-            var ctx = new HiLoDbContext(conn);
+            var ctx = new CreatorDbContext(conn);
             var creator = (IRelationalDatabaseCreator)ctx.GetService<IDatabaseCreator>();
             return (conn, ctx, creator);
         }
@@ -146,7 +188,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Storage
                 var script = creator.GenerateCreateScript();
 
                 Assert.False(string.IsNullOrWhiteSpace(script), "GenerateCreateScript should produce DDL for the model.");
-                Assert.Contains("CalciteSequence", script);
                 Assert.Contains("PRODUCTS", script);
             }
         }
@@ -163,9 +204,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Storage
                 creator.CreateTables();
 
                 var tables = ListUserTables(conn);
-                Assert.True(
-                    tables.Exists(t => t.EndsWith(".CalciteSequence", StringComparison.Ordinal)),
-                    $"CreateTables should create the CalciteSequence backing table. GetSchema tables: [{string.Join(", ", tables)}]");
                 Assert.True(
                     tables.Exists(t => t.EndsWith(".PRODUCTS", StringComparison.Ordinal)),
                     $"CreateTables should create the PRODUCTS table. GetSchema tables: [{string.Join(", ", tables)}]");
@@ -184,9 +222,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Storage
                 await creator.CreateTablesAsync();
 
                 var tables = ListUserTables(conn);
-                Assert.True(
-                    tables.Exists(t => t.EndsWith(".CalciteSequence", StringComparison.Ordinal)),
-                    $"CreateTablesAsync should create the CalciteSequence backing table. GetSchema tables: [{string.Join(", ", tables)}]");
                 Assert.True(
                     tables.Exists(t => t.EndsWith(".PRODUCTS", StringComparison.Ordinal)),
                     $"CreateTablesAsync should create the PRODUCTS table. GetSchema tables: [{string.Join(", ", tables)}]");

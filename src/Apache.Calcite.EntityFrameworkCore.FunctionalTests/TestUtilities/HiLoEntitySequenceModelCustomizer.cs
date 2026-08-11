@@ -1,4 +1,5 @@
 using Apache.Calcite.EntityFrameworkCore.Extensions;
+using Apache.Calcite.EntityFrameworkCore.TestUtilities;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;

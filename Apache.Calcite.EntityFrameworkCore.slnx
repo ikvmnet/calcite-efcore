@@ -1,0 +1,35 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitattributes" />
+    <File Path=".github/workflows/Apache.Calcite.EntityFrameworkCore.yml" />
+    <File Path=".gitignore" />
+    <File Path=".gitmodules" />
+    <File Path="Apache.Calcite.EntityFrameworkCore.dist.msbuildproj" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="GitVersion.yml" />
+    <File Path="global.json" />
+    <File Path="icon.png" />
+    <File Path="LICENSE.txt" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Apache.Calcite.EntityFrameworkCore.Adapter.Tests/Apache.Calcite.EntityFrameworkCore.Adapter.Tests.csproj" />
+    <Project Path="src/Apache.Calcite.EntityFrameworkCore.Adapter/Apache.Calcite.EntityFrameworkCore.Adapter.csproj" />
+    <Project Path="src/Apache.Calcite.EntityFrameworkCore.Core/Apache.Calcite.EntityFrameworkCore.Core.csproj" />
+    <Project Path="src/Apache.Calcite.EntityFrameworkCore.FunctionalTests/Apache.Calcite.EntityFrameworkCore.FunctionalTests.csproj" />
+    <Project Path="src/Apache.Calcite.EntityFrameworkCore.TestUtilities/Apache.Calcite.EntityFrameworkCore.TestUtilities.csproj" />
+    <Project Path="src/Apache.Calcite.EntityFrameworkCore.Tests/Apache.Calcite.EntityFrameworkCore.Tests.csproj" />
+    <Project Path="src/Apache.Calcite.EntityFrameworkCore/Apache.Calcite.EntityFrameworkCore.csproj" />
+    <Project Path="src/Apache.Calcite.HotChocolateSample/Apache.Calcite.HotChocolateSample.csproj" />
+  </Folder>
+  <Folder Name="/src/dist/">
+    <Project Path="src/dist-nuget/dist-nuget.csproj" />
+    <Project Path="src/dist-tests/dist-tests.csproj" />
+  </Folder>
+</Solution>

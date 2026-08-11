@@ -24,7 +24,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Update
 
         public virtual ModificationCommandBatch Create()
         {
-            return new SingularModificationCommandBatch(Dependencies);
+            return new CalciteModificationCommandBatch(Dependencies);
         }
 
     }

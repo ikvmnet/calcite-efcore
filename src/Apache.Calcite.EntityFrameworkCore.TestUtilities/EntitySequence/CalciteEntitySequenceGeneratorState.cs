@@ -2,7 +2,7 @@
 
 using Microsoft.EntityFrameworkCore.ValueGeneration;
 
-namespace Apache.Calcite.EntityFrameworkCore.ValueGeneration
+namespace Apache.Calcite.EntityFrameworkCore.TestUtilities
 {
 
     /// <summary>

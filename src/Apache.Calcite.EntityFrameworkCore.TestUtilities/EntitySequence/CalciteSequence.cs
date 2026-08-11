@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Apache.Calcite.EntityFrameworkCore.Metadata
+namespace Apache.Calcite.EntityFrameworkCore.TestUtilities
 {
 
     /// <summary>

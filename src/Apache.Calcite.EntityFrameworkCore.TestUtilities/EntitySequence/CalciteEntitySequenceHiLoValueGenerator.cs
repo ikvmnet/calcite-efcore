@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Apache.Calcite.EntityFrameworkCore.Metadata;
+using Apache.Calcite.EntityFrameworkCore.TestUtilities;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -12,7 +13,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.ValueGeneration;
 
-namespace Apache.Calcite.EntityFrameworkCore.ValueGeneration
+namespace Apache.Calcite.EntityFrameworkCore.TestUtilities
 {
 
     /// <inheritdoc />

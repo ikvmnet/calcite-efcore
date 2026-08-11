@@ -18,6 +18,24 @@ commit message says what changed and why.
 | `Apache.Calcite.EntityFrameworkCore` | the EF Core provider surface |
 | `Apache.Calcite.EntityFrameworkCore.Core` | shared type mapping |
 | `Apache.Calcite.EntityFrameworkCore.Adapter.Tests` | xunit; `EfCoreAdapterComplexTests` is the end-to-end suite (SQL → Calcite → EF Core → SQLite) |
+| `Apache.Calcite.EntityFrameworkCore.TestUtilities` | **test-only** provider strategies shared by both test projects: entity-sequence HiLo, the MAX-seeded key generator, `CalciteTestValueGeneratorSelector`/`CalciteTestDatabaseCreator`/`CalciteTestConventionSetPlugin` |
+| `Apache.Calcite.EntityFrameworkCore.Tests` | our own one-off provider tests |
+| `Apache.Calcite.EntityFrameworkCore.FunctionalTests` | the standard EF Core spec suite |
+
+Key generation is **test infrastructure, never provider surface**: the provider refuses plain
+numeric `OnAdd` keys by design (Calcite cannot generate or return keys), and the test projects
+wire the strategies via DI overrides (`CalciteTestStoreFactory.AddProviderServices`, or
+`ReplaceService` for contexts built outside the factory). Do not move these strategies into the
+provider.
+
+The adapter has exactly **one outgoing converter**: `EfCoreToClrAsyncEnumerableConverter`, into
+`ClrAsyncEnumerableConvention` — EF Core's pipeline is natively asynchronous, so rows leave as an
+`IAsyncEnumerable`. Reaching any other convention (Clr sync, Enumerable, bindable fallback) is the
+job of the guaranteed bridge converters in `Apache.Calcite.Extensions`; do not add EfCore→X
+converters for conventions the bridge lattice already reaches.
+
+`TODO.md` holds the outstanding work. Items are **removed entirely when resolved**, never marked
+done — if it is listed, it is open.
 
 Sibling checkouts this project depends on:
 
@@ -25,21 +43,39 @@ Sibling checkouts this project depends on:
   packages (published to nuget.org, prerelease line `2.0.0-pre.*`).
 - `D:\calcite` — Apache Calcite itself, checked out at `1.43.0-SNAPSHOT`.
 
+## Conventions
+
+- **File-scoped namespaces** (`namespace Foo.Bar;`) in new code.
+- **`<inheritdoc />` on every member that overrides or implements another** — interface
+  implementations included.
+- **`<summary>` tags on their own lines**:
+  ```csharp
+  /// <summary>
+  /// Does the thing.
+  /// </summary>
+  ```
+  never `/// <summary>Does the thing.</summary>`.
+
 ## Building and testing
 
-- Build the **solution**: `dotnet build Apache.Calcite.EntityFrameworkCore.sln`. IKVM compiles the
+- Build the **solution**: `dotnet build Apache.Calcite.EntityFrameworkCore.slnx`. IKVM compiles the
   Calcite jars on first build; expect minutes, not seconds.
 - Tests are plain xunit on VSTest: `dotnet test src\Apache.Calcite.EntityFrameworkCore.Adapter.Tests`
   works and **`--filter` is honored** (unlike calcite-dotnet, which is on Microsoft.Testing.Platform).
 - Calcite comes in via `MavenReference` at `$(CalciteVersion)` set in `Directory.Build.props`
   (currently `1.43.0-SNAPSHOT` from the Apache snapshots repository); IKVM.Maven.Sdk resolves it
   per-project from the repositories in `$(MavenAdditionalRepositories)`.
-- `FunctionalTests` is the EF Core relational **specification suite** (~22,000 tests, ~34 minutes).
-  It is aspirational: roughly 10k pass / 12k fail as of 2026-08-11 on Calcite 1.43.0-SNAPSHOT +
+- `FunctionalTests` is the EF Core relational **specification suite** (~22,000 tests, ~40 minutes).
+  It is aspirational: ~19.2k pass / ~2.8k fail (86%) as of 2026-08-11 on Calcite 1.43.0-SNAPSHOT +
   Apache.Calcite.Data 2.0.0-pre.4. A red run there is a maturity gauge, not a regression signal —
-  the regression gates are `Adapter.Tests` (110) and `EntityFrameworkCore.Tests` (20).
+  the regression gates are `Adapter.Tests` (110) and `EntityFrameworkCore.Tests` (24).
 - Parallel builds sometimes fail with an IOException on a `.deps.json` from IKVM.Core.MSBuild's
   `GenerateDepsFileExtensions` racing itself. It is transient — rebuild, or build with `-m:1`.
+- **Cluster a functional run before fixing anything**: run with
+  `--logger "trx;LogFileName=run.trx" --results-directory TestResults\functional`, then
+  `tools\cluster-trx.ps1 -Path <trx>` tallies failures by error fingerprint (unwrapping the
+  opaque `CalciteException` to the inner Java exception, and parse errors to the offending
+  token) and by test class. Every large cluster so far has been one root cause.
 
 ## Traps
 

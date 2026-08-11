@@ -10,6 +10,5 @@ namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query.Inheritance;
 public class InheritanceQueryCalciteTest(TPHInheritanceQueryCalciteFixture fixture, ITestOutputHelper testOutputHelper) :
     TPHInheritanceQueryTestBase<TPHInheritanceQueryCalciteFixture>(fixture, testOutputHelper)
 {
-    protected override void UseTransaction(DatabaseFacade facade, IDbContextTransaction transaction) => facade.UseTransaction(transaction.GetDbTransaction());
 }
 

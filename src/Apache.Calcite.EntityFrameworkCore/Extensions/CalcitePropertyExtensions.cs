@@ -20,66 +20,6 @@ namespace Apache.Calcite.EntityFrameworkCore.Extensions
     {
 
         /// <summary>
-        /// Gets the name of the sequence to use for value generation.
-        /// </summary>
-        /// <param name="property"></param>
-        /// <returns></returns>
-        public static string? GetEntitySequenceName(this IReadOnlyProperty property)
-        {
-            return (string?)property[CalciteAnnotationNames.EntitySequenceName];
-        }
-
-        /// <summary>
-        /// Sets the name of the entity sequence associated with the specified property.
-        /// </summary>
-        /// <param name="property">The property for which to set the entity sequence name. Cannot be null.</param>
-        /// <param name="name">The name to assign to the entity sequence. Can be null to remove the sequence name annotation.</param>
-        public static void SetEntitySequenceName(this IMutableProperty property, string name)
-        {
-            property.SetOrRemoveAnnotation(CalciteAnnotationNames.EntitySequenceName, name);
-        }
-
-        /// <summary>
-        /// Sets the name of the entity sequence associated with the specified property.
-        /// </summary>
-        /// <param name="property"></param>
-        /// <param name="name"></param>
-        /// <param name="fromDataAnnotation"></param>
-        /// <returns></returns>
-        public static string? SetEntitySequenceName(this IConventionProperty property, string? name, bool fromDataAnnotation = false)
-        {
-            return (string?)property.SetOrRemoveAnnotation(CalciteAnnotationNames.EntitySequenceName, name, fromDataAnnotation)?.Value;
-        }
-
-        /// <summary>
-        /// Gets the configuration source for the entity sequence name annotation applied to the specified property, if any.
-        /// </summary>
-        /// <param name="property">The property for which to retrieve the entity sequence name configuration source.</param>
-        /// <returns>The configuration source for the entity sequence name annotation if it exists; otherwise, null.</returns>
-        public static ConfigurationSource? GetEntitySequenceNameConfigurationSource(this IConventionProperty property)
-        {
-            return property.FindAnnotation(CalciteAnnotationNames.EntitySequenceName)?.GetConfigurationSource();
-        }
-
-        /// <summary>
-        /// Finds the entity sequence associated with the specified property, if one is defined.
-        /// </summary>
-        /// <remarks>If the property does not have an explicitly defined entity sequence, the method
-        /// searches for a sequence defined at the model level. Returns null if neither the property nor the model
-        /// defines an entity sequence.</remarks>
-        /// <param name="property">The property for which to locate the associated entity sequence.</param>
-        /// <returns>An object representing the entity sequence associated with the property, or null if no sequence is defined.</returns>
-        public static ICalciteEntitySequence? FindEntitySequence(this IReadOnlyProperty property)
-        {
-            var model = property.DeclaringType.Model;
-            var sequenceName = property.GetEntitySequenceName() ?? model.GetEntitySequenceName();
-            if (sequenceName is null)
-                return null;
-
-            return model.FindEntitySequence(sequenceName);
-        }
-
-        /// <summary>
         /// Gets the configured Calcite value generation strategy for the property, or
         /// <see cref="CalciteValueGenerationStrategy.None"/> if value generation is not applicable.
         /// </summary>

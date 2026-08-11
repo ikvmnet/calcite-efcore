@@ -9,44 +9,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Extensions
 {
 
     /// <summary>
-    /// Calcite-specific extension methods on <see cref="PropertyBuilder"/> and convention property builders for
-    /// configuring HiLo value generation backed by an entity sequence.
+    /// Calcite-specific extension methods on convention property builders for configuring the
+    /// value generation strategy.
     /// </summary>
     public static class CalcitePropertyBuilderExtensions
     {
-
-        /// <summary>
-        /// Configures the property to use a HiLo value generation strategy based on a sequence entity with the
-        /// specified name.
-        /// </summary>
-        /// <remarks>This method enables HiLo-based value generation for the property, which can improve
-        /// performance by reducing database round-trips when generating key values. The specified sequence entity must
-        /// exist in the model.</remarks>
-        /// <param name="propertyBuilder">The builder used to configure the property.</param>
-        /// <param name="name">The name of the sequence entity to use for HiLo value generation. Cannot be null or empty.</param>
-        /// <returns>The same PropertyBuilder instance so that additional configuration calls can be chained.</returns>
-        public static PropertyBuilder UseHiLoEntitySequence(this PropertyBuilder propertyBuilder, string name)
-        {
-            var property = propertyBuilder.Metadata;
-            var model = property.DeclaringType.Model;
-
-            property.SetValueGenerationStrategy(CalciteValueGenerationStrategy.EntitySequenceHiLo);
-            property.SetEntitySequenceName(name);
-
-            return propertyBuilder;
-        }
-
-        /// <summary>
-        /// Returns whether the given name can be set as the sequence entity name on the property.
-        /// </summary>
-        /// <param name="propertyBuilder"></param>
-        /// <param name="name"></param>
-        /// <param name="fromDataAnnotation"></param>
-        /// <returns></returns>
-        public static bool CanSetEntitySequenceName(this IConventionPropertyBuilder propertyBuilder, string? name, bool fromDataAnnotation = false)
-        {
-            return propertyBuilder.CanSetAnnotation(CalciteAnnotationNames.EntitySequenceName, name, fromDataAnnotation);
-        }
 
         /// <summary>
         /// Sets the Calcite value generation strategy on the convention property builder.

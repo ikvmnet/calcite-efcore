@@ -20,7 +20,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal.Mapping
         /// Initializes a new instance.
         /// </summary>
         public CalciteDecimalTypeMapping() :
-            base("DECIMAL(28, 4)")
+            base("DECIMAL(19, 4)")
         {
 
         }
