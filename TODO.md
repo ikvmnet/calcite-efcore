@@ -91,20 +91,24 @@ D:\efcore.pg for how SQLite/Npgsql derive, override, and skip.
 The JSON pipeline is otherwise complete — the JSON type mapping bridges the reader to a
 `MemoryStream`, `VisitJsonScalar` emits `JSON_VALUE(col, 'strict $.path')`, and the SQL plans and
 executes — but Calcite's `JsonFunctions` dies with
-`NoClassDefFoundError: com.fasterxml.jackson.databind.ObjectMapper`. Root cause: Calcite declares
-jackson at Gradle `implementation` (= Maven runtime scope), and IKVM.Maven.Sdk computes each
-artifact's ikvmc references from its POM subtree with runtime scope excluded, so
-`calcite.core.dll` is compiled with `ObjectMapper` as a hard-throwing stub. No consumer-side
-change can fix it (verified: project-level `MavenReference` on every project, module-initializer
-`Assembly.Load`, full IKVM cache purge — the stub is deterministic). The fix is one of:
+`NoClassDefFoundError: com.fasterxml.jackson.databind.ObjectMapper`.
 
-1. IKVM.Maven.Sdk includes runtime-scope dependencies as ikvmc references (static compilation
-   makes runtime resolution of stubbed classes impossible, so runtime scope must compile).
-2. calcite-dotnet compiles and ships its calcite-core with jackson on the reference list.
-3. Upstream Calcite moves jackson to `api` scope (unlikely; it is deliberately internal).
+Root cause (verified against the compiled assemblies, not theory): `calcite.core.dll` is fine —
+it references `jackson.databind` and `ObjectMapper` exists and instantiates (probe test). The
+stub lives in **`json.path.dll`**: Calcite's `JsonFunctions` uses jayway json-path's
+`JacksonJsonProvider`, json-path declares its jackson dependencies **`<optional>`**, and
+IKVM.Maven.Sdk computes each artifact's ikvmc references strictly from that artifact's own
+non-optional POM subtree. `json.path.dll` therefore compiles referencing only `json.smart`, with
+`ObjectMapper` as a hard-throwing stub — regardless of the jackson assemblies being present,
+loaded, and resolvable in the same closure (verified: direct `MavenReference` for both
+jackson-databind and json-path itself, cache purge, recompile — references unchanged).
 
-Option 1 is the right fix and belongs in the IKVM.Maven.Sdk repo. Until then the ~480-test JSON
-cluster in the spec suite stays red; the provider-side work is done and waiting.
+The fix belongs in **IKVM.Maven.Sdk**: when an artifact's *optional* dependency is satisfied
+elsewhere in the project's closure, include it in that artifact's ikvmc references. That matches
+Java semantics — optional means "classpath-resolved when the consumer supplies it", and the
+consumer did. Until then the ~480-test JSON cluster stays red; the provider-side work is done
+and waiting, and the direct jackson-databind `MavenReference` in FunctionalTests should stay (it
+is the correct consumer declaration and becomes load-bearing the moment the Sdk fix lands).
 
 ## Snapshot staleness
 
