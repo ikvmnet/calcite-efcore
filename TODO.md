@@ -104,9 +104,11 @@ hard-throwing stubs no matter what the consumer's closure contains (verified: di
 `MavenReference` for jackson-databind and json-path, cache purge, recompile — references
 unchanged, as they must be).
 
-Fix: a consumer-side mechanism to supplement an artifact's references — "compile json-path with
-jackson-databind on its reference list" — either existing IKVM.Maven.Sdk/IkvmReference metadata
-or a small Sdk feature. Jars with undeclared optional-in-practice dependencies are not rare.
+Fix: reported upstream as https://github.com/json-path/JsonPath/issues/1082 (declare the provider
+dependencies as `<optional>` in the POM — IKVM.Maven.Sdk already handles optional dependencies
+correctly). Alternative if upstream stalls: a consumer-side reference-supplement mechanism in
+IKVM.Maven.Sdk, with the packaging caveats already discussed (supplements are not representable
+in packaged partial POMs; support would need to refuse or specially encode them at pack time).
 Until then the ~480-test JSON cluster stays red; the provider-side work (reader bridge,
 `JSON_VALUE` emission) is done and waiting, and FunctionalTests keeps the jackson-databind
 `MavenReference` as the correct consumer declaration.
