@@ -299,6 +299,55 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         }
 
         /// <inheritdoc/>
+        /// <remarks>
+        /// Calcite speaks standard SQL/JSON: the scalar is extracted with
+        /// <c>JSON_VALUE(col, 'strict $.path')</c> and CAST to the target store type when it is
+        /// not a string. Only constant array indexes can appear in a JSON path literal.
+        /// </remarks>
+        protected override Expression VisitJsonScalar(JsonScalarExpression jsonScalarExpression)
+        {
+            var storeType = jsonScalarExpression.TypeMapping?.StoreType;
+            var castNeeded = storeType is not null
+                && !storeType.StartsWith("VARCHAR", StringComparison.OrdinalIgnoreCase)
+                && !storeType.StartsWith("CHAR", StringComparison.OrdinalIgnoreCase);
+
+            if (castNeeded)
+                Sql.Append("CAST(");
+
+            Sql.Append("JSON_VALUE(");
+            Visit(jsonScalarExpression.Json);
+            Sql.Append(", 'strict $");
+
+            foreach (var segment in jsonScalarExpression.Path)
+            {
+                if (segment.PropertyName is not null)
+                {
+                    Sql.Append(".").Append(segment.PropertyName);
+                }
+                else if (segment.ArrayIndex is SqlConstantExpression { Value: int index })
+                {
+                    Sql.Append("[").Append(index.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("]");
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        "A non-constant JSON array index cannot be rendered into Calcite's JSON path literal.");
+                }
+            }
+
+            Sql.Append("')");
+
+            if (castNeeded)
+            {
+                Sql.Append(" AS ");
+                Sql.Append(storeType!);
+                Sql.Append(")");
+            }
+
+            return jsonScalarExpression;
+        }
+
+        /// <inheritdoc/>
         protected override Expression VisitSqlConstant(SqlConstantExpression node)
         {
             if (node.Value is bool b)
@@ -520,9 +569,17 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
                 Sql.AddParameter(param.InvariantName, (++paramId).ToString(), param.TypeMapping!, param.IsNullable);
                 Sql.Append(Dependencies.SqlGenerationHelper.GenerateParameterNamePlaceholder(param.Name));
             }
-            else
+            else if (expression is SqlConstantExpression)
             {
                 Visit(expression);
+            }
+            else
+            {
+                // A composed row count (e.g. LEAST(...) from a nested Take) is only accepted in
+                // the FETCH/OFFSET position when parenthesized.
+                Sql.Append("(");
+                Visit(expression);
+                Sql.Append(")");
             }
         }
 

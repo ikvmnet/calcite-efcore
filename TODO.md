@@ -86,6 +86,33 @@ Full-run trx in flight. Cluster the ~12k failures by exception fingerprint, fix 
 causes first. Reference D:\efcore (11.0 head; 10.0 via `git show v10.0.5:<path>`) and
 D:\efcore.pg for how SQLite/Npgsql derive, override, and skip.
 
+## JSON functions: jackson-databind is stubbed in calcite.core.dll
+
+The JSON pipeline is otherwise complete — the JSON type mapping bridges the reader to a
+`MemoryStream`, `VisitJsonScalar` emits `JSON_VALUE(col, 'strict $.path')`, and the SQL plans and
+executes — but Calcite's `JsonFunctions` dies with
+`NoClassDefFoundError: com.fasterxml.jackson.databind.ObjectMapper`. Root cause: Calcite declares
+jackson at Gradle `implementation` (= Maven runtime scope), and IKVM.Maven.Sdk computes each
+artifact's ikvmc references from its POM subtree with runtime scope excluded, so
+`calcite.core.dll` is compiled with `ObjectMapper` as a hard-throwing stub. No consumer-side
+change can fix it (verified: project-level `MavenReference` on every project, module-initializer
+`Assembly.Load`, full IKVM cache purge — the stub is deterministic). The fix is one of:
+
+1. IKVM.Maven.Sdk includes runtime-scope dependencies as ikvmc references (static compilation
+   makes runtime resolution of stubbed classes impossible, so runtime scope must compile).
+2. calcite-dotnet compiles and ships its calcite-core with jackson on the reference list.
+3. Upstream Calcite moves jackson to `api` scope (unlikely; it is deliberately internal).
+
+Option 1 is the right fix and belongs in the IKVM.Maven.Sdk repo. Until then the ~480-test JSON
+cluster in the spec suite stays red; the provider-side work is done and waiting.
+
+## Snapshot staleness
+
+`MAVEN0011: Transfer failed … maven-metadata.xml` on every build: snapshot metadata refresh from
+repository.apache.org fails inside the resolver (plain curl works), so resolution silently serves
+the `~/.m2` copy — currently the 2026-08-05 snapshot, not today's. Investigate the resolver's
+transport; until fixed, "1.43.0-SNAPSHOT" means "whatever .m2 last downloaded".
+
 ## Missing spec-test derivations
 
 42 spec areas SQLite derives that we have no local class for, so they never run. Add derived

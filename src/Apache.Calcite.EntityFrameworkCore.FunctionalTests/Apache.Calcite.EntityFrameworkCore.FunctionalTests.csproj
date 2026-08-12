@@ -27,6 +27,9 @@
         <MavenReference Include="org.apache.calcite:calcite-linq4j" Version="$(CalciteVersion)" />
         <MavenReference Include="org.apache.calcite:calcite-core" Version="$(CalciteVersion)" />
         <MavenReference Include="org.apache.calcite:calcite-server" Version="$(CalciteVersion)" />
+        <!-- Calcite's runtime JSON functions (JSON_VALUE et al.) resolve jackson-databind reflectively;
+             it must be in the IKVM closure explicitly or JsonFunctions throws NoClassDefFoundError. -->
+        <MavenReference Include="com.fasterxml.jackson.core:jackson-databind" Version="2.18.6" />
     </ItemGroup>
 
     <ItemGroup>

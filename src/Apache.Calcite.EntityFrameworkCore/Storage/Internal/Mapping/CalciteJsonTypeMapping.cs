@@ -1,4 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore.Storage;
+﻿using System.Data.Common;
+using System.IO;
+using System.Linq.Expressions;
+using System.Reflection;
+using System.Text;
+
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal.Mapping;
 
@@ -43,6 +49,39 @@ public class CalciteJsonTypeMapping : JsonTypeMapping
     protected override string GenerateNonNullSqlLiteral(object value)
     {
         return $"'{((string)value).Replace("'", "''")}'";
+    }
+
+    static readonly MethodInfo GetStringMethod =
+        typeof(DbDataReader).GetRuntimeMethod(nameof(DbDataReader.GetString), [typeof(int)])!;
+
+    static readonly PropertyInfo UTF8Property =
+        typeof(Encoding).GetProperty(nameof(Encoding.UTF8))!;
+
+    static readonly MethodInfo EncodingGetBytesMethod =
+        typeof(Encoding).GetMethod(nameof(Encoding.GetBytes), [typeof(string)])!;
+
+    static readonly ConstructorInfo MemoryStreamConstructor =
+        typeof(MemoryStream).GetConstructor([typeof(byte[])])!;
+
+    /// <inheritdoc/>
+    public override MethodInfo GetDataReaderMethod()
+    {
+        return GetStringMethod;
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// EF's JSON shaper reads the document through a <see cref="MemoryStream"/>; the column is a
+    /// VARCHAR here, so the string is bridged as UTF-8 bytes.
+    /// </remarks>
+    public override Expression CustomizeDataReaderExpression(Expression expression)
+    {
+        return Expression.New(
+            MemoryStreamConstructor,
+            Expression.Call(
+                Expression.Property(null, UTF8Property),
+                EncodingGetBytesMethod,
+                expression));
     }
 
 }
