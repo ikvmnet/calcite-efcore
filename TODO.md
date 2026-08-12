@@ -104,14 +104,19 @@ hard-throwing stubs no matter what the consumer's closure contains (verified: di
 `MavenReference` for jackson-databind and json-path, cache purge, recompile — references
 unchanged, as they must be).
 
-Fix: reported upstream as https://github.com/json-path/JsonPath/issues/1082 (declare the provider
-dependencies as `<optional>` in the POM — IKVM.Maven.Sdk already handles optional dependencies
-correctly). Alternative if upstream stalls: a consumer-side reference-supplement mechanism in
-IKVM.Maven.Sdk, with the packaging caveats already discussed (supplements are not representable
-in packaged partial POMs; support would need to refuse or specially encode them at pack time).
-Until then the ~480-test JSON cluster stays red; the provider-side work (reader bridge,
-`JSON_VALUE` emission) is done and waiting, and FunctionalTests keeps the jackson-databind
-`MavenReference` as the correct consumer declaration.
+Fix: the consumer-side mechanism now exists — IKVM.Maven.Sdk's `Dependencies` metadata on
+`MavenReference` (ikvm-maven PR #87, branch `dependency-additions`; declarations pack into the
+partial POM under the `http://ikvm.org/POM-EXT/1.0.0` namespace). D:\calcite-dotnet already
+declares `json-path → jackson-databind:2.18.6` and `json-path → jackson-core:2.18.6` on its
+calcite-core references and its new `CalciteJsonFunctionTests` pass 3/3 (json.path.dll references
+the real jackson assemblies; 327/327 Data.Tests green). Verified locally against
+`IKVM.Maven.Sdk 1.12.0-additions.1` from `D:\packages\feed`.
+
+Remaining for this repo: consume the fix — either bump to an Apache.Calcite.Data package built
+with the declaration, or (once this repo is on the new Sdk) declare the same two edges on our own
+calcite-core `MavenReference`. Blocked on publishing the Sdk (PR #87) and/or a new
+Apache.Calcite.Data prerelease; upstream json-path issue #1082 remains the long-term fix. The
+provider-side work (reader bridge, `JSON_VALUE` emission) is done and waiting.
 
 ## Snapshot staleness
 
