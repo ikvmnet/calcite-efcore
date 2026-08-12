@@ -156,7 +156,35 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
             return Task.CompletedTask;
         }
 
-        sealed class CalciteIgnoredTransaction : IDbContextTransaction
+        /// <inheritdoc/>
+        /// <remarks>
+        /// Accepts any transaction — including the inert one this connection's own
+        /// <see cref="BeginTransaction()"/> hands out through <c>GetDbTransaction()</c> — and
+        /// ignores it, because the store has no transactions to attach to. The EF spec test
+        /// bases share a transaction across contexts this way.
+        /// </remarks>
+        public override IDbContextTransaction? UseTransaction(System.Data.Common.DbTransaction? transaction)
+        {
+            if (transaction is null)
+                return null;
+
+            _transactionLogger.TransactionIgnoredWarning();
+            return StubTransaction;
+        }
+
+        /// <inheritdoc/>
+        public override IDbContextTransaction? UseTransaction(System.Data.Common.DbTransaction? transaction, Guid transactionId)
+            => UseTransaction(transaction);
+
+        /// <inheritdoc/>
+        public override Task<IDbContextTransaction?> UseTransactionAsync(System.Data.Common.DbTransaction? transaction, CancellationToken cancellationToken = default)
+            => Task.FromResult(UseTransaction(transaction));
+
+        /// <inheritdoc/>
+        public override Task<IDbContextTransaction?> UseTransactionAsync(System.Data.Common.DbTransaction? transaction, Guid transactionId, CancellationToken cancellationToken = default)
+            => Task.FromResult(UseTransaction(transaction));
+
+        sealed class CalciteIgnoredTransaction : IDbContextTransaction, IInfrastructure<System.Data.Common.DbTransaction>
         {
             public Guid TransactionId { get; } = Guid.NewGuid();
             public void Commit() { }
@@ -165,6 +193,30 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
             public Task RollbackAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
             public void Dispose() { }
             public ValueTask DisposeAsync() => default;
+
+            /// <summary>
+            /// The inert <see cref="System.Data.Common.DbTransaction"/> behind
+            /// <c>GetDbTransaction()</c>: commit and rollback do nothing, matching the store.
+            /// </summary>
+            System.Data.Common.DbTransaction IInfrastructure<System.Data.Common.DbTransaction>.Instance
+                => CalciteIgnoredDbTransaction.Instance;
+        }
+
+        sealed class CalciteIgnoredDbTransaction : System.Data.Common.DbTransaction
+        {
+            public static readonly CalciteIgnoredDbTransaction Instance = new();
+
+            /// <inheritdoc/>
+            public override System.Data.IsolationLevel IsolationLevel => System.Data.IsolationLevel.Unspecified;
+
+            /// <inheritdoc/>
+            protected override System.Data.Common.DbConnection? DbConnection => null;
+
+            /// <inheritdoc/>
+            public override void Commit() { }
+
+            /// <inheritdoc/>
+            public override void Rollback() { }
         }
 
     }

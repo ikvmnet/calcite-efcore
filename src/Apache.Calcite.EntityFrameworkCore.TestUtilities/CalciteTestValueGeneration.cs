@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Data.Common;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -100,18 +101,34 @@ public class CalciteTestValueGeneratorSelector : CalciteValueGeneratorSelector
         if (property.ValueGenerated == ValueGenerated.OnAdd
             && (clrType == typeof(int) || clrType == typeof(long) || clrType == typeof(short) || clrType == typeof(byte)))
         {
+            // The key property may span several tables (TPC/TPT hierarchies) or none at all
+            // (an abstract base, a JSON-mapped type): seed from the max across every table the
+            // property's hierarchy maps to, and fall back to a plain counter when there are none.
+            var targets = new List<(string? Schema, string Table, string Column)>();
+            if (property.DeclaringType is IEntityType entityType)
+            {
+                foreach (var derived in entityType.GetDerivedTypesInclusive())
+                {
+                    if (StoreObjectIdentifier.Create(derived, StoreObjectType.Table) is { } id)
+                    {
+                        var column = property.GetColumnName(id);
+                        if (column != null && !targets.Contains((id.Schema, id.Name, column)))
+                            targets.Add((id.Schema, id.Name, column));
+                    }
+                }
+            }
+
             var byColumn = _maxSeededStates.GetOrCreateValue(_connection.DbConnection);
-            var tableIdentifier = StoreObjectIdentifier.Create(property.DeclaringType, StoreObjectType.Table);
-            var state = byColumn.GetOrAdd($"{tableIdentifier?.Schema}.{tableIdentifier?.Name}.{property.Name}", _ => new MaxSeededState());
+            var state = byColumn.GetOrAdd($"{property.DeclaringType.Name}.{property.Name}", _ => new MaxSeededState());
 
             if (clrType == typeof(int))
-                return new MaxSeededValueGenerator<int>(state, property, _commandLogger);
+                return new MaxSeededValueGenerator<int>(state, targets, _commandLogger);
             if (clrType == typeof(long))
-                return new MaxSeededValueGenerator<long>(state, property, _commandLogger);
+                return new MaxSeededValueGenerator<long>(state, targets, _commandLogger);
             if (clrType == typeof(short))
-                return new MaxSeededValueGenerator<short>(state, property, _commandLogger);
+                return new MaxSeededValueGenerator<short>(state, targets, _commandLogger);
 
-            return new MaxSeededValueGenerator<byte>(state, property, _commandLogger);
+            return new MaxSeededValueGenerator<byte>(state, targets, _commandLogger);
         }
 
         return base.FindForType(property, typeBase, clrType);
@@ -198,19 +215,19 @@ public class CalciteTestValueGeneratorSelector : CalciteValueGeneratorSelector
     {
 
         readonly MaxSeededState _state;
-        readonly IProperty _property;
+        readonly IReadOnlyList<(string? Schema, string Table, string Column)> _targets;
         readonly IRelationalCommandDiagnosticsLogger _commandLogger;
 
         /// <summary>
         /// Initializes a new instance.
         /// </summary>
         /// <param name="state">The shared counter for this key's column.</param>
-        /// <param name="property">The key property values are generated for.</param>
+        /// <param name="targets">The tables and columns the key's hierarchy maps to; empty for a plain counter.</param>
         /// <param name="commandLogger">Logger for the seed command.</param>
-        public MaxSeededValueGenerator(MaxSeededState state, IProperty property, IRelationalCommandDiagnosticsLogger commandLogger)
+        public MaxSeededValueGenerator(MaxSeededState state, IReadOnlyList<(string? Schema, string Table, string Column)> targets, IRelationalCommandDiagnosticsLogger commandLogger)
         {
             _state = state;
-            _property = property;
+            _targets = targets;
             _commandLogger = commandLogger;
         }
 
@@ -231,46 +248,56 @@ public class CalciteTestValueGeneratorSelector : CalciteValueGeneratorSelector
         }
 
         /// <summary>
-        /// Executes <c>SELECT MAX(key)</c> for the generator's table on the entry's connection.
+        /// Executes <c>SELECT MAX(key)</c> for each mapped table and returns the largest value.
         /// </summary>
         /// <param name="entry">The entry whose context supplies the connection.</param>
         long QueryMax(EntityEntry entry)
         {
-            var command = BuildCommand(entry, out var parameters);
-            var result = command.ExecuteScalar(parameters);
-            return result is null or DBNull ? 0L : Convert.ToInt64(result);
+            var max = 0L;
+            foreach (var target in _targets)
+            {
+                var command = BuildCommand(entry, target, out var parameters);
+                var result = command.ExecuteScalar(parameters);
+                if (result is not (null or DBNull))
+                    max = Math.Max(max, Convert.ToInt64(result));
+            }
+
+            return max;
         }
 
         /// <summary>
-        /// Executes <c>SELECT MAX(key)</c> for the generator's table on the entry's connection.
+        /// Executes <c>SELECT MAX(key)</c> for each mapped table and returns the largest value.
         /// </summary>
         /// <param name="entry">The entry whose context supplies the connection.</param>
         /// <param name="cancellationToken">Token to observe.</param>
         async Task<long> QueryMaxAsync(EntityEntry entry, CancellationToken cancellationToken)
         {
-            var command = BuildCommand(entry, out var parameters);
-            var result = await command.ExecuteScalarAsync(parameters, cancellationToken).ConfigureAwait(false);
-            return result is null or DBNull ? 0L : Convert.ToInt64(result);
+            var max = 0L;
+            foreach (var target in _targets)
+            {
+                var command = BuildCommand(entry, target, out var parameters);
+                var result = await command.ExecuteScalarAsync(parameters, cancellationToken).ConfigureAwait(false);
+                if (result is not (null or DBNull))
+                    max = Math.Max(max, Convert.ToInt64(result));
+            }
+
+            return max;
         }
 
         /// <summary>
-        /// Builds the seed command against the entry's store table.
+        /// Builds the seed command for one store table.
         /// </summary>
         /// <param name="entry">The entry whose context supplies the services.</param>
+        /// <param name="target">The table and column to query.</param>
         /// <param name="parameters">The parameter object the command executes with.</param>
-        IRelationalCommand BuildCommand(EntityEntry entry, out RelationalCommandParameterObject parameters)
+        IRelationalCommand BuildCommand(EntityEntry entry, (string? Schema, string Table, string Column) target, out RelationalCommandParameterObject parameters)
         {
             var context = entry.Context;
             var sqlGenerationHelper = context.GetService<ISqlGenerationHelper>();
             var commandBuilder = context.GetService<IRelationalCommandBuilderFactory>().Create();
             var connection = context.GetService<IRelationalConnection>();
 
-            var tableIdentifier = StoreObjectIdentifier.Create(_property.DeclaringType, StoreObjectType.Table)
-                ?? throw new InvalidOperationException($"Property '{_property.Name}' on '{_property.DeclaringType.DisplayName()}' is not mapped to a table; the max-seeded key generator requires a table.");
-            var columnName = _property.GetColumnName(tableIdentifier)
-                ?? throw new InvalidOperationException($"Property '{_property.Name}' on '{_property.DeclaringType.DisplayName()}' has no column in table '{tableIdentifier.Name}'.");
-
-            var sql = $"SELECT MAX({sqlGenerationHelper.DelimitIdentifier(columnName)}) FROM {sqlGenerationHelper.DelimitIdentifier(tableIdentifier.Name, tableIdentifier.Schema)}";
+            var sql = $"SELECT MAX({sqlGenerationHelper.DelimitIdentifier(target.Column)}) FROM {sqlGenerationHelper.DelimitIdentifier(target.Table, target.Schema)}";
             var command = commandBuilder.Append(sql).Build();
             parameters = new RelationalCommandParameterObject(connection, null, null, context, _commandLogger);
             return command;
