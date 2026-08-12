@@ -93,22 +93,23 @@ The JSON pipeline is otherwise complete — the JSON type mapping bridges the re
 executes — but Calcite's `JsonFunctions` dies with
 `NoClassDefFoundError: com.fasterxml.jackson.databind.ObjectMapper`.
 
-Root cause (verified against the compiled assemblies, not theory): `calcite.core.dll` is fine —
-it references `jackson.databind` and `ObjectMapper` exists and instantiates (probe test). The
-stub lives in **`json.path.dll`**: Calcite's `JsonFunctions` uses jayway json-path's
-`JacksonJsonProvider`, json-path declares its jackson dependencies **`<optional>`**, and
-IKVM.Maven.Sdk computes each artifact's ikvmc references strictly from that artifact's own
-non-optional POM subtree. `json.path.dll` therefore compiles referencing only `json.smart`, with
-`ObjectMapper` as a hard-throwing stub — regardless of the jackson assemblies being present,
-loaded, and resolvable in the same closure (verified: direct `MavenReference` for both
-jackson-databind and json-path itself, cache purge, recompile — references unchanged).
+Root cause (verified against the compiled assemblies and the published POM): `calcite.core.dll`
+is fine — it references `jackson.databind`, and `ObjectMapper` exists and instantiates. The stub
+lives in **`json.path.dll`**: Calcite's `JsonFunctions` uses jayway json-path's
+`JacksonJsonProvider`, and json-path 2.10.0's published POM declares **no jackson dependency in
+any scope** — the jar ships provider classes whose dependencies are simply undeclared.
+IKVM.Maven.Sdk compiled json-path faithfully per its POM (optional dependencies it handles;
+undeclared ones it cannot see), so the jackson references inside `json.path.dll` are
+hard-throwing stubs no matter what the consumer's closure contains (verified: direct
+`MavenReference` for jackson-databind and json-path, cache purge, recompile — references
+unchanged, as they must be).
 
-The fix belongs in **IKVM.Maven.Sdk**: when an artifact's *optional* dependency is satisfied
-elsewhere in the project's closure, include it in that artifact's ikvmc references. That matches
-Java semantics — optional means "classpath-resolved when the consumer supplies it", and the
-consumer did. Until then the ~480-test JSON cluster stays red; the provider-side work is done
-and waiting, and the direct jackson-databind `MavenReference` in FunctionalTests should stay (it
-is the correct consumer declaration and becomes load-bearing the moment the Sdk fix lands).
+Fix: a consumer-side mechanism to supplement an artifact's references — "compile json-path with
+jackson-databind on its reference list" — either existing IKVM.Maven.Sdk/IkvmReference metadata
+or a small Sdk feature. Jars with undeclared optional-in-practice dependencies are not rare.
+Until then the ~480-test JSON cluster stays red; the provider-side work (reader bridge,
+`JSON_VALUE` emission) is done and waiting, and FunctionalTests keeps the jackson-databind
+`MavenReference` as the correct consumer declaration.
 
 ## Snapshot staleness
 
