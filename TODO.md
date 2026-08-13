@@ -93,12 +93,6 @@ repository.apache.org fails inside the resolver (plain curl works), so resolutio
 the `~/.m2` copy — currently the 2026-08-05 snapshot, not today's. Investigate the resolver's
 transport; until fixed, "1.43.0-SNAPSHOT" means "whatever .m2 last downloaded".
 
-## Decimal seed overflow (32 spec failures)
-
-`Cannot convert N.N to DECIMAL(19, 4) due to overflow` — some spec seed values exceed the default
-mapping's precision/scale. Diagnose which models and whether per-property `HasPrecision`
-configuration flows correctly before changing the default.
-
 ## Missing spec-test derivations
 
 42 spec areas SQLite derives that we have no local class for, so they never run. Add derived

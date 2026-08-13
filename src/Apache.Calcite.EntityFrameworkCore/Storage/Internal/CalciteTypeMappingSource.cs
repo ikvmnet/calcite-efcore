@@ -90,6 +90,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
         RelationalTypeMapping? FindRawMapping(in RelationalTypeMappingInfo mappingInfo)
         {
             var clrType = mappingInfo.ClrType;
+            if (clrType == typeof(decimal))
+                return FindDecimalMapping(mappingInfo);
+
             if (clrType != null && _clrTypeMappings.TryGetValue(clrType, out var mapping))
                 return mapping;
 
@@ -106,6 +109,28 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
                         return m;
 
             return null;
+        }
+
+        /// <summary>
+        /// Finds the decimal type mapping, honoring the precision and scale of the property. Calcite's maximum
+        /// numeric precision is 19; a larger requested precision is reduced to it, giving up scale first so the
+        /// integral capacity the precision asked for is preserved.
+        /// </summary>
+        /// <param name="mappingInfo"></param>
+        /// <returns></returns>
+        RelationalTypeMapping FindDecimalMapping(in RelationalTypeMappingInfo mappingInfo)
+        {
+            if (mappingInfo.Precision is not int precision)
+                return CalciteDecimalTypeMapping.Default;
+
+            var scale = mappingInfo.Scale ?? 0;
+            if (precision > 19)
+            {
+                scale = Math.Max(0, scale - (precision - 19));
+                precision = 19;
+            }
+
+            return new CalciteDecimalTypeMapping(precision, scale);
         }
 
     }
