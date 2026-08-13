@@ -71,6 +71,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Metadata.Conventions
             var conventionSet = base.CreateConventionSet();
 
 
+            // Calcite's parser rejects identifiers longer than 128 characters; EF truncates and
+            // uniquifies generated store names to this length
+            conventionSet.Add(new RelationalMaxIdentifierLengthConvention(128, Dependencies, RelationalDependencies));
+
             conventionSet.Replace<StoreGenerationConvention>(new CalciteStoreGenerationConvention(Dependencies, RelationalDependencies));
             conventionSet.Replace<ValueGenerationConvention>(new CalciteValueGenerationConvention(Dependencies, RelationalDependencies));
             conventionSet.Replace<QueryFilterRewritingConvention>(new CalciteQueryFilterRewritingConvention(Dependencies, RelationalDependencies));

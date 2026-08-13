@@ -93,14 +93,6 @@ repository.apache.org fails inside the resolver (plain curl works), so resolutio
 the `~/.m2` copy — currently the 2026-08-05 snapshot, not today's. Investigate the resolver's
 transport; until fixed, "1.43.0-SNAPSHOT" means "whatever .m2 last downloaded".
 
-## Identifier length cap (36 spec failures)
-
-Calcite's parser rejects identifiers over 128 characters; several spec models generate longer
-ones. `identifierMaxLength` is a `SqlParser.Config` setting with no connection-property surface —
-exposing it needs a calcite-dotnet change (`ClrPrepareImpl.CreateParser` reads it from the
-connection config). Alternative: shorten EF's generated aliases provider-side
-(`ISqlGenerationHelper` alias truncation), which also helps real users.
-
 ## Decimal seed overflow (32 spec failures)
 
 `Cannot convert N.N to DECIMAL(19, 4) due to overflow` — some spec seed values exceed the default
@@ -113,7 +105,7 @@ configuration flows correctly before changing the default.
 classes area by area, following other providers' patterns. High-value first: `BuiltInDataTypes`,
 `FromSqlQuery`, `SqlQuery`, `GraphUpdates`, `TableSplitting` (+TPT/TPC variants),
 `PrimitiveCollectionsQuery`, `NorthwindBulkUpdates`, `OwnedRelationships`, `Logging`,
-`FieldMapping`, `OptimisticConcurrency`, `LazyLoadProxy`, `ManyToManyLoad`.
+`FieldMapping`, `OptimisticConcurrency`, `LazyLoadProxy`.
 
 ## Spatial
 
