@@ -66,7 +66,7 @@ Sibling checkouts this project depends on:
   (currently `1.43.0-SNAPSHOT` from the Apache snapshots repository); IKVM.Maven.Sdk resolves it
   per-project from the repositories in `$(MavenAdditionalRepositories)`.
 - `FunctionalTests` is the EF Core relational **specification suite** (~22,000 tests, ~40 minutes).
-  It is aspirational: ~19.7k pass / ~2.3k fail (88%) as of 2026-08-11 on Calcite 1.43.0-SNAPSHOT +
+  It is aspirational: ~20.2k pass / ~2.2k fail (89%) as of 2026-08-13 on Calcite 1.43.0-SNAPSHOT +
   Apache.Calcite.Data 2.0.0-pre.4. A red run there is a maturity gauge, not a regression signal —
   the regression gates are `Adapter.Tests` (110) and `EntityFrameworkCore.Tests` (24).
 - Parallel builds sometimes fail with an IOException on a `.deps.json` from IKVM.Core.MSBuild's
