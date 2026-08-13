@@ -15,7 +15,13 @@ public class KeysWithConvertersCalciteTest(KeysWithConvertersCalciteTest.KeysWit
 
         protected override ITestStoreFactory TestStoreFactory => CalciteTestStoreFactory.Instance;
 
-        public override DbContextOptionsBuilder AddOptions(DbContextOptionsBuilder builder) => base.AddOptions(builder).UseCalcite(b => b.MinBatchSize(1));
+        /// <inheritdoc />
+        /// <remarks>
+        /// The enumerable key types in this suite convert without a value comparer, which the spec
+        /// fixtures elevate to a throw. EF 11's <c>KeysWithConvertersFixtureBase</c> ignores the
+        /// warning in the base itself; on EF 10 the derivation has to do it.
+        /// </remarks>
+        public override DbContextOptionsBuilder AddOptions(DbContextOptionsBuilder builder) => base.AddOptions(builder).UseCalcite(b => b.MinBatchSize(1)).ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.CollectionWithoutComparer));
 
     }
 
