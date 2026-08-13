@@ -86,38 +86,6 @@ Full-run trx in flight. Cluster the ~12k failures by exception fingerprint, fix 
 causes first. Reference D:\efcore (11.0 head; 10.0 via `git show v10.0.5:<path>`) and
 D:\efcore.pg for how SQLite/Npgsql derive, override, and skip.
 
-## JSON functions: jackson-databind is stubbed in calcite.core.dll
-
-The JSON pipeline is otherwise complete — the JSON type mapping bridges the reader to a
-`MemoryStream`, `VisitJsonScalar` emits `JSON_VALUE(col, 'strict $.path')`, and the SQL plans and
-executes — but Calcite's `JsonFunctions` dies with
-`NoClassDefFoundError: com.fasterxml.jackson.databind.ObjectMapper`.
-
-Root cause (verified against the compiled assemblies and the published POM): `calcite.core.dll`
-is fine — it references `jackson.databind`, and `ObjectMapper` exists and instantiates. The stub
-lives in **`json.path.dll`**: Calcite's `JsonFunctions` uses jayway json-path's
-`JacksonJsonProvider`, and json-path 2.10.0's published POM declares **no jackson dependency in
-any scope** — the jar ships provider classes whose dependencies are simply undeclared.
-IKVM.Maven.Sdk compiled json-path faithfully per its POM (optional dependencies it handles;
-undeclared ones it cannot see), so the jackson references inside `json.path.dll` are
-hard-throwing stubs no matter what the consumer's closure contains (verified: direct
-`MavenReference` for jackson-databind and json-path, cache purge, recompile — references
-unchanged, as they must be).
-
-Fix: the consumer-side mechanism now exists — IKVM.Maven.Sdk's `Dependencies` metadata on
-`MavenReference` (ikvm-maven PR #87, branch `dependency-additions`; declarations pack into the
-partial POM under the `http://ikvm.org/POM-EXT/1.0.0` namespace). D:\calcite-dotnet already
-declares `json-path → jackson-databind:2.18.6` and `json-path → jackson-core:2.18.6` on its
-calcite-core references and its new `CalciteJsonFunctionTests` pass 3/3 (json.path.dll references
-the real jackson assemblies; 327/327 Data.Tests green). Verified locally against
-`IKVM.Maven.Sdk 1.12.0-additions.1` from `D:\packages\feed`.
-
-Remaining for this repo: consume the fix — either bump to an Apache.Calcite.Data package built
-with the declaration, or (once this repo is on the new Sdk) declare the same two edges on our own
-calcite-core `MavenReference`. Blocked on publishing the Sdk (PR #87) and/or a new
-Apache.Calcite.Data prerelease; upstream json-path issue #1082 remains the long-term fix. The
-provider-side work (reader bridge, `JSON_VALUE` emission) is done and waiting.
-
 ## Snapshot staleness
 
 `MAVEN0011: Transfer failed … maven-metadata.xml` on every build: snapshot metadata refresh from

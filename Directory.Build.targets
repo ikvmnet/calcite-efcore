@@ -1,5 +1,16 @@
 <Project>
-    
-    
+
+    <!-- json-path's published POM declares no jackson dependency at all (json-path/JsonPath#1082), so
+         IKVM would compile its jackson providers against hard-throwing stubs and Calcite's JSON
+         functions would fail with NoClassDefFoundError. Declare the missing edges on every project's
+         calcite-core reference; the version matches the jackson-databind that calcite-core manages. -->
+    <ItemGroup>
+        <MavenReference Update="org.apache.calcite:calcite-core">
+            <Dependencies>
+                com.jayway.jsonpath:json-path/com.fasterxml.jackson.core:jackson-databind:2.18.6;
+                com.jayway.jsonpath:json-path/com.fasterxml.jackson.core:jackson-core:2.18.6
+            </Dependencies>
+        </MavenReference>
+    </ItemGroup>
 
 </Project>

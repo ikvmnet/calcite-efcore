@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
@@ -10,7 +10,7 @@
 
     <ItemGroup>
         <PackageReference Include="IKVM" Version="8.15.0" />
-        <PackageReference Include="IKVM.Maven.Sdk" Version="1.11.0">
+        <PackageReference Include="IKVM.Maven.Sdk" Version="1.12.0-pre.1">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
@@ -27,9 +27,6 @@
         <MavenReference Include="org.apache.calcite:calcite-linq4j" Version="$(CalciteVersion)" />
         <MavenReference Include="org.apache.calcite:calcite-core" Version="$(CalciteVersion)" />
         <MavenReference Include="org.apache.calcite:calcite-server" Version="$(CalciteVersion)" />
-        <!-- Calcite's runtime JSON functions (JSON_VALUE et al.) resolve jackson-databind reflectively;
-             it must be in the IKVM closure explicitly or JsonFunctions throws NoClassDefFoundError. -->
-        <MavenReference Include="com.fasterxml.jackson.core:jackson-databind" Version="2.18.6" />
     </ItemGroup>
 
     <ItemGroup>
