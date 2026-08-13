@@ -99,7 +99,7 @@ transport; until fixed, "1.43.0-SNAPSHOT" means "whatever .m2 last downloaded".
 classes area by area, following other providers' patterns. High-value first: `BuiltInDataTypes`,
 `FromSqlQuery`, `SqlQuery`, `GraphUpdates`, `TableSplitting` (+TPT/TPC variants),
 `PrimitiveCollectionsQuery`, `NorthwindBulkUpdates`, `OwnedRelationships`, `Logging`,
-`FieldMapping`, `OptimisticConcurrency`, `LazyLoadProxy`.
+`FieldMapping`, `OptimisticConcurrency`, `LazyLoadProxy`, `BuiltInDataTypes`.
 
 ## Spatial
 
