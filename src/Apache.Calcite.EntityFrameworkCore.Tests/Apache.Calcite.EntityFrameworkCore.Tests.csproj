@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <IsPackable>false</IsPackable>
         <TargetFramework>net10.0</TargetFramework>
         <NoWarn>$(NoWarn);MAVEN0012</NoWarn>
         <MavenAdditionalRepositories>$(MavenAdditionalRepositories);redhat=https://maven.repository.redhat.com/ga/</MavenAdditionalRepositories>

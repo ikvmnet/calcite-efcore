@@ -30,6 +30,7 @@
         <RepositoryType Condition=" '$(RepositoryType)' == '' ">git</RepositoryType>
         <PackageProjectUrl  Condition=" '$(PackageProjectUrl)' == '' ">https://github.com/ikvmnet/calcite-efcore</PackageProjectUrl>
         <PackageVersion Condition=" '$(PackageVersion)' == '' ">$(Version)</PackageVersion>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
 

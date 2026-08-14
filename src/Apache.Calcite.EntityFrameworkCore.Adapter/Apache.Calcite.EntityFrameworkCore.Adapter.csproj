@@ -4,10 +4,14 @@
         <TargetFrameworks>net10.0</TargetFrameworks>
         <Nullable>enable</Nullable>
         <NoWarn>EF1001</NoWarn>
-        <PackageIconUrl>icon.png</PackageIconUrl>
-        <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-        <Description>Apache Calcite provider for Entity Framework Core.</Description>
+        <Description>Apache Calcite adapter convention that executes relational plans as Entity Framework Core LINQ queries.</Description>
+        <PackageIcon>icon.png</PackageIcon>
+        <PackageTags>apache;calcite;entity-framework-core;efcore;adapter;convention;ikvm</PackageTags>
     </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\..\icon.png" Pack="true" PackagePath="\" />
+    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="IKVM" Version="8.15.0" />

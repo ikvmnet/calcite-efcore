@@ -4,10 +4,16 @@
         <TargetFrameworks>net10.0</TargetFrameworks>
         <Nullable>enable</Nullable>
         <NoWarn>EF1001</NoWarn>
-        <PackageIconUrl>icon.png</PackageIconUrl>
-        <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-        <Description>Apache Calcite provider for Entity Framework Core.</Description>
+        <Description>Apache Calcite provider for Entity Framework Core. Plans and executes SQL against any Calcite-modeled data source via IKVM.</Description>
+        <PackageIcon>icon.png</PackageIcon>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageTags>apache;calcite;entity-framework-core;efcore;provider;sql;ikvm</PackageTags>
     </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="README.md" Pack="true" PackagePath="\" />
+        <None Include="..\..\icon.png" Pack="true" PackagePath="\" />
+    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="IKVM" Version="8.15.0" />
