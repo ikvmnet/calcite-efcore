@@ -47,8 +47,6 @@
     </ItemGroup>
 
     <PropertyGroup>
-        <CalciteVersion>1.43.0-SNAPSHOT</CalciteVersion>
-        <AvaticaVersion>1.27.0</AvaticaVersion>
         <MavenAdditionalRepositories>$(MavenAdditionalRepositories);jboss=https://repository.jboss.org/nexus/content/groups/public;apache-snapshots=https://repository.apache.org/content/repositories/snapshots/</MavenAdditionalRepositories>
     </PropertyGroup>
 

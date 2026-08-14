@@ -194,16 +194,16 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
         /// </summary>
         static Expression BuildAggregateExpression(AggregateCall aggCall, ParameterExpression groupParam, Type groupingType, Type elementType, java.util.List inputFields, Type targetType)
         {
-            var kind = (SqlKind.__Enum)aggCall.getAggregation().getKind().ordinal();
+            var kind = aggCall.getAggregation().getKind().name();
             var argList = aggCall.getArgList();
 
             return kind switch
             {
-                SqlKind.__Enum.COUNT => BuildCount(aggCall, groupParam, elementType, inputFields, targetType),
-                SqlKind.__Enum.SUM or SqlKind.__Enum.SUM0 => BuildSum(groupParam, elementType, inputFields, argList, targetType),
-                SqlKind.__Enum.MIN => BuildMin(groupParam, elementType, inputFields, argList, targetType),
-                SqlKind.__Enum.MAX => BuildMax(groupParam, elementType, inputFields, argList, targetType),
-                SqlKind.__Enum.AVG => BuildAvg(groupParam, elementType, inputFields, argList, targetType),
+                "COUNT" => BuildCount(aggCall, groupParam, elementType, inputFields, targetType),
+                "SUM" or "SUM0" => BuildSum(groupParam, elementType, inputFields, argList, targetType),
+                "MIN" => BuildMin(groupParam, elementType, inputFields, argList, targetType),
+                "MAX" => BuildMax(groupParam, elementType, inputFields, argList, targetType),
+                "AVG" => BuildAvg(groupParam, elementType, inputFields, argList, targetType),
                 _ => throw new NotImplementedException($"EfCoreGroupBy: aggregate function '{aggCall.getAggregation().getName()}' (kind={kind}) is not yet implemented.")
             };
         }

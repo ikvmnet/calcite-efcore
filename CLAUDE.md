@@ -62,9 +62,12 @@ Sibling checkouts this project depends on:
   Calcite jars on first build; expect minutes, not seconds.
 - Tests are plain xunit on VSTest: `dotnet test src\Apache.Calcite.EntityFrameworkCore.Adapter.Tests`
   works and **`--filter` is honored** (unlike calcite-dotnet, which is on Microsoft.Testing.Platform).
-- Calcite comes in via `MavenReference` at `$(CalciteVersion)` set in `Directory.Build.props`
-  (currently `1.43.0-SNAPSHOT` from the Apache snapshots repository); IKVM.Maven.Sdk resolves it
-  per-project from the repositories in `$(MavenAdditionalRepositories)`.
+- Calcite comes in via `MavenReference` with versions inline in each project file: the shipping
+  projects (provider, Core, Adapter, sample) reference released **1.42.0**; the test projects
+  reference **1.43.0-SNAPSHOT**, which they need for calcite-server DML (the
+  `EnumerableTableModify` rewrite behind the mutable test stores). A test project's own 1.43
+  request wins over the 1.42 arriving transitively from the provider — each project resolves one
+  closure. IKVM.Maven.Sdk resolves from the repositories in `$(MavenAdditionalRepositories)`.
 - `FunctionalTests` is the EF Core relational **specification suite** (~22,000 tests, ~20 minutes).
   It runs **green with skips**: 20,340 pass / 0 fail / ~1,400 skipped as of 2026-08-13 on Calcite
   1.43.0-SNAPSHOT + Apache.Calcite.Data 2.0.0-pre.4. Known-failing tests carry generated

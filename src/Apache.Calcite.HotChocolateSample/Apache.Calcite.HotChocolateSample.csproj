@@ -31,9 +31,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <MavenReference Include="org.apache.calcite:calcite-linq4j" Version="$(CalciteVersion)" />
-        <MavenReference Include="org.apache.calcite:calcite-core" Version="$(CalciteVersion)" />
-        <MavenReference Include="org.apache.calcite:calcite-server" Version="$(CalciteVersion)" />
+        <MavenReference Include="org.apache.calcite:calcite-linq4j" Version="1.42.0" />
+        <MavenReference Include="org.apache.calcite:calcite-core" Version="1.42.0" />
+        <MavenReference Include="org.apache.calcite:calcite-server" Version="1.42.0" />
 		<MavenReference Include="org.jooq:joou-java-6" Version="0.9.5" />
 		<MavenReference Include="org.slf4j:slf4j-simple" Version="2.0.18" />
     </ItemGroup>

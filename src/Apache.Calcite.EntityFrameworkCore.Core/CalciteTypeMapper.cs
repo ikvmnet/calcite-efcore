@@ -81,7 +81,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Core
             if (relDataType.isStruct())
                 return ToClrType(relDataType.getFieldList().AsList<RelDataTypeField>().AsReadOnly());
 
-            var baseType = ToClrType((SqlTypeName.__Enum)relDataType.getSqlTypeName().ordinal()) ?? typeof(object);
+            var baseType = ToClrType(relDataType.getSqlTypeName().name()) ?? typeof(object);
             if (relDataType.isNullable() && baseType.IsValueType)
                 return typeof(Nullable<>).MakeGenericType(baseType);
             else
@@ -101,40 +101,40 @@ namespace Apache.Calcite.EntityFrameworkCore.Core
         /// Returns the CLR type that best represents the given Calcite <see cref="SqlTypeName"/>.
         /// Returns <see langword="null"/> if the type name has no direct CLR counterpart.
         /// </summary>
-        public static Type? ToClrType(SqlTypeName typeName) => ToClrType((SqlTypeName.__Enum)typeName.ordinal());
+        public static Type? ToClrType(SqlTypeName typeName) => ToClrType(typeName.name());
 
         /// <summary>
-        /// Returns the CLR type that best represents the given Calcite <see cref="SqlTypeName.__Enum"/>.
+        /// Returns the CLR type that best represents the given Calcite SQL type name.
         /// Returns <see langword="null"/> if the type name has no direct CLR counterpart.
         /// </summary>
-        public static Type? ToClrType(SqlTypeName.__Enum typeName) => typeName switch
+        public static Type? ToClrType(string typeName) => typeName switch
         {
-            SqlTypeName.__Enum.BOOLEAN => typeof(bool),
-            SqlTypeName.__Enum.TINYINT => typeof(sbyte),
-            SqlTypeName.__Enum.UTINYINT => typeof(byte),
-            SqlTypeName.__Enum.SMALLINT => typeof(short),
-            SqlTypeName.__Enum.USMALLINT => typeof(ushort),
-            SqlTypeName.__Enum.INTEGER => typeof(int),
-            SqlTypeName.__Enum.UINTEGER => typeof(uint),
-            SqlTypeName.__Enum.BIGINT => typeof(long),
-            SqlTypeName.__Enum.UBIGINT => typeof(ulong),
-            SqlTypeName.__Enum.FLOAT or SqlTypeName.__Enum.REAL => typeof(float),
-            SqlTypeName.__Enum.DOUBLE => typeof(double),
-            SqlTypeName.__Enum.DECIMAL => typeof(decimal),
-            SqlTypeName.__Enum.CHAR or SqlTypeName.__Enum.VARCHAR => typeof(string),
-            SqlTypeName.__Enum.BINARY or SqlTypeName.__Enum.VARBINARY => typeof(byte[]),
-            SqlTypeName.__Enum.DATE => typeof(DateOnly),
-            SqlTypeName.__Enum.TIME or SqlTypeName.__Enum.TIME_WITH_LOCAL_TIME_ZONE => typeof(TimeOnly),
-            SqlTypeName.__Enum.TIMESTAMP => typeof(DateTime),
-            SqlTypeName.__Enum.TIMESTAMP_WITH_LOCAL_TIME_ZONE or SqlTypeName.__Enum.TIMESTAMP_TZ => typeof(DateTimeOffset),
-            SqlTypeName.__Enum.INTERVAL_YEAR or SqlTypeName.__Enum.INTERVAL_YEAR_MONTH or
-            SqlTypeName.__Enum.INTERVAL_MONTH or SqlTypeName.__Enum.INTERVAL_DAY or
-            SqlTypeName.__Enum.INTERVAL_DAY_HOUR or SqlTypeName.__Enum.INTERVAL_DAY_MINUTE or
-            SqlTypeName.__Enum.INTERVAL_DAY_SECOND or SqlTypeName.__Enum.INTERVAL_HOUR or
-            SqlTypeName.__Enum.INTERVAL_HOUR_MINUTE or SqlTypeName.__Enum.INTERVAL_HOUR_SECOND or
-            SqlTypeName.__Enum.INTERVAL_MINUTE or SqlTypeName.__Enum.INTERVAL_MINUTE_SECOND or
-            SqlTypeName.__Enum.INTERVAL_SECOND => typeof(TimeSpan),
-            SqlTypeName.__Enum.UUID => typeof(Guid),
+            "BOOLEAN" => typeof(bool),
+            "TINYINT" => typeof(sbyte),
+            "UTINYINT" => typeof(byte),
+            "SMALLINT" => typeof(short),
+            "USMALLINT" => typeof(ushort),
+            "INTEGER" => typeof(int),
+            "UINTEGER" => typeof(uint),
+            "BIGINT" => typeof(long),
+            "UBIGINT" => typeof(ulong),
+            "FLOAT" or "REAL" => typeof(float),
+            "DOUBLE" => typeof(double),
+            "DECIMAL" => typeof(decimal),
+            "CHAR" or "VARCHAR" => typeof(string),
+            "BINARY" or "VARBINARY" => typeof(byte[]),
+            "DATE" => typeof(DateOnly),
+            "TIME" or "TIME_WITH_LOCAL_TIME_ZONE" => typeof(TimeOnly),
+            "TIMESTAMP" => typeof(DateTime),
+            "TIMESTAMP_WITH_LOCAL_TIME_ZONE" or "TIMESTAMP_TZ" => typeof(DateTimeOffset),
+            "INTERVAL_YEAR" or "INTERVAL_YEAR_MONTH" or
+            "INTERVAL_MONTH" or "INTERVAL_DAY" or
+            "INTERVAL_DAY_HOUR" or "INTERVAL_DAY_MINUTE" or
+            "INTERVAL_DAY_SECOND" or "INTERVAL_HOUR" or
+            "INTERVAL_HOUR_MINUTE" or "INTERVAL_HOUR_SECOND" or
+            "INTERVAL_MINUTE" or "INTERVAL_MINUTE_SECOND" or
+            "INTERVAL_SECOND" => typeof(TimeSpan),
+            "UUID" => typeof(Guid),
             _ => null
         };
 

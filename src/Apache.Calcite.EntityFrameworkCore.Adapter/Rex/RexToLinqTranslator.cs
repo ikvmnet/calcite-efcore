@@ -100,291 +100,291 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
                 return ResolveSubQueryType(subQuery, context);
             }
 
-            switch ((SqlKind.__Enum)call.getKind().ordinal())
+            switch (call.getKind().name())
             {
                 // Boolean-returning calls
-                case SqlKind.__Enum.AND:
-                case SqlKind.__Enum.OR:
-                case SqlKind.__Enum.NOT:
-                case SqlKind.__Enum.EQUALS:
-                case SqlKind.__Enum.NOT_EQUALS:
-                case SqlKind.__Enum.LESS_THAN:
-                case SqlKind.__Enum.LESS_THAN_OR_EQUAL:
-                case SqlKind.__Enum.GREATER_THAN:
-                case SqlKind.__Enum.GREATER_THAN_OR_EQUAL:
-                case SqlKind.__Enum.IS_NULL:
-                case SqlKind.__Enum.IS_NOT_NULL:
-                case SqlKind.__Enum.IS_TRUE:
-                case SqlKind.__Enum.IS_FALSE:
-                case SqlKind.__Enum.IS_NOT_TRUE:
-                case SqlKind.__Enum.IS_NOT_FALSE:
-                case SqlKind.__Enum.IS_UNKNOWN:
-                case SqlKind.__Enum.IS_DISTINCT_FROM:
-                case SqlKind.__Enum.IS_NOT_DISTINCT_FROM:
-                case SqlKind.__Enum.IN:
-                case SqlKind.__Enum.NOT_IN:
-                case SqlKind.__Enum.DRUID_IN:
-                case SqlKind.__Enum.DRUID_NOT_IN:
-                case SqlKind.__Enum.LIKE:
-                case SqlKind.__Enum.RLIKE:
-                case SqlKind.__Enum.SIMILAR:
-                case SqlKind.__Enum.POSIX_REGEX_CASE_SENSITIVE:
-                case SqlKind.__Enum.POSIX_REGEX_CASE_INSENSITIVE:
-                case SqlKind.__Enum.BETWEEN:
-                case SqlKind.__Enum.DRUID_BETWEEN:
-                case SqlKind.__Enum.OVERLAPS:
-                case SqlKind.__Enum.CONTAINS:
-                case SqlKind.__Enum.PRECEDES:
-                case SqlKind.__Enum.IMMEDIATELY_PRECEDES:
-                case SqlKind.__Enum.SUCCEEDS:
-                case SqlKind.__Enum.IMMEDIATELY_SUCCEEDS:
-                case SqlKind.__Enum.PERIOD_EQUALS:
-                case SqlKind.__Enum.EXISTS:
-                case SqlKind.__Enum.SOME:
-                case SqlKind.__Enum.ALL:
-                case SqlKind.__Enum.SEARCH:
+                case "AND":
+                case "OR":
+                case "NOT":
+                case "EQUALS":
+                case "NOT_EQUALS":
+                case "LESS_THAN":
+                case "LESS_THAN_OR_EQUAL":
+                case "GREATER_THAN":
+                case "GREATER_THAN_OR_EQUAL":
+                case "IS_NULL":
+                case "IS_NOT_NULL":
+                case "IS_TRUE":
+                case "IS_FALSE":
+                case "IS_NOT_TRUE":
+                case "IS_NOT_FALSE":
+                case "IS_UNKNOWN":
+                case "IS_DISTINCT_FROM":
+                case "IS_NOT_DISTINCT_FROM":
+                case "IN":
+                case "NOT_IN":
+                case "DRUID_IN":
+                case "DRUID_NOT_IN":
+                case "LIKE":
+                case "RLIKE":
+                case "SIMILAR":
+                case "POSIX_REGEX_CASE_SENSITIVE":
+                case "POSIX_REGEX_CASE_INSENSITIVE":
+                case "BETWEEN":
+                case "DRUID_BETWEEN":
+                case "OVERLAPS":
+                case "CONTAINS":
+                case "PRECEDES":
+                case "IMMEDIATELY_PRECEDES":
+                case "SUCCEEDS":
+                case "IMMEDIATELY_SUCCEEDS":
+                case "PERIOD_EQUALS":
+                case "EXISTS":
+                case "SOME":
+                case "ALL":
+                case "SEARCH":
                     return typeof(bool);
                 // Arithmetic calls: result type matches the dominant operand type
-                case SqlKind.__Enum.PLUS:
-                case SqlKind.__Enum.MINUS:
-                case SqlKind.__Enum.TIMES:
-                case SqlKind.__Enum.DIVIDE:
-                case SqlKind.__Enum.MOD:
-                case SqlKind.__Enum.CHECKED_PLUS:
-                case SqlKind.__Enum.CHECKED_MINUS:
-                case SqlKind.__Enum.CHECKED_TIMES:
-                case SqlKind.__Enum.CHECKED_DIVIDE:
-                case SqlKind.__Enum.PLUS_PREFIX:
-                case SqlKind.__Enum.MINUS_PREFIX:
-                case SqlKind.__Enum.CHECKED_MINUS_PREFIX:
+                case "PLUS":
+                case "MINUS":
+                case "TIMES":
+                case "DIVIDE":
+                case "MOD":
+                case "CHECKED_PLUS":
+                case "CHECKED_MINUS":
+                case "CHECKED_TIMES":
+                case "CHECKED_DIVIDE":
+                case "PLUS_PREFIX":
+                case "MINUS_PREFIX":
+                case "CHECKED_MINUS_PREFIX":
                     return ResolveType((RexNode)call.getOperands().get(0), context);
                 // Dispatch through function binding table
-                case SqlKind.__Enum.OTHER_FUNCTION:
+                case "OTHER_FUNCTION":
                     return ResolveOtherFunctionType(call, context);
                 // These call kinds can appear as RexCall; their CLR type is read from Calcite's declared return type.
-                case SqlKind.__Enum.OTHER:
-                case SqlKind.__Enum.CONVERT:
-                case SqlKind.__Enum.CONVERT_ORACLE:
-                case SqlKind.__Enum.TRANSLATE:
-                case SqlKind.__Enum.POSITION:
-                case SqlKind.__Enum.ITEM:
-                case SqlKind.__Enum.MEASURE:
-                case SqlKind.__Enum.V2M:
-                case SqlKind.__Enum.M2V:
-                case SqlKind.__Enum.M2X:
-                case SqlKind.__Enum.AGG_M2M:
-                case SqlKind.__Enum.AGG_M2V:
-                case SqlKind.__Enum.SAME_PARTITION:
-                case SqlKind.__Enum.ARGUMENT_ASSIGNMENT:
-                case SqlKind.__Enum.DEFAULT:
-                case SqlKind.__Enum.RESPECT_NULLS:
-                case SqlKind.__Enum.IGNORE_NULLS:
-                case SqlKind.__Enum.FILTER:
-                case SqlKind.__Enum.WITHIN_GROUP:
-                case SqlKind.__Enum.WITHIN_DISTINCT:
-                case SqlKind.__Enum.SNAPSHOT:
-                case SqlKind.__Enum.PATTERN_ALTER:
-                case SqlKind.__Enum.PATTERN_CONCAT:
-                case SqlKind.__Enum.DOT:
-                case SqlKind.__Enum.INTERVAL:
-                case SqlKind.__Enum.SEPARATOR:
-                case SqlKind.__Enum.DECODE:
-                case SqlKind.__Enum.NVL:
-                case SqlKind.__Enum.NVL2:
-                case SqlKind.__Enum.GREATEST:
-                case SqlKind.__Enum.GREATEST_PG:
-                case SqlKind.__Enum.CONCAT2:
-                case SqlKind.__Enum.CONCAT_WITH_NULL:
-                case SqlKind.__Enum.CONCAT_WS_MSSQL:
-                case SqlKind.__Enum.CONCAT_WS_POSTGRESQL:
-                case SqlKind.__Enum.CONCAT_WS_SPARK:
-                case SqlKind.__Enum.IF:
-                case SqlKind.__Enum.LEAST:
-                case SqlKind.__Enum.LEAST_PG:
-                case SqlKind.__Enum.LOG:
-                case SqlKind.__Enum.DATE_ADD:
-                case SqlKind.__Enum.ADD_MONTHS:
-                case SqlKind.__Enum.DATE_TRUNC:
-                case SqlKind.__Enum.DATE_SUB:
-                case SqlKind.__Enum.TIME_ADD:
-                case SqlKind.__Enum.TIME_SUB:
-                case SqlKind.__Enum.TIMESTAMP_ADD:
-                case SqlKind.__Enum.TIMESTAMP_DIFF:
-                case SqlKind.__Enum.TIMESTAMP_SUB:
-                case SqlKind.__Enum.PROCEDURE_CALL:
-                case SqlKind.__Enum.NEW_SPECIFICATION:
-                case SqlKind.__Enum.FINAL:
-                case SqlKind.__Enum.RUNNING:
-                case SqlKind.__Enum.PREV:
-                case SqlKind.__Enum.NEXT:
-                case SqlKind.__Enum.FIRST:
-                case SqlKind.__Enum.LAST:
-                case SqlKind.__Enum.CLASSIFIER:
-                case SqlKind.__Enum.MATCH_NUMBER:
-                case SqlKind.__Enum.SKIP_TO_FIRST:
-                case SqlKind.__Enum.SKIP_TO_LAST:
-                case SqlKind.__Enum.CAST_NOT_NULL:
-                case SqlKind.__Enum.PATTERN_QUANTIFIER:
-                case SqlKind.__Enum.NEXT_VALUE:
-                case SqlKind.__Enum.CURRENT_VALUE:
-                case SqlKind.__Enum.FLOOR:
-                case SqlKind.__Enum.CEIL:
-                case SqlKind.__Enum.TRIM:
-                case SqlKind.__Enum.LTRIM:
-                case SqlKind.__Enum.RTRIM:
-                case SqlKind.__Enum.EXTRACT:
-                case SqlKind.__Enum.ARRAY_APPEND:
-                case SqlKind.__Enum.ARRAY_COMPACT:
-                case SqlKind.__Enum.ARRAY_CONCAT:
-                case SqlKind.__Enum.ARRAY_CONTAINS:
-                case SqlKind.__Enum.ARRAY_DISTINCT:
-                case SqlKind.__Enum.ARRAY_EXCEPT:
-                case SqlKind.__Enum.ARRAY_INSERT:
-                case SqlKind.__Enum.ARRAY_INTERSECT:
-                case SqlKind.__Enum.ARRAY_JOIN:
-                case SqlKind.__Enum.ARRAY_LENGTH:
-                case SqlKind.__Enum.ARRAY_MAX:
-                case SqlKind.__Enum.ARRAY_MIN:
-                case SqlKind.__Enum.ARRAY_POSITION:
-                case SqlKind.__Enum.ARRAY_PREPEND:
-                case SqlKind.__Enum.ARRAY_REMOVE:
-                case SqlKind.__Enum.ARRAY_REPEAT:
-                case SqlKind.__Enum.ARRAY_REVERSE:
-                case SqlKind.__Enum.ARRAY_SIZE:
-                case SqlKind.__Enum.ARRAY_SLICE:
-                case SqlKind.__Enum.ARRAY_TO_STRING:
-                case SqlKind.__Enum.ARRAY_UNION:
-                case SqlKind.__Enum.ARRAYS_OVERLAP:
-                case SqlKind.__Enum.ARRAYS_ZIP:
-                case SqlKind.__Enum.SORT_ARRAY:
-                case SqlKind.__Enum.MAP_CONCAT:
-                case SqlKind.__Enum.MAP_ENTRIES:
-                case SqlKind.__Enum.MAP_KEYS:
-                case SqlKind.__Enum.MAP_VALUES:
-                case SqlKind.__Enum.MAP_CONTAINS_KEY:
-                case SqlKind.__Enum.MAP_FROM_ARRAYS:
-                case SqlKind.__Enum.MAP_FROM_ENTRIES:
-                case SqlKind.__Enum.STR_TO_MAP:
-                case SqlKind.__Enum.SUBSTRING_INDEX:
-                case SqlKind.__Enum.REVERSE:
-                case SqlKind.__Enum.REVERSE_SPARK:
-                case SqlKind.__Enum.SOUNDEX_SPARK:
-                case SqlKind.__Enum.SUBSTR_BIG_QUERY:
-                case SqlKind.__Enum.SUBSTR_MYSQL:
-                case SqlKind.__Enum.SUBSTR_ORACLE:
-                case SqlKind.__Enum.SUBSTR_POSTGRESQL:
-                case SqlKind.__Enum.CHAR_LENGTH:
-                case SqlKind.__Enum.ENDS_WITH:
-                case SqlKind.__Enum.STARTS_WITH:
-                case SqlKind.__Enum.STRING_TO_ARRAY:
-                case SqlKind.__Enum.JDBC_FN:
-                case SqlKind.__Enum.MULTISET_VALUE_CONSTRUCTOR:
-                case SqlKind.__Enum.MULTISET_QUERY_CONSTRUCTOR:
-                case SqlKind.__Enum.JSON_VALUE_EXPRESSION:
-                case SqlKind.__Enum.JSON_ARRAYAGG:
-                case SqlKind.__Enum.JSON_OBJECTAGG:
-                case SqlKind.__Enum.JSON_TYPE:
-                case SqlKind.__Enum.UNNEST:
-                case SqlKind.__Enum.LATERAL:
-                case SqlKind.__Enum.COLLECTION_TABLE:
-                case SqlKind.__Enum.ARRAY_VALUE_CONSTRUCTOR:
-                case SqlKind.__Enum.ARRAY_QUERY_CONSTRUCTOR:
-                case SqlKind.__Enum.MAP_VALUE_CONSTRUCTOR:
-                case SqlKind.__Enum.MAP_QUERY_CONSTRUCTOR:
-                case SqlKind.__Enum.CURSOR:
-                case SqlKind.__Enum.CONTAINS_SUBSTR:
-                case SqlKind.__Enum.LITERAL_AGG:
-                case SqlKind.__Enum.LITERAL_CHAIN:
-                case SqlKind.__Enum.ESCAPE:
-                case SqlKind.__Enum.REINTERPRET:
-                case SqlKind.__Enum.EXTEND:
-                case SqlKind.__Enum.CUBE:
-                case SqlKind.__Enum.ROLLUP:
-                case SqlKind.__Enum.GROUPING_SETS:
-                case SqlKind.__Enum.GROUPING:
-                case SqlKind.__Enum.GROUPING_ID:
-                case SqlKind.__Enum.GROUP_ID:
-                case SqlKind.__Enum.PATTERN_PERMUTE:
-                case SqlKind.__Enum.PATTERN_EXCLUDED:
-                case SqlKind.__Enum.COUNT:
-                case SqlKind.__Enum.SUM:
-                case SqlKind.__Enum.SUM0:
-                case SqlKind.__Enum.MIN:
-                case SqlKind.__Enum.MAX:
-                case SqlKind.__Enum.LEAD:
-                case SqlKind.__Enum.LAG:
-                case SqlKind.__Enum.FIRST_VALUE:
-                case SqlKind.__Enum.LAST_VALUE:
-                case SqlKind.__Enum.ANY_VALUE:
-                case SqlKind.__Enum.COVAR_POP:
-                case SqlKind.__Enum.COVAR_SAMP:
-                case SqlKind.__Enum.REGR_COUNT:
-                case SqlKind.__Enum.REGR_SXX:
-                case SqlKind.__Enum.REGR_SYY:
-                case SqlKind.__Enum.AVG:
-                case SqlKind.__Enum.STDDEV_POP:
-                case SqlKind.__Enum.STDDEV_SAMP:
-                case SqlKind.__Enum.VAR_POP:
-                case SqlKind.__Enum.VAR_SAMP:
-                case SqlKind.__Enum.NTILE:
-                case SqlKind.__Enum.NTH_VALUE:
-                case SqlKind.__Enum.LISTAGG:
-                case SqlKind.__Enum.STRING_AGG:
-                case SqlKind.__Enum.COUNTIF:
-                case SqlKind.__Enum.ARRAY_AGG:
-                case SqlKind.__Enum.ARRAY_CONCAT_AGG:
-                case SqlKind.__Enum.GROUP_CONCAT:
-                case SqlKind.__Enum.COLLECT:
-                case SqlKind.__Enum.MODE:
-                case SqlKind.__Enum.ARG_MAX:
-                case SqlKind.__Enum.ARG_MIN:
-                case SqlKind.__Enum.PERCENTILE_CONT:
-                case SqlKind.__Enum.PERCENTILE_DISC:
-                case SqlKind.__Enum.FUSION:
-                case SqlKind.__Enum.INTERSECTION:
-                case SqlKind.__Enum.SINGLE_VALUE:
-                case SqlKind.__Enum.AGGREGATE_FN:
-                case SqlKind.__Enum.BITAND:
-                case SqlKind.__Enum.BITOR:
-                case SqlKind.__Enum.BITXOR:
-                case SqlKind.__Enum.BITNOT:
-                case SqlKind.__Enum.BIT_AND:
-                case SqlKind.__Enum.BIT_OR:
-                case SqlKind.__Enum.BIT_XOR:
-                case SqlKind.__Enum.ROW_NUMBER:
-                case SqlKind.__Enum.RANK:
-                case SqlKind.__Enum.PERCENT_RANK:
-                case SqlKind.__Enum.DENSE_RANK:
-                case SqlKind.__Enum.CUME_DIST:
-                case SqlKind.__Enum.DESCRIPTOR:
-                case SqlKind.__Enum.TUMBLE:
-                case SqlKind.__Enum.TUMBLE_START:
-                case SqlKind.__Enum.TUMBLE_END:
-                case SqlKind.__Enum.HOP:
-                case SqlKind.__Enum.HOP_START:
-                case SqlKind.__Enum.HOP_END:
-                case SqlKind.__Enum.SESSION:
-                case SqlKind.__Enum.SESSION_START:
-                case SqlKind.__Enum.SESSION_END:
-                case SqlKind.__Enum.ST_DWITHIN:
-                case SqlKind.__Enum.ST_POINT:
-                case SqlKind.__Enum.ST_POINT3:
-                case SqlKind.__Enum.ST_MAKE_LINE:
-                case SqlKind.__Enum.ST_CONTAINS:
-                case SqlKind.__Enum.HILBERT:
+                case "OTHER":
+                case "CONVERT":
+                case "CONVERT_ORACLE":
+                case "TRANSLATE":
+                case "POSITION":
+                case "ITEM":
+                case "MEASURE":
+                case "V2M":
+                case "M2V":
+                case "M2X":
+                case "AGG_M2M":
+                case "AGG_M2V":
+                case "SAME_PARTITION":
+                case "ARGUMENT_ASSIGNMENT":
+                case "DEFAULT":
+                case "RESPECT_NULLS":
+                case "IGNORE_NULLS":
+                case "FILTER":
+                case "WITHIN_GROUP":
+                case "WITHIN_DISTINCT":
+                case "SNAPSHOT":
+                case "PATTERN_ALTER":
+                case "PATTERN_CONCAT":
+                case "DOT":
+                case "INTERVAL":
+                case "SEPARATOR":
+                case "DECODE":
+                case "NVL":
+                case "NVL2":
+                case "GREATEST":
+                case "GREATEST_PG":
+                case "CONCAT2":
+                case "CONCAT_WITH_NULL":
+                case "CONCAT_WS_MSSQL":
+                case "CONCAT_WS_POSTGRESQL":
+                case "CONCAT_WS_SPARK":
+                case "IF":
+                case "LEAST":
+                case "LEAST_PG":
+                case "LOG":
+                case "DATE_ADD":
+                case "ADD_MONTHS":
+                case "DATE_TRUNC":
+                case "DATE_SUB":
+                case "TIME_ADD":
+                case "TIME_SUB":
+                case "TIMESTAMP_ADD":
+                case "TIMESTAMP_DIFF":
+                case "TIMESTAMP_SUB":
+                case "PROCEDURE_CALL":
+                case "NEW_SPECIFICATION":
+                case "FINAL":
+                case "RUNNING":
+                case "PREV":
+                case "NEXT":
+                case "FIRST":
+                case "LAST":
+                case "CLASSIFIER":
+                case "MATCH_NUMBER":
+                case "SKIP_TO_FIRST":
+                case "SKIP_TO_LAST":
+                case "CAST_NOT_NULL":
+                case "PATTERN_QUANTIFIER":
+                case "NEXT_VALUE":
+                case "CURRENT_VALUE":
+                case "FLOOR":
+                case "CEIL":
+                case "TRIM":
+                case "LTRIM":
+                case "RTRIM":
+                case "EXTRACT":
+                case "ARRAY_APPEND":
+                case "ARRAY_COMPACT":
+                case "ARRAY_CONCAT":
+                case "ARRAY_CONTAINS":
+                case "ARRAY_DISTINCT":
+                case "ARRAY_EXCEPT":
+                case "ARRAY_INSERT":
+                case "ARRAY_INTERSECT":
+                case "ARRAY_JOIN":
+                case "ARRAY_LENGTH":
+                case "ARRAY_MAX":
+                case "ARRAY_MIN":
+                case "ARRAY_POSITION":
+                case "ARRAY_PREPEND":
+                case "ARRAY_REMOVE":
+                case "ARRAY_REPEAT":
+                case "ARRAY_REVERSE":
+                case "ARRAY_SIZE":
+                case "ARRAY_SLICE":
+                case "ARRAY_TO_STRING":
+                case "ARRAY_UNION":
+                case "ARRAYS_OVERLAP":
+                case "ARRAYS_ZIP":
+                case "SORT_ARRAY":
+                case "MAP_CONCAT":
+                case "MAP_ENTRIES":
+                case "MAP_KEYS":
+                case "MAP_VALUES":
+                case "MAP_CONTAINS_KEY":
+                case "MAP_FROM_ARRAYS":
+                case "MAP_FROM_ENTRIES":
+                case "STR_TO_MAP":
+                case "SUBSTRING_INDEX":
+                case "REVERSE":
+                case "REVERSE_SPARK":
+                case "SOUNDEX_SPARK":
+                case "SUBSTR_BIG_QUERY":
+                case "SUBSTR_MYSQL":
+                case "SUBSTR_ORACLE":
+                case "SUBSTR_POSTGRESQL":
+                case "CHAR_LENGTH":
+                case "ENDS_WITH":
+                case "STARTS_WITH":
+                case "STRING_TO_ARRAY":
+                case "JDBC_FN":
+                case "MULTISET_VALUE_CONSTRUCTOR":
+                case "MULTISET_QUERY_CONSTRUCTOR":
+                case "JSON_VALUE_EXPRESSION":
+                case "JSON_ARRAYAGG":
+                case "JSON_OBJECTAGG":
+                case "JSON_TYPE":
+                case "UNNEST":
+                case "LATERAL":
+                case "COLLECTION_TABLE":
+                case "ARRAY_VALUE_CONSTRUCTOR":
+                case "ARRAY_QUERY_CONSTRUCTOR":
+                case "MAP_VALUE_CONSTRUCTOR":
+                case "MAP_QUERY_CONSTRUCTOR":
+                case "CURSOR":
+                case "CONTAINS_SUBSTR":
+                case "LITERAL_AGG":
+                case "LITERAL_CHAIN":
+                case "ESCAPE":
+                case "REINTERPRET":
+                case "EXTEND":
+                case "CUBE":
+                case "ROLLUP":
+                case "GROUPING_SETS":
+                case "GROUPING":
+                case "GROUPING_ID":
+                case "GROUP_ID":
+                case "PATTERN_PERMUTE":
+                case "PATTERN_EXCLUDED":
+                case "COUNT":
+                case "SUM":
+                case "SUM0":
+                case "MIN":
+                case "MAX":
+                case "LEAD":
+                case "LAG":
+                case "FIRST_VALUE":
+                case "LAST_VALUE":
+                case "ANY_VALUE":
+                case "COVAR_POP":
+                case "COVAR_SAMP":
+                case "REGR_COUNT":
+                case "REGR_SXX":
+                case "REGR_SYY":
+                case "AVG":
+                case "STDDEV_POP":
+                case "STDDEV_SAMP":
+                case "VAR_POP":
+                case "VAR_SAMP":
+                case "NTILE":
+                case "NTH_VALUE":
+                case "LISTAGG":
+                case "STRING_AGG":
+                case "COUNTIF":
+                case "ARRAY_AGG":
+                case "ARRAY_CONCAT_AGG":
+                case "GROUP_CONCAT":
+                case "COLLECT":
+                case "MODE":
+                case "ARG_MAX":
+                case "ARG_MIN":
+                case "PERCENTILE_CONT":
+                case "PERCENTILE_DISC":
+                case "FUSION":
+                case "INTERSECTION":
+                case "SINGLE_VALUE":
+                case "AGGREGATE_FN":
+                case "BITAND":
+                case "BITOR":
+                case "BITXOR":
+                case "BITNOT":
+                case "BIT_AND":
+                case "BIT_OR":
+                case "BIT_XOR":
+                case "ROW_NUMBER":
+                case "RANK":
+                case "PERCENT_RANK":
+                case "DENSE_RANK":
+                case "CUME_DIST":
+                case "DESCRIPTOR":
+                case "TUMBLE":
+                case "TUMBLE_START":
+                case "TUMBLE_END":
+                case "HOP":
+                case "HOP_START":
+                case "HOP_END":
+                case "SESSION":
+                case "SESSION_START":
+                case "SESSION_END":
+                case "ST_DWITHIN":
+                case "ST_POINT":
+                case "ST_POINT3":
+                case "ST_MAKE_LINE":
+                case "ST_CONTAINS":
+                case "HILBERT":
                     return ResolveDeclaredType(call);
-                case SqlKind.__Enum.CASE:
+                case "CASE":
                     return ResolveDeclaredType(call);
                 // These can appear as RexCall but require special type handling not yet implemented.
-                case SqlKind.__Enum.OVER:
-                case SqlKind.__Enum.SCALAR_QUERY:
-                case SqlKind.__Enum.LAMBDA:
-                case SqlKind.__Enum.ROW:
-                case SqlKind.__Enum.COLUMN_LIST:
-                case SqlKind.__Enum.SAFE_CAST:
-                    throw new NotImplementedException($"RexToLinqTranslator: CLR type resolution for RexCall kind '{(SqlKind.__Enum)call.getKind().ordinal()}' is not yet implemented.");
+                case "OVER":
+                case "SCALAR_QUERY":
+                case "LAMBDA":
+                case "ROW":
+                case "COLUMN_LIST":
+                case "SAFE_CAST":
+                    throw new NotImplementedException($"RexToLinqTranslator: CLR type resolution for RexCall kind '{call.getKind().name()}' is not yet implemented.");
                 default:
-                    throw new InvalidOperationException($"RexToLinqTranslator: SqlKind '{(SqlKind.__Enum)call.getKind().ordinal()}' cannot appear on a RexCall.");
+                    throw new InvalidOperationException($"RexToLinqTranslator: SqlKind '{call.getKind().name()}' cannot appear on a RexCall.");
             }
         }
 
@@ -482,7 +482,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
             if (literal.isNull())
                 return CalciteTypeMapper.ToClrType(literal.getType());
 
-            var sqlTypeName = (SqlTypeName.__Enum)literal.getType().getSqlTypeName().ordinal();
+            var sqlTypeName = literal.getType().getSqlTypeName().name();
             return CalciteTypeMapper.ToClrType(sqlTypeName) ?? typeof(object);
         }
 
@@ -535,94 +535,94 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// </summary>
         protected virtual bool CanTranslateCall(RexCall call, RelDataType inputRowType)
         {
-            switch ((SqlKind.__Enum)call.getKind().ordinal())
+            switch (call.getKind().name())
             {
                 // SEARCH(ref, Sarg) — expanded to OR/range form; valid iff the first operand (the column ref) is translatable
-                case SqlKind.__Enum.SEARCH:
+                case "SEARCH":
                     return CanTranslate((RexNode)call.getOperands().get(0), inputRowType);
 
                 // Logical — operands must be boolean; Coerce handles mismatches so any translatable operands are fine
-                case SqlKind.__Enum.AND:
-                case SqlKind.__Enum.OR:
-                case SqlKind.__Enum.NOT:
+                case "AND":
+                case "OR":
+                case "NOT":
                 // Comparisons — Coerce handles type widening; any translatable operand pair is fine
-                case SqlKind.__Enum.EQUALS:
-                case SqlKind.__Enum.NOT_EQUALS:
-                case SqlKind.__Enum.LESS_THAN:
-                case SqlKind.__Enum.LESS_THAN_OR_EQUAL:
-                case SqlKind.__Enum.GREATER_THAN:
-                case SqlKind.__Enum.GREATER_THAN_OR_EQUAL:
+                case "EQUALS":
+                case "NOT_EQUALS":
+                case "LESS_THAN":
+                case "LESS_THAN_OR_EQUAL":
+                case "GREATER_THAN":
+                case "GREATER_THAN_OR_EQUAL":
                 // Null / boolean tests — single operand, any type
-                case SqlKind.__Enum.IS_NULL:
-                case SqlKind.__Enum.IS_NOT_NULL:
-                case SqlKind.__Enum.IS_TRUE:
-                case SqlKind.__Enum.IS_NOT_TRUE:
-                case SqlKind.__Enum.IS_FALSE:
-                case SqlKind.__Enum.IS_NOT_FALSE:
-                case SqlKind.__Enum.IS_UNKNOWN:
+                case "IS_NULL":
+                case "IS_NOT_NULL":
+                case "IS_TRUE":
+                case "IS_NOT_TRUE":
+                case "IS_FALSE":
+                case "IS_NOT_FALSE":
+                case "IS_UNKNOWN":
                 // Range — Coerce handles widening
-                case SqlKind.__Enum.BETWEEN:
-                case SqlKind.__Enum.DRUID_BETWEEN:
+                case "BETWEEN":
+                case "DRUID_BETWEEN":
                 // Conditional / null-handling — any translatable operands
-                case SqlKind.__Enum.IF:
-                case SqlKind.__Enum.NVL:
-                case SqlKind.__Enum.NVL2:
-                case SqlKind.__Enum.NULLIF:
-                case SqlKind.__Enum.COALESCE:
-                case SqlKind.__Enum.CASE:
+                case "IF":
+                case "NVL":
+                case "NVL2":
+                case "NULLIF":
+                case "COALESCE":
+                case "CASE":
                     return CanTranslateOperands(call, inputRowType);
 
                 // Arithmetic — operands must be numeric (non-string, non-date)
-                case SqlKind.__Enum.PLUS:
-                case SqlKind.__Enum.MINUS:
-                case SqlKind.__Enum.TIMES:
-                case SqlKind.__Enum.DIVIDE:
-                case SqlKind.__Enum.MOD:
-                case SqlKind.__Enum.CHECKED_PLUS:
-                case SqlKind.__Enum.CHECKED_MINUS:
-                case SqlKind.__Enum.CHECKED_TIMES:
-                case SqlKind.__Enum.CHECKED_DIVIDE:
-                case SqlKind.__Enum.PLUS_PREFIX:
-                case SqlKind.__Enum.MINUS_PREFIX:
-                case SqlKind.__Enum.CHECKED_MINUS_PREFIX:
+                case "PLUS":
+                case "MINUS":
+                case "TIMES":
+                case "DIVIDE":
+                case "MOD":
+                case "CHECKED_PLUS":
+                case "CHECKED_MINUS":
+                case "CHECKED_TIMES":
+                case "CHECKED_DIVIDE":
+                case "PLUS_PREFIX":
+                case "MINUS_PREFIX":
+                case "CHECKED_MINUS_PREFIX":
                     return CanTranslateOperands(call, inputRowType) && CanTranslateArithmeticOperands(call);
 
                 // Bitwise — operands must be integral
-                case SqlKind.__Enum.BITAND:
-                case SqlKind.__Enum.BIT_AND:
-                case SqlKind.__Enum.BITOR:
-                case SqlKind.__Enum.BIT_OR:
-                case SqlKind.__Enum.BITXOR:
-                case SqlKind.__Enum.BIT_XOR:
-                case SqlKind.__Enum.BITNOT:
+                case "BITAND":
+                case "BIT_AND":
+                case "BITOR":
+                case "BIT_OR":
+                case "BITXOR":
+                case "BIT_XOR":
+                case "BITNOT":
                     return CanTranslateOperands(call, inputRowType) && CanTranslateBitwiseOperands(call);
 
                 // String ops — operands must be string-typed
-                case SqlKind.__Enum.CONCAT2:
-                case SqlKind.__Enum.CONCAT_WITH_NULL:
-                case SqlKind.__Enum.LTRIM:
-                case SqlKind.__Enum.RTRIM:
-                case SqlKind.__Enum.ENDS_WITH:
-                case SqlKind.__Enum.STARTS_WITH:
-                case SqlKind.__Enum.CONTAINS_SUBSTR:
+                case "CONCAT2":
+                case "CONCAT_WITH_NULL":
+                case "LTRIM":
+                case "RTRIM":
+                case "ENDS_WITH":
+                case "STARTS_WITH":
+                case "CONTAINS_SUBSTR":
                     return CanTranslateOperands(call, inputRowType) && CanTranslateStringOperands(call);
 
-                case SqlKind.__Enum.OTHER:
+                case "OTHER":
                     return call.op.getName() == "||"
                         && CanTranslateOperands(call, inputRowType)
                         && CanTranslateStringOperands(call);
 
                 // CAST — validate source/target type combination mirrors TranslateCast logic
-                case SqlKind.__Enum.CAST:
+                case "CAST":
                     return CanTranslateOperands(call, inputRowType) && CanTranslateCast(call);
 
                 // Operator-table dispatch — check the operator is registered and operands are translatable
-                case SqlKind.__Enum.OTHER_FUNCTION:
-                case SqlKind.__Enum.FLOOR:
-                case SqlKind.__Enum.CEIL:
-                case SqlKind.__Enum.CHAR_LENGTH:
-                case SqlKind.__Enum.POSITION:
-                case SqlKind.__Enum.TRIM:
+                case "OTHER_FUNCTION":
+                case "FLOOR":
+                case "CEIL":
+                case "CHAR_LENGTH":
+                case "POSITION":
+                case "TRIM":
                     return operatorTranslations.TryGet(call, out _) && CanTranslateOperands(call, inputRowType);
 
                 default:
@@ -766,329 +766,329 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
                 return TranslateSubQuery(subQuery, context);
             }
 
-            switch ((SqlKind.__Enum)call.getKind().ordinal())
+            switch (call.getKind().name())
             {
                 // SEARCH(ref, Sarg) — translate directly from the embedded RangeSet
-                case SqlKind.__Enum.SEARCH:
+                case "SEARCH":
                     return TranslateSearch(call, context);
                 // Logical operators
-                case SqlKind.__Enum.AND:
+                case "AND":
                     return TranslateAnd(call, context);
-                case SqlKind.__Enum.OR:
+                case "OR":
                     return TranslateOr(call, context);
-                case SqlKind.__Enum.NOT:
+                case "NOT":
                     return TranslateNot(call, context);
                 // Comparison operators
-                case SqlKind.__Enum.EQUALS:
+                case "EQUALS":
                     return TranslateEquals(call, context);
-                case SqlKind.__Enum.NOT_EQUALS:
+                case "NOT_EQUALS":
                     return TranslateNotEquals(call, context);
-                case SqlKind.__Enum.LESS_THAN:
+                case "LESS_THAN":
                     return TranslateLessThan(call, context);
-                case SqlKind.__Enum.LESS_THAN_OR_EQUAL:
+                case "LESS_THAN_OR_EQUAL":
                     return TranslateLessThanOrEqual(call, context);
-                case SqlKind.__Enum.GREATER_THAN:
+                case "GREATER_THAN":
                     return TranslateGreaterThan(call, context);
-                case SqlKind.__Enum.GREATER_THAN_OR_EQUAL:
+                case "GREATER_THAN_OR_EQUAL":
                     return TranslateGreaterThanOrEqual(call, context);
                 // Null tests
-                case SqlKind.__Enum.IS_NULL:
+                case "IS_NULL":
                     return TranslateIsNull(call, context);
-                case SqlKind.__Enum.IS_NOT_NULL:
+                case "IS_NOT_NULL":
                     return TranslateIsNotNull(call, context);
-                case SqlKind.__Enum.IS_TRUE:
+                case "IS_TRUE":
                     return TranslateIsTrue(call, context);
-                case SqlKind.__Enum.IS_NOT_TRUE:
+                case "IS_NOT_TRUE":
                     return TranslateIsNotTrue(call, context);
-                case SqlKind.__Enum.IS_FALSE:
+                case "IS_FALSE":
                     return TranslateIsFalse(call, context);
-                case SqlKind.__Enum.IS_NOT_FALSE:
+                case "IS_NOT_FALSE":
                     return TranslateIsNotFalse(call, context);
-                case SqlKind.__Enum.IS_UNKNOWN:
+                case "IS_UNKNOWN":
                     return TranslateIsUnknown(call, context);
-                case SqlKind.__Enum.BETWEEN:
-                case SqlKind.__Enum.DRUID_BETWEEN:
+                case "BETWEEN":
+                case "DRUID_BETWEEN":
                     return TranslateBetween(call, context);
                 // Arithmetic operators
-                case SqlKind.__Enum.PLUS:
+                case "PLUS":
                     return TranslateBinaryArithmetic(call, context, Expression.Add);
-                case SqlKind.__Enum.MINUS:
+                case "MINUS":
                     return TranslateBinaryArithmetic(call, context, Expression.Subtract);
-                case SqlKind.__Enum.TIMES:
+                case "TIMES":
                     return TranslateBinaryArithmetic(call, context, Expression.Multiply);
-                case SqlKind.__Enum.DIVIDE:
+                case "DIVIDE":
                     return TranslateBinaryArithmetic(call, context, Expression.Divide);
-                case SqlKind.__Enum.MOD:
+                case "MOD":
                     return TranslateBinaryArithmetic(call, context, Expression.Modulo);
-                case SqlKind.__Enum.CHECKED_PLUS:
+                case "CHECKED_PLUS":
                     return TranslateBinaryArithmetic(call, context, Expression.AddChecked);
-                case SqlKind.__Enum.CHECKED_MINUS:
+                case "CHECKED_MINUS":
                     return TranslateBinaryArithmetic(call, context, Expression.SubtractChecked);
-                case SqlKind.__Enum.CHECKED_TIMES:
+                case "CHECKED_TIMES":
                     return TranslateBinaryArithmetic(call, context, Expression.MultiplyChecked);
-                case SqlKind.__Enum.CHECKED_DIVIDE:
+                case "CHECKED_DIVIDE":
                     return TranslateBinaryArithmetic(call, context, Expression.Divide);
-                case SqlKind.__Enum.PLUS_PREFIX:
+                case "PLUS_PREFIX":
                     return TranslateUnaryPlus(call, context);
-                case SqlKind.__Enum.MINUS_PREFIX:
+                case "MINUS_PREFIX":
                     return TranslateNegate(call, context);
-                case SqlKind.__Enum.CHECKED_MINUS_PREFIX:
+                case "CHECKED_MINUS_PREFIX":
                     return TranslateCheckedNegate(call, context);
                 // Dispatch through function binding table
-                case SqlKind.__Enum.OTHER_FUNCTION:
-                case SqlKind.__Enum.FLOOR:
-                case SqlKind.__Enum.CEIL:
-                case SqlKind.__Enum.CHAR_LENGTH:
-                case SqlKind.__Enum.POSITION:
-                case SqlKind.__Enum.TRIM:
+                case "OTHER_FUNCTION":
+                case "FLOOR":
+                case "CEIL":
+                case "CHAR_LENGTH":
+                case "POSITION":
+                case "TRIM":
                     return TranslateOtherFunction(call, context);
                 // Conditional / null-handling functions
-                case SqlKind.__Enum.IF:
+                case "IF":
                     return TranslateIf(call, context);
-                case SqlKind.__Enum.NVL:
+                case "NVL":
                     return TranslateNvl(call, context);
-                case SqlKind.__Enum.NVL2:
+                case "NVL2":
                     return TranslateNvl2(call, context);
-                case SqlKind.__Enum.NULLIF:
+                case "NULLIF":
                     return TranslateNullIf(call, context);
-                case SqlKind.__Enum.COALESCE:
+                case "COALESCE":
                     return TranslateCoalesce(call, context);
-                case SqlKind.__Enum.CAST:
+                case "CAST":
                     return TranslateCast(call, context);
                 // Bitwise operators
-                case SqlKind.__Enum.BITAND:
-                case SqlKind.__Enum.BIT_AND:
+                case "BITAND":
+                case "BIT_AND":
                     return TranslateBitwiseAnd(call, context);
-                case SqlKind.__Enum.BITOR:
-                case SqlKind.__Enum.BIT_OR:
+                case "BITOR":
+                case "BIT_OR":
                     return TranslateBitwiseOr(call, context);
-                case SqlKind.__Enum.BITXOR:
-                case SqlKind.__Enum.BIT_XOR:
+                case "BITXOR":
+                case "BIT_XOR":
                     return TranslateBitwiseXor(call, context);
-                case SqlKind.__Enum.BITNOT:
+                case "BITNOT":
                     return TranslateBitwiseNot(call, context);
                 // String functions
-                case SqlKind.__Enum.CONCAT2:
-                case SqlKind.__Enum.CONCAT_WITH_NULL:
+                case "CONCAT2":
+                case "CONCAT_WITH_NULL":
                     return TranslateConcat2(call, context);
-                case SqlKind.__Enum.LTRIM:
+                case "LTRIM":
                     return TranslateLTrim(call, context);
-                case SqlKind.__Enum.RTRIM:
+                case "RTRIM":
                     return TranslateRTrim(call, context);
-                case SqlKind.__Enum.ENDS_WITH:
+                case "ENDS_WITH":
                     return TranslateEndsWith(call, context);
-                case SqlKind.__Enum.STARTS_WITH:
+                case "STARTS_WITH":
                     return TranslateStartsWith(call, context);
-                case SqlKind.__Enum.CONTAINS_SUBSTR:
+                case "CONTAINS_SUBSTR":
                     return TranslateContainsSubstr(call, context);
                 // SqlKind.OTHER is used by Calcite for the standard || string-concatenation operator.
                 // Dispatch by operator name; fall through to not-implemented for unknown OTHER operators.
-                case SqlKind.__Enum.OTHER:
+                case "OTHER":
                     if (call.op.getName() == "||")
                         return TranslateConcat2(call, context);
                     throw new NotImplementedException($"RexToLinqTranslator: translation for RexCall kind 'OTHER' (operator '{call.op.getName()}') is not yet implemented.");
                 // These call kinds can appear as RexCall but translation is not yet implemented.
-                case SqlKind.__Enum.CONVERT:
-                case SqlKind.__Enum.CONVERT_ORACLE:
-                case SqlKind.__Enum.TRANSLATE:
-                case SqlKind.__Enum.ITEM:
-                case SqlKind.__Enum.MEASURE:
-                case SqlKind.__Enum.V2M:
-                case SqlKind.__Enum.M2V:
-                case SqlKind.__Enum.M2X:
-                case SqlKind.__Enum.AGG_M2M:
-                case SqlKind.__Enum.AGG_M2V:
-                case SqlKind.__Enum.SAME_PARTITION:
-                case SqlKind.__Enum.ARGUMENT_ASSIGNMENT:
-                case SqlKind.__Enum.DEFAULT:
-                case SqlKind.__Enum.RESPECT_NULLS:
-                case SqlKind.__Enum.IGNORE_NULLS:
-                case SqlKind.__Enum.FILTER:
-                case SqlKind.__Enum.WITHIN_GROUP:
-                case SqlKind.__Enum.WITHIN_DISTINCT:
-                case SqlKind.__Enum.SNAPSHOT:
-                case SqlKind.__Enum.PATTERN_ALTER:
-                case SqlKind.__Enum.PATTERN_CONCAT:
-                case SqlKind.__Enum.DOT:
-                case SqlKind.__Enum.INTERVAL:
-                case SqlKind.__Enum.SEPARATOR:
-                case SqlKind.__Enum.DECODE:
-                case SqlKind.__Enum.REVERSE:
-                case SqlKind.__Enum.GREATEST:
-                case SqlKind.__Enum.GREATEST_PG:
-                case SqlKind.__Enum.CONCAT_WS_MSSQL:
-                case SqlKind.__Enum.CONCAT_WS_POSTGRESQL:
-                case SqlKind.__Enum.CONCAT_WS_SPARK:
-                case SqlKind.__Enum.LEAST:
-                case SqlKind.__Enum.LEAST_PG:
-                case SqlKind.__Enum.LOG:
-                case SqlKind.__Enum.DATE_ADD:
-                case SqlKind.__Enum.ADD_MONTHS:
-                case SqlKind.__Enum.DATE_TRUNC:
-                case SqlKind.__Enum.DATE_SUB:
-                case SqlKind.__Enum.TIME_ADD:
-                case SqlKind.__Enum.TIME_SUB:
-                case SqlKind.__Enum.TIMESTAMP_ADD:
-                case SqlKind.__Enum.TIMESTAMP_DIFF:
-                case SqlKind.__Enum.TIMESTAMP_SUB:
-                case SqlKind.__Enum.PROCEDURE_CALL:
-                case SqlKind.__Enum.NEW_SPECIFICATION:
-                case SqlKind.__Enum.FINAL:
-                case SqlKind.__Enum.RUNNING:
-                case SqlKind.__Enum.PREV:
-                case SqlKind.__Enum.NEXT:
-                case SqlKind.__Enum.FIRST:
-                case SqlKind.__Enum.LAST:
-                case SqlKind.__Enum.CLASSIFIER:
-                case SqlKind.__Enum.MATCH_NUMBER:
-                case SqlKind.__Enum.SKIP_TO_FIRST:
-                case SqlKind.__Enum.SKIP_TO_LAST:
-                case SqlKind.__Enum.CAST_NOT_NULL:
-                case SqlKind.__Enum.PATTERN_QUANTIFIER:
-                case SqlKind.__Enum.NEXT_VALUE:
-                case SqlKind.__Enum.CURRENT_VALUE:
-                case SqlKind.__Enum.EXTRACT:
-                case SqlKind.__Enum.ARRAY_APPEND:
-                case SqlKind.__Enum.ARRAY_COMPACT:
-                case SqlKind.__Enum.ARRAY_CONCAT:
-                case SqlKind.__Enum.ARRAY_CONTAINS:
-                case SqlKind.__Enum.ARRAY_DISTINCT:
-                case SqlKind.__Enum.ARRAY_EXCEPT:
-                case SqlKind.__Enum.ARRAY_INSERT:
-                case SqlKind.__Enum.ARRAY_INTERSECT:
-                case SqlKind.__Enum.ARRAY_JOIN:
-                case SqlKind.__Enum.ARRAY_LENGTH:
-                case SqlKind.__Enum.ARRAY_MAX:
-                case SqlKind.__Enum.ARRAY_MIN:
-                case SqlKind.__Enum.ARRAY_POSITION:
-                case SqlKind.__Enum.ARRAY_PREPEND:
-                case SqlKind.__Enum.ARRAY_REMOVE:
-                case SqlKind.__Enum.ARRAY_REPEAT:
-                case SqlKind.__Enum.ARRAY_REVERSE:
-                case SqlKind.__Enum.ARRAY_SIZE:
-                case SqlKind.__Enum.ARRAY_SLICE:
-                case SqlKind.__Enum.ARRAY_TO_STRING:
-                case SqlKind.__Enum.ARRAY_UNION:
-                case SqlKind.__Enum.ARRAYS_OVERLAP:
-                case SqlKind.__Enum.ARRAYS_ZIP:
-                case SqlKind.__Enum.SORT_ARRAY:
-                case SqlKind.__Enum.MAP_CONCAT:
-                case SqlKind.__Enum.MAP_ENTRIES:
-                case SqlKind.__Enum.MAP_KEYS:
-                case SqlKind.__Enum.MAP_VALUES:
-                case SqlKind.__Enum.MAP_CONTAINS_KEY:
-                case SqlKind.__Enum.MAP_FROM_ARRAYS:
-                case SqlKind.__Enum.MAP_FROM_ENTRIES:
-                case SqlKind.__Enum.STR_TO_MAP:
-                case SqlKind.__Enum.SUBSTRING_INDEX:
-                case SqlKind.__Enum.REVERSE_SPARK:
-                case SqlKind.__Enum.SOUNDEX_SPARK:
-                case SqlKind.__Enum.SUBSTR_BIG_QUERY:
-                case SqlKind.__Enum.SUBSTR_MYSQL:
-                case SqlKind.__Enum.SUBSTR_ORACLE:
-                case SqlKind.__Enum.SUBSTR_POSTGRESQL:
-                case SqlKind.__Enum.STRING_TO_ARRAY:
-                case SqlKind.__Enum.JDBC_FN:
-                case SqlKind.__Enum.MULTISET_VALUE_CONSTRUCTOR:
-                case SqlKind.__Enum.MULTISET_QUERY_CONSTRUCTOR:
-                case SqlKind.__Enum.JSON_VALUE_EXPRESSION:
-                case SqlKind.__Enum.JSON_ARRAYAGG:
-                case SqlKind.__Enum.JSON_OBJECTAGG:
-                case SqlKind.__Enum.JSON_TYPE:
-                case SqlKind.__Enum.UNNEST:
-                case SqlKind.__Enum.LATERAL:
-                case SqlKind.__Enum.COLLECTION_TABLE:
-                case SqlKind.__Enum.ARRAY_VALUE_CONSTRUCTOR:
-                case SqlKind.__Enum.ARRAY_QUERY_CONSTRUCTOR:
-                case SqlKind.__Enum.MAP_VALUE_CONSTRUCTOR:
-                case SqlKind.__Enum.MAP_QUERY_CONSTRUCTOR:
-                case SqlKind.__Enum.CURSOR:
-                case SqlKind.__Enum.LITERAL_AGG:
-                case SqlKind.__Enum.LITERAL_CHAIN:
-                case SqlKind.__Enum.ESCAPE:
-                case SqlKind.__Enum.REINTERPRET:
-                case SqlKind.__Enum.EXTEND:
-                case SqlKind.__Enum.CUBE:
-                case SqlKind.__Enum.ROLLUP:
-                case SqlKind.__Enum.GROUPING_SETS:
-                case SqlKind.__Enum.GROUPING:
-                case SqlKind.__Enum.GROUPING_ID:
-                case SqlKind.__Enum.GROUP_ID:
-                case SqlKind.__Enum.PATTERN_PERMUTE:
-                case SqlKind.__Enum.PATTERN_EXCLUDED:
-                case SqlKind.__Enum.COUNT:
-                case SqlKind.__Enum.SUM:
-                case SqlKind.__Enum.SUM0:
-                case SqlKind.__Enum.MIN:
-                case SqlKind.__Enum.MAX:
-                case SqlKind.__Enum.LEAD:
-                case SqlKind.__Enum.LAG:
-                case SqlKind.__Enum.FIRST_VALUE:
-                case SqlKind.__Enum.LAST_VALUE:
-                case SqlKind.__Enum.ANY_VALUE:
-                case SqlKind.__Enum.COVAR_POP:
-                case SqlKind.__Enum.COVAR_SAMP:
-                case SqlKind.__Enum.REGR_COUNT:
-                case SqlKind.__Enum.REGR_SXX:
-                case SqlKind.__Enum.REGR_SYY:
-                case SqlKind.__Enum.AVG:
-                case SqlKind.__Enum.STDDEV_POP:
-                case SqlKind.__Enum.STDDEV_SAMP:
-                case SqlKind.__Enum.VAR_POP:
-                case SqlKind.__Enum.VAR_SAMP:
-                case SqlKind.__Enum.NTILE:
-                case SqlKind.__Enum.NTH_VALUE:
-                case SqlKind.__Enum.LISTAGG:
-                case SqlKind.__Enum.STRING_AGG:
-                case SqlKind.__Enum.COUNTIF:
-                case SqlKind.__Enum.ARRAY_AGG:
-                case SqlKind.__Enum.ARRAY_CONCAT_AGG:
-                case SqlKind.__Enum.GROUP_CONCAT:
-                case SqlKind.__Enum.COLLECT:
-                case SqlKind.__Enum.MODE:
-                case SqlKind.__Enum.ARG_MAX:
-                case SqlKind.__Enum.ARG_MIN:
-                case SqlKind.__Enum.PERCENTILE_CONT:
-                case SqlKind.__Enum.PERCENTILE_DISC:
-                case SqlKind.__Enum.FUSION:
-                case SqlKind.__Enum.INTERSECTION:
-                case SqlKind.__Enum.SINGLE_VALUE:
-                case SqlKind.__Enum.AGGREGATE_FN:
-                case SqlKind.__Enum.ROW_NUMBER:
-                case SqlKind.__Enum.RANK:
-                case SqlKind.__Enum.PERCENT_RANK:
-                case SqlKind.__Enum.DENSE_RANK:
-                case SqlKind.__Enum.CUME_DIST:
-                case SqlKind.__Enum.DESCRIPTOR:
-                case SqlKind.__Enum.TUMBLE:
-                case SqlKind.__Enum.TUMBLE_START:
-                case SqlKind.__Enum.TUMBLE_END:
-                case SqlKind.__Enum.HOP:
-                case SqlKind.__Enum.HOP_START:
-                case SqlKind.__Enum.HOP_END:
-                case SqlKind.__Enum.SESSION:
-                case SqlKind.__Enum.SESSION_START:
-                case SqlKind.__Enum.SESSION_END:
-                case SqlKind.__Enum.ST_DWITHIN:
-                case SqlKind.__Enum.ST_POINT:
-                case SqlKind.__Enum.ST_POINT3:
-                case SqlKind.__Enum.ST_MAKE_LINE:
-                case SqlKind.__Enum.ST_CONTAINS:
-                case SqlKind.__Enum.HILBERT:
-                    throw new NotImplementedException($"RexToLinqTranslator: translation for RexCall kind '{(SqlKind.__Enum)call.getKind().ordinal()}' is not yet implemented.");
+                case "CONVERT":
+                case "CONVERT_ORACLE":
+                case "TRANSLATE":
+                case "ITEM":
+                case "MEASURE":
+                case "V2M":
+                case "M2V":
+                case "M2X":
+                case "AGG_M2M":
+                case "AGG_M2V":
+                case "SAME_PARTITION":
+                case "ARGUMENT_ASSIGNMENT":
+                case "DEFAULT":
+                case "RESPECT_NULLS":
+                case "IGNORE_NULLS":
+                case "FILTER":
+                case "WITHIN_GROUP":
+                case "WITHIN_DISTINCT":
+                case "SNAPSHOT":
+                case "PATTERN_ALTER":
+                case "PATTERN_CONCAT":
+                case "DOT":
+                case "INTERVAL":
+                case "SEPARATOR":
+                case "DECODE":
+                case "REVERSE":
+                case "GREATEST":
+                case "GREATEST_PG":
+                case "CONCAT_WS_MSSQL":
+                case "CONCAT_WS_POSTGRESQL":
+                case "CONCAT_WS_SPARK":
+                case "LEAST":
+                case "LEAST_PG":
+                case "LOG":
+                case "DATE_ADD":
+                case "ADD_MONTHS":
+                case "DATE_TRUNC":
+                case "DATE_SUB":
+                case "TIME_ADD":
+                case "TIME_SUB":
+                case "TIMESTAMP_ADD":
+                case "TIMESTAMP_DIFF":
+                case "TIMESTAMP_SUB":
+                case "PROCEDURE_CALL":
+                case "NEW_SPECIFICATION":
+                case "FINAL":
+                case "RUNNING":
+                case "PREV":
+                case "NEXT":
+                case "FIRST":
+                case "LAST":
+                case "CLASSIFIER":
+                case "MATCH_NUMBER":
+                case "SKIP_TO_FIRST":
+                case "SKIP_TO_LAST":
+                case "CAST_NOT_NULL":
+                case "PATTERN_QUANTIFIER":
+                case "NEXT_VALUE":
+                case "CURRENT_VALUE":
+                case "EXTRACT":
+                case "ARRAY_APPEND":
+                case "ARRAY_COMPACT":
+                case "ARRAY_CONCAT":
+                case "ARRAY_CONTAINS":
+                case "ARRAY_DISTINCT":
+                case "ARRAY_EXCEPT":
+                case "ARRAY_INSERT":
+                case "ARRAY_INTERSECT":
+                case "ARRAY_JOIN":
+                case "ARRAY_LENGTH":
+                case "ARRAY_MAX":
+                case "ARRAY_MIN":
+                case "ARRAY_POSITION":
+                case "ARRAY_PREPEND":
+                case "ARRAY_REMOVE":
+                case "ARRAY_REPEAT":
+                case "ARRAY_REVERSE":
+                case "ARRAY_SIZE":
+                case "ARRAY_SLICE":
+                case "ARRAY_TO_STRING":
+                case "ARRAY_UNION":
+                case "ARRAYS_OVERLAP":
+                case "ARRAYS_ZIP":
+                case "SORT_ARRAY":
+                case "MAP_CONCAT":
+                case "MAP_ENTRIES":
+                case "MAP_KEYS":
+                case "MAP_VALUES":
+                case "MAP_CONTAINS_KEY":
+                case "MAP_FROM_ARRAYS":
+                case "MAP_FROM_ENTRIES":
+                case "STR_TO_MAP":
+                case "SUBSTRING_INDEX":
+                case "REVERSE_SPARK":
+                case "SOUNDEX_SPARK":
+                case "SUBSTR_BIG_QUERY":
+                case "SUBSTR_MYSQL":
+                case "SUBSTR_ORACLE":
+                case "SUBSTR_POSTGRESQL":
+                case "STRING_TO_ARRAY":
+                case "JDBC_FN":
+                case "MULTISET_VALUE_CONSTRUCTOR":
+                case "MULTISET_QUERY_CONSTRUCTOR":
+                case "JSON_VALUE_EXPRESSION":
+                case "JSON_ARRAYAGG":
+                case "JSON_OBJECTAGG":
+                case "JSON_TYPE":
+                case "UNNEST":
+                case "LATERAL":
+                case "COLLECTION_TABLE":
+                case "ARRAY_VALUE_CONSTRUCTOR":
+                case "ARRAY_QUERY_CONSTRUCTOR":
+                case "MAP_VALUE_CONSTRUCTOR":
+                case "MAP_QUERY_CONSTRUCTOR":
+                case "CURSOR":
+                case "LITERAL_AGG":
+                case "LITERAL_CHAIN":
+                case "ESCAPE":
+                case "REINTERPRET":
+                case "EXTEND":
+                case "CUBE":
+                case "ROLLUP":
+                case "GROUPING_SETS":
+                case "GROUPING":
+                case "GROUPING_ID":
+                case "GROUP_ID":
+                case "PATTERN_PERMUTE":
+                case "PATTERN_EXCLUDED":
+                case "COUNT":
+                case "SUM":
+                case "SUM0":
+                case "MIN":
+                case "MAX":
+                case "LEAD":
+                case "LAG":
+                case "FIRST_VALUE":
+                case "LAST_VALUE":
+                case "ANY_VALUE":
+                case "COVAR_POP":
+                case "COVAR_SAMP":
+                case "REGR_COUNT":
+                case "REGR_SXX":
+                case "REGR_SYY":
+                case "AVG":
+                case "STDDEV_POP":
+                case "STDDEV_SAMP":
+                case "VAR_POP":
+                case "VAR_SAMP":
+                case "NTILE":
+                case "NTH_VALUE":
+                case "LISTAGG":
+                case "STRING_AGG":
+                case "COUNTIF":
+                case "ARRAY_AGG":
+                case "ARRAY_CONCAT_AGG":
+                case "GROUP_CONCAT":
+                case "COLLECT":
+                case "MODE":
+                case "ARG_MAX":
+                case "ARG_MIN":
+                case "PERCENTILE_CONT":
+                case "PERCENTILE_DISC":
+                case "FUSION":
+                case "INTERSECTION":
+                case "SINGLE_VALUE":
+                case "AGGREGATE_FN":
+                case "ROW_NUMBER":
+                case "RANK":
+                case "PERCENT_RANK":
+                case "DENSE_RANK":
+                case "CUME_DIST":
+                case "DESCRIPTOR":
+                case "TUMBLE":
+                case "TUMBLE_START":
+                case "TUMBLE_END":
+                case "HOP":
+                case "HOP_START":
+                case "HOP_END":
+                case "SESSION":
+                case "SESSION_START":
+                case "SESSION_END":
+                case "ST_DWITHIN":
+                case "ST_POINT":
+                case "ST_POINT3":
+                case "ST_MAKE_LINE":
+                case "ST_CONTAINS":
+                case "HILBERT":
+                    throw new NotImplementedException($"RexToLinqTranslator: translation for RexCall kind '{call.getKind().name()}' is not yet implemented.");
                 // These can appear as RexCall but require special translation handling not yet implemented.
-                case SqlKind.__Enum.CASE:
+                case "CASE":
                     return TranslateCase(call, context);
-                case SqlKind.__Enum.OVER:
-                case SqlKind.__Enum.SCALAR_QUERY:
-                case SqlKind.__Enum.LAMBDA:
-                case SqlKind.__Enum.ROW:
-                case SqlKind.__Enum.COLUMN_LIST:
-                case SqlKind.__Enum.SAFE_CAST:
-                    throw new NotImplementedException($"RexToLinqTranslator: translation for RexCall kind '{(SqlKind.__Enum)call.getKind().ordinal()}' is not yet implemented.");
+                case "OVER":
+                case "SCALAR_QUERY":
+                case "LAMBDA":
+                case "ROW":
+                case "COLUMN_LIST":
+                case "SAFE_CAST":
+                    throw new NotImplementedException($"RexToLinqTranslator: translation for RexCall kind '{call.getKind().name()}' is not yet implemented.");
                 // These kinds represent query structure, DDL/DML statements, or non-RexCall Rex node types and cannot appear on a RexCall.
                 default:
-                    throw new NotSupportedException($"RexToLinqTranslator: unsupported RexCall kind '{(SqlKind.__Enum)call.getKind().ordinal()}'.");
+                    throw new NotSupportedException($"RexToLinqTranslator: unsupported RexCall kind '{call.getKind().name()}'.");
             }
         }
 
@@ -1256,18 +1256,18 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
             var refOperandType = refOperand.getType();
             var sargLiteral = (RexLiteral)operands.get(1);
             var sarg = (Sarg)sargLiteral.getValue();
-            var nullAs = (RexUnknownAs.__Enum)sarg.nullAs.ordinal();
+            var nullAs = sarg.nullAs.name();
 
             if (sarg.isNone())
-                return nullAs == RexUnknownAs.__Enum.TRUE ? Expression.Equal(refExpr, Expression.Default(refExpr.Type)) : Expression.Constant(false);
+                return nullAs == "TRUE" ? Expression.Equal(refExpr, Expression.Default(refExpr.Type)) : Expression.Constant(false);
 
             if (sarg.isAll())
-                return nullAs == RexUnknownAs.__Enum.FALSE ? Expression.NotEqual(refExpr, Expression.Default(refExpr.Type)) : Expression.Constant(true);
+                return nullAs == "FALSE" ? Expression.NotEqual(refExpr, Expression.Default(refExpr.Type)) : Expression.Constant(true);
 
             var orFragments = new System.Collections.Generic.List<Expression>();
 
             // NULL AS TRUE: prepend an IS-NULL branch
-            if (nullAs == RexUnknownAs.__Enum.TRUE)
+            if (nullAs == "TRUE")
                 orFragments.Add(Expression.Equal(refExpr, Expression.Default(refExpr.Type)));
 
             var rangesIterator = sarg.rangeSet.asRanges().iterator();
@@ -1766,7 +1766,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
             if (isNull)
                 return Expression.Default(CalciteTypeMapper.ToClrType(type));
 
-            var sqlTypeName = (SqlTypeName.__Enum)type.getSqlTypeName().ordinal();
+            var sqlTypeName = type.getSqlTypeName().name();
 
             return value switch
             {
@@ -1813,10 +1813,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// a <see cref="DateTime"/> (UTC) constant for plain <c>TIMESTAMP</c>.
         /// <see cref="org.apache.calcite.util.TimestampString.getMillisSinceEpoch"/> gives milliseconds since Unix epoch.
         /// </summary>
-        static ConstantExpression TranslateTimestampString(org.apache.calcite.util.TimestampString tss, SqlTypeName.__Enum sqlTypeName)
+        static ConstantExpression TranslateTimestampString(org.apache.calcite.util.TimestampString tss, string sqlTypeName)
         {
             var epochMs = tss.getMillisSinceEpoch();
-            if (sqlTypeName == SqlTypeName.__Enum.TIMESTAMP_WITH_LOCAL_TIME_ZONE)
+            if (sqlTypeName == "TIMESTAMP_WITH_LOCAL_TIME_ZONE")
                 return Expression.Constant(DateTimeOffset.FromUnixTimeMilliseconds(epochMs), typeof(DateTimeOffset));
             return Expression.Constant(DateTimeOffset.FromUnixTimeMilliseconds(epochMs).UtcDateTime, typeof(DateTime));
         }
@@ -1849,20 +1849,20 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// has a non-zero fractional part or overflows the target type, ensuring no silent data loss.
         /// Signed/unsigned reinterpretation uses unchecked casts, preserving the full bit pattern.
         /// </summary>
-        static ConstantExpression TranslateBigDecimal(java.math.BigDecimal bd, SqlTypeName.__Enum sqlTypeName)
+        static ConstantExpression TranslateBigDecimal(java.math.BigDecimal bd, string sqlTypeName)
         {
             return sqlTypeName switch
             {
-                SqlTypeName.__Enum.TINYINT => Expression.Constant((sbyte)bd.byteValueExact(), typeof(sbyte)),
-                SqlTypeName.__Enum.UTINYINT => Expression.Constant(bd.byteValueExact(), typeof(byte)),
-                SqlTypeName.__Enum.SMALLINT => Expression.Constant(bd.shortValueExact(), typeof(short)),
-                SqlTypeName.__Enum.USMALLINT => Expression.Constant((ushort)bd.shortValueExact(), typeof(ushort)),
-                SqlTypeName.__Enum.INTEGER => Expression.Constant(bd.intValueExact(), typeof(int)),
-                SqlTypeName.__Enum.UINTEGER => Expression.Constant((uint)bd.intValueExact(), typeof(uint)),
-                SqlTypeName.__Enum.BIGINT => Expression.Constant(bd.longValueExact(), typeof(long)),
-                SqlTypeName.__Enum.UBIGINT => Expression.Constant((ulong)bd.longValueExact(), typeof(ulong)),
-                SqlTypeName.__Enum.FLOAT or SqlTypeName.__Enum.REAL => Expression.Constant(bd.floatValue(), typeof(float)),
-                SqlTypeName.__Enum.DOUBLE => Expression.Constant(bd.doubleValue(), typeof(double)),
+                "TINYINT" => Expression.Constant((sbyte)bd.byteValueExact(), typeof(sbyte)),
+                "UTINYINT" => Expression.Constant(bd.byteValueExact(), typeof(byte)),
+                "SMALLINT" => Expression.Constant(bd.shortValueExact(), typeof(short)),
+                "USMALLINT" => Expression.Constant((ushort)bd.shortValueExact(), typeof(ushort)),
+                "INTEGER" => Expression.Constant(bd.intValueExact(), typeof(int)),
+                "UINTEGER" => Expression.Constant((uint)bd.intValueExact(), typeof(uint)),
+                "BIGINT" => Expression.Constant(bd.longValueExact(), typeof(long)),
+                "UBIGINT" => Expression.Constant((ulong)bd.longValueExact(), typeof(ulong)),
+                "FLOAT" or "REAL" => Expression.Constant(bd.floatValue(), typeof(float)),
+                "DOUBLE" => Expression.Constant(bd.doubleValue(), typeof(double)),
                 _ => Expression.Constant(BigDecimalConverter.ToDecimal(bd), typeof(decimal))
             };
         }
@@ -1882,7 +1882,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <paramref name="sqlTypeName"/> is forwarded to <see cref="TranslateBigDecimal"/> so that
         /// integer SQL types produce the correct CLR integer constant rather than <see cref="decimal"/>.
         /// </summary>
-        static ConstantExpression TranslateNumber(java.lang.Number n, SqlTypeName.__Enum sqlTypeName)
+        static ConstantExpression TranslateNumber(java.lang.Number n, string sqlTypeName)
         {
             return n switch
             {
