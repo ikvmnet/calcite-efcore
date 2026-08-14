@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class MaterializationInterceptionCalciteTest(NonSharedFixture fixture) :
+public partial class MaterializationInterceptionCalciteTest(NonSharedFixture fixture) :
     MaterializationInterceptionTestBase<MaterializationInterceptionCalciteTest.CalciteLibraryContext>(fixture)
 {
 

@@ -9,7 +9,7 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class ConvertToProviderTypesCalciteTest : ConvertToProviderTypesTestBase<ConvertToProviderTypesCalciteTest.ConvertToProviderTypesCalciteFixture>
+public partial class ConvertToProviderTypesCalciteTest : ConvertToProviderTypesTestBase<ConvertToProviderTypesCalciteTest.ConvertToProviderTypesCalciteFixture>
 {
 
     public ConvertToProviderTypesCalciteTest(ConvertToProviderTypesCalciteFixture fixture, ITestOutputHelper testOutputHelper) :

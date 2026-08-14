@@ -7,7 +7,7 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query;
 
-public class FunkyDataQueryCalciteTest : FunkyDataQueryTestBase<FunkyDataQueryCalciteTest.FunkyDataQueryCalciteFixture>
+public partial class FunkyDataQueryCalciteTest : FunkyDataQueryTestBase<FunkyDataQueryCalciteTest.FunkyDataQueryCalciteFixture>
 {
     public FunkyDataQueryCalciteTest(FunkyDataQueryCalciteFixture fixture, ITestOutputHelper testOutputHelper) :
         base(fixture)

@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class TwoDatabasesCalciteTest(TwoDatabasesCalciteTest.TwoDatabasesFixture fixture) :
+public partial class TwoDatabasesCalciteTest(TwoDatabasesCalciteTest.TwoDatabasesFixture fixture) :
     TwoDatabasesTestBase(fixture),
     IClassFixture<TwoDatabasesCalciteTest.TwoDatabasesFixture>
 {

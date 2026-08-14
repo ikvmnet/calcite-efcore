@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class CustomConvertersCalciteTest : CustomConvertersTestBase<CustomConvertersCalciteTest.CustomConvertersCalciteFixture>
+public partial class CustomConvertersCalciteTest : CustomConvertersTestBase<CustomConvertersCalciteTest.CustomConvertersCalciteFixture>
 {
 
     public CustomConvertersCalciteTest(CustomConvertersCalciteFixture fixture) :

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query
 {
 
-    public class AdHocNavigationsQueryCalciteTest : AdHocNavigationsQueryRelationalTestBase
+    public partial class AdHocNavigationsQueryCalciteTest : AdHocNavigationsQueryRelationalTestBase
     {
 
         public AdHocNavigationsQueryCalciteTest(NonSharedFixture fixture) : base(fixture)

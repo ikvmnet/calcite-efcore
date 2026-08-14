@@ -9,7 +9,7 @@ using Xunit.Abstractions;
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query
 {
 
-    public class AdHocPrecompiledQueryCalciteTest : AdHocPrecompiledQueryRelationalTestBase
+    public partial class AdHocPrecompiledQueryCalciteTest : AdHocPrecompiledQueryRelationalTestBase
     {
 
         public AdHocPrecompiledQueryCalciteTest(NonSharedFixture fixture, ITestOutputHelper testOutputHelper) :

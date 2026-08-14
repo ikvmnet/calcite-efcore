@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.BulkUpdates;
 
-public class NonSharedModelBulkUpdatesCalciteTest(NonSharedFixture fixture) : NonSharedModelBulkUpdatesRelationalTestBase(fixture)
+public partial class NonSharedModelBulkUpdatesCalciteTest(NonSharedFixture fixture) : NonSharedModelBulkUpdatesRelationalTestBase(fixture)
 {
 
     protected override ITestStoreFactory TestStoreFactory => CalciteTestStoreFactory.Instance;

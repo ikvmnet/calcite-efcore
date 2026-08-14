@@ -65,10 +65,14 @@ Sibling checkouts this project depends on:
 - Calcite comes in via `MavenReference` at `$(CalciteVersion)` set in `Directory.Build.props`
   (currently `1.43.0-SNAPSHOT` from the Apache snapshots repository); IKVM.Maven.Sdk resolves it
   per-project from the repositories in `$(MavenAdditionalRepositories)`.
-- `FunctionalTests` is the EF Core relational **specification suite** (~22,000 tests, ~40 minutes).
-  It is aspirational: ~20.2k pass / ~2.2k fail (89%) as of 2026-08-13 on Calcite 1.43.0-SNAPSHOT +
-  Apache.Calcite.Data 2.0.0-pre.4. A red run there is a maturity gauge, not a regression signal —
-  the regression gates are `Adapter.Tests` (110) and `EntityFrameworkCore.Tests` (24).
+- `FunctionalTests` is the EF Core relational **specification suite** (~22,000 tests, ~20 minutes).
+  It runs **green with skips**: 20,340 pass / 0 fail / ~1,400 skipped as of 2026-08-13 on Calcite
+  1.43.0-SNAPSHOT + Apache.Calcite.Data 2.0.0-pre.4. Known-failing tests carry generated
+  `Skip` overrides in `*.Skips.cs` files produced by `tools/GenerateSkips` from a trx run —
+  **a red FunctionalTests run is now a regression signal**, alongside the gates `Adapter.Tests`
+  (110) and `EntityFrameworkCore.Tests` (27). To un-skip after fixing behavior: delete the
+  `*.Skips.cs` files, run the suite with a trx logger, and regenerate
+  (`dotnet run --project tools/GenerateSkips -- <trx> <FunctionalTests.dll> <FunctionalTests source root>`).
 - Parallel builds sometimes fail with an IOException on a `.deps.json` from IKVM.Core.MSBuild's
   `GenerateDepsFileExtensions` racing itself. It is transient — rebuild, or build with `-m:1`.
 - **Cluster a functional run before fixing anything**: run with

@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query
 {
 
-    public class NorthwindDbFunctionsQueryCalciteTest : NorthwindDbFunctionsQueryTestBase<NorthwindQueryCalciteFixture<NoopModelCustomizer>>
+    public partial class NorthwindDbFunctionsQueryCalciteTest : NorthwindDbFunctionsQueryTestBase<NorthwindQueryCalciteFixture<NoopModelCustomizer>>
     {
 
         /// <summary>

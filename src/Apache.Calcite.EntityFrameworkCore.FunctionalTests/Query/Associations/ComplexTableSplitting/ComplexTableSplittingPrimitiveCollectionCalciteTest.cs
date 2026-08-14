@@ -4,6 +4,6 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query.Associations.ComplexTableSplitting;
 
-public class ComplexTableSplittingPrimitiveCollectionCalciteTest(ComplexTableSplittingCalciteFixture fixture, ITestOutputHelper testOutputHelper) :
+public partial class ComplexTableSplittingPrimitiveCollectionCalciteTest(ComplexTableSplittingCalciteFixture fixture, ITestOutputHelper testOutputHelper) :
     ComplexTableSplittingPrimitiveCollectionRelationalTestBase<ComplexTableSplittingCalciteFixture>(fixture, testOutputHelper);
 

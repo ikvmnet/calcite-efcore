@@ -4,6 +4,6 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query.Associations.OwnedJson;
 
-public class OwnedJsonPrimitiveCollectionCalciteTest(OwnedJsonCalciteFixture fixture, ITestOutputHelper testOutputHelper) :
+public partial class OwnedJsonPrimitiveCollectionCalciteTest(OwnedJsonCalciteFixture fixture, ITestOutputHelper testOutputHelper) :
     OwnedJsonPrimitiveCollectionRelationalTestBase<OwnedJsonCalciteFixture>(fixture, testOutputHelper);
 

@@ -4,7 +4,7 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query.Translations.Temporal;
 
-public class DateTimeTranslationsCalciteTest : DateTimeTranslationsTestBase<BasicTypesQueryCalciteFixture>
+public partial class DateTimeTranslationsCalciteTest : DateTimeTranslationsTestBase<BasicTypesQueryCalciteFixture>
 {
 
     public DateTimeTranslationsCalciteTest(BasicTypesQueryCalciteFixture fixture, ITestOutputHelper testOutputHelper) :

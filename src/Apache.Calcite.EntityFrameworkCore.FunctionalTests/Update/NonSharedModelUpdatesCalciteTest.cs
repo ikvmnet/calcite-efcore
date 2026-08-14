@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Update;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Update;
 
-public class NonSharedModelUpdatesCalciteTest(NonSharedFixture fixture) :
+public partial class NonSharedModelUpdatesCalciteTest(NonSharedFixture fixture) :
     NonSharedModelUpdatesTestBase(fixture)
 {
 

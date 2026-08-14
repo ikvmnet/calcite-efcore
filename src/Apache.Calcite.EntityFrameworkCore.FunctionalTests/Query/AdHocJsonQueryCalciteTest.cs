@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query;
 
-public class AdHocJsonQueryCalciteTest(NonSharedFixture fixture) : AdHocJsonQueryRelationalTestBase(fixture)
+public partial class AdHocJsonQueryCalciteTest(NonSharedFixture fixture) : AdHocJsonQueryRelationalTestBase(fixture)
 {
 
     protected override ITestStoreFactory TestStoreFactory => CalciteTestStoreFactory.Instance;

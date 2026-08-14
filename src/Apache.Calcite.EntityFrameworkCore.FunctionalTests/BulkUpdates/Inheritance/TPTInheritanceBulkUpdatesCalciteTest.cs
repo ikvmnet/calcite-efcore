@@ -4,7 +4,7 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.BulkUpdates.Inheritance;
 
-public class TPTInheritanceBulkUpdatesCalciteTest(TPTInheritanceBulkUpdatesCalciteFixture fixture, ITestOutputHelper testOutputHelper) :
+public partial class TPTInheritanceBulkUpdatesCalciteTest(TPTInheritanceBulkUpdatesCalciteFixture fixture, ITestOutputHelper testOutputHelper) :
     TPTInheritanceBulkUpdatesTestBase<TPTInheritanceBulkUpdatesCalciteFixture>(fixture, testOutputHelper)
 {
 

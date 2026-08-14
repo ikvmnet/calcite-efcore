@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query;
 
-public class MappingQueryCalciteTest(MappingQueryCalciteTest.MappingQueryCalciteFixture fixture) :
+public partial class MappingQueryCalciteTest(MappingQueryCalciteTest.MappingQueryCalciteFixture fixture) :
     MappingQueryTestBase<MappingQueryCalciteTest.MappingQueryCalciteFixture>(fixture)
 {
 

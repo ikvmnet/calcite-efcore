@@ -4,6 +4,6 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query.Associations.ComplexJson;
 
-public class ComplexJsonCollectionCalciteTest(ComplexJsonCalciteFixture fixture, ITestOutputHelper testOutputHelper)    :
+public partial class ComplexJsonCollectionCalciteTest(ComplexJsonCalciteFixture fixture, ITestOutputHelper testOutputHelper)    :
     ComplexJsonCollectionRelationalTestBase<ComplexJsonCalciteFixture>(fixture, testOutputHelper);
 

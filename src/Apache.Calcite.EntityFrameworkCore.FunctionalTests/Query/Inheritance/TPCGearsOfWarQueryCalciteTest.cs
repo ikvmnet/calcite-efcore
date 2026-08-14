@@ -4,7 +4,7 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query.Inheritance;
 
-public class TPCGearsOfWarQueryCalciteTest : TPCGearsOfWarQueryRelationalTestBase<TPCGearsOfWarQueryCalciteFixture>
+public partial class TPCGearsOfWarQueryCalciteTest : TPCGearsOfWarQueryRelationalTestBase<TPCGearsOfWarQueryCalciteFixture>
 {
 
     public TPCGearsOfWarQueryCalciteTest(TPCGearsOfWarQueryCalciteFixture fixture, ITestOutputHelper testOutputHelper) :

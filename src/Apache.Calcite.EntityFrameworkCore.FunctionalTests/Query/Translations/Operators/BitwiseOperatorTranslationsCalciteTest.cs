@@ -7,7 +7,7 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query.Translations.Operators;
 
-public class BitwiseOperatorTranslationsCalciteTest : BitwiseOperatorTranslationsTestBase<BasicTypesQueryCalciteFixture>
+public partial class BitwiseOperatorTranslationsCalciteTest : BitwiseOperatorTranslationsTestBase<BasicTypesQueryCalciteFixture>
 {
 
     public BitwiseOperatorTranslationsCalciteTest(BasicTypesQueryCalciteFixture fixture, ITestOutputHelper testOutputHelper) :

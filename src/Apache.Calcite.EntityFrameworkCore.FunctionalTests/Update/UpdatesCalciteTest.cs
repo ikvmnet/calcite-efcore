@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Update;
 
-public class UpdatesCalciteTest(UpdatesCalciteTest.UpdatesCalciteFixture fixture) :
+public partial class UpdatesCalciteTest(UpdatesCalciteTest.UpdatesCalciteFixture fixture) :
     UpdatesRelationalTestBase<UpdatesCalciteTest.UpdatesCalciteFixture>(fixture)
 {
 

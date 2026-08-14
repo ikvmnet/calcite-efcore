@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query;
 
-public class NorthwindSplitIncludeQueryCalciteTest(NorthwindQueryCalciteFixture<NoopModelCustomizer> fixture) :
+public partial class NorthwindSplitIncludeQueryCalciteTest(NorthwindQueryCalciteFixture<NoopModelCustomizer> fixture) :
     NorthwindSplitIncludeQueryTestBase<NorthwindQueryCalciteFixture<NoopModelCustomizer>>(fixture)
 {
 

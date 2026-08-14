@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query;
 
-public class OwnedQueryCalciteTest(OwnedQueryCalciteTest.OwnedQueryCalciteFixture fixture) :
+public partial class OwnedQueryCalciteTest(OwnedQueryCalciteTest.OwnedQueryCalciteFixture fixture) :
     OwnedQueryRelationalTestBase<OwnedQueryCalciteTest.OwnedQueryCalciteFixture>(fixture)
 {
     public class OwnedQueryCalciteFixture : RelationalOwnedQueryFixture

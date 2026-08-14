@@ -4,7 +4,7 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query.Inheritance;
 
-public class TPTInheritanceQueryCalciteTest :
+public partial class TPTInheritanceQueryCalciteTest :
     TPTInheritanceQueryTestBase<TPTInheritanceQueryCalciteFixture>
 {
 

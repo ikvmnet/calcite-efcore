@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public abstract class CommandInterceptionCalciteTestBase(CommandInterceptionCalciteTestBase.InterceptionCalciteFixtureBase fixture) : CommandInterceptionTestBase(fixture)
+public abstract partial class CommandInterceptionCalciteTestBase(CommandInterceptionCalciteTestBase.InterceptionCalciteFixtureBase fixture) : CommandInterceptionTestBase(fixture)
 {
 
     public abstract class InterceptionCalciteFixtureBase : InterceptionFixtureBase
@@ -24,7 +24,7 @@ public abstract class CommandInterceptionCalciteTestBase(CommandInterceptionCalc
         protected override IServiceCollection InjectInterceptors(IServiceCollection serviceCollection, IEnumerable<IInterceptor> injectedInterceptors) => base.InjectInterceptors(serviceCollection.AddEntityFrameworkCalcite(), injectedInterceptors);
     }
 
-    public class CommandInterceptionCalciteTest(CommandInterceptionCalciteTest.InterceptionCalciteFixture fixture) :
+    public partial class CommandInterceptionCalciteTest(CommandInterceptionCalciteTest.InterceptionCalciteFixture fixture) :
         CommandInterceptionCalciteTestBase(fixture), IClassFixture<CommandInterceptionCalciteTest.InterceptionCalciteFixture>
     {
         public class InterceptionCalciteFixture : InterceptionCalciteFixtureBase
@@ -36,7 +36,7 @@ public abstract class CommandInterceptionCalciteTestBase(CommandInterceptionCalc
 
     }
 
-    public class CommandInterceptionWithDiagnosticsCalciteTest(CommandInterceptionWithDiagnosticsCalciteTest.InterceptionCalciteFixture fixture) :
+    public partial class CommandInterceptionWithDiagnosticsCalciteTest(CommandInterceptionWithDiagnosticsCalciteTest.InterceptionCalciteFixture fixture) :
         CommandInterceptionCalciteTestBase(fixture), IClassFixture<CommandInterceptionWithDiagnosticsCalciteTest.InterceptionCalciteFixture>
     {
         public class InterceptionCalciteFixture : InterceptionCalciteFixtureBase

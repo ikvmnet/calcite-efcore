@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class ConferencePlannerCalciteTest(ConferencePlannerCalciteTest.ConferencePlannerCalciteFixture fixture) :
+public partial class ConferencePlannerCalciteTest(ConferencePlannerCalciteTest.ConferencePlannerCalciteFixture fixture) :
     ConferencePlannerTestBase<ConferencePlannerCalciteTest.ConferencePlannerCalciteFixture>(fixture)
 {
 

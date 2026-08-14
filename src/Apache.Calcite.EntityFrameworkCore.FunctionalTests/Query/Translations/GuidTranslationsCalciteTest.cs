@@ -4,7 +4,7 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query.Translations;
 
-public class GuidTranslationsCalciteTest : GuidTranslationsTestBase<BasicTypesQueryCalciteFixture>
+public partial class GuidTranslationsCalciteTest : GuidTranslationsTestBase<BasicTypesQueryCalciteFixture>
 {
 
     public GuidTranslationsCalciteTest(BasicTypesQueryCalciteFixture fixture, ITestOutputHelper testOutputHelper) :

@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public abstract class TransactionInterceptionCalciteTestBase(TransactionInterceptionCalciteTestBase.InterceptionCalciteFixtureBase fixture) :
+public abstract partial class TransactionInterceptionCalciteTestBase(TransactionInterceptionCalciteTestBase.InterceptionCalciteFixtureBase fixture) :
     TransactionInterceptionTestBase(fixture)
 {
 
@@ -30,7 +30,7 @@ public abstract class TransactionInterceptionCalciteTestBase(TransactionIntercep
 
     }
 
-    public class TransactionInterceptionCalciteTest(TransactionInterceptionCalciteTest.InterceptionCalciteFixture fixture) :
+    public partial class TransactionInterceptionCalciteTest(TransactionInterceptionCalciteTest.InterceptionCalciteFixture fixture) :
         TransactionInterceptionCalciteTestBase(fixture),
         IClassFixture<TransactionInterceptionCalciteTest.InterceptionCalciteFixture>
     {
@@ -44,7 +44,7 @@ public abstract class TransactionInterceptionCalciteTestBase(TransactionIntercep
 
     }
 
-    public class TransactionInterceptionWithDiagnosticsCalciteTest(TransactionInterceptionWithDiagnosticsCalciteTest.InterceptionCalciteFixture fixture) :
+    public partial class TransactionInterceptionWithDiagnosticsCalciteTest(TransactionInterceptionWithDiagnosticsCalciteTest.InterceptionCalciteFixture fixture) :
         TransactionInterceptionCalciteTestBase(fixture),
         IClassFixture<TransactionInterceptionWithDiagnosticsCalciteTest.InterceptionCalciteFixture>
     {

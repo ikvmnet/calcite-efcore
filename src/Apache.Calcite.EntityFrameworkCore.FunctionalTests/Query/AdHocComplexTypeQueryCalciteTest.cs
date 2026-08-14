@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query
 {
 
-    public class AdHocComplexTypeQueryCalciteTest : AdHocComplexTypeQueryRelationalTestBase
+    public partial class AdHocComplexTypeQueryCalciteTest : AdHocComplexTypeQueryRelationalTestBase
     {
 
         /// <summary>

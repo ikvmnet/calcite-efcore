@@ -9,7 +9,7 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query;
 
-public class Ef6GroupByCalciteTest : Ef6GroupByTestBase<Ef6GroupByCalciteTest.Ef6GroupByCalciteFixture>
+public partial class Ef6GroupByCalciteTest : Ef6GroupByTestBase<Ef6GroupByCalciteTest.Ef6GroupByCalciteFixture>
 {
 
     public Ef6GroupByCalciteTest(Ef6GroupByCalciteFixture fixture, ITestOutputHelper testOutputHelper)

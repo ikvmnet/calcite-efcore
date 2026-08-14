@@ -4,7 +4,7 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Update;
 
-public class StoreValueGenerationWithoutReturningCalciteTest : StoreValueGenerationTestBase<StoreValueGenerationWithoutReturningCalciteTest.StoreValueGenerationWithoutReturningCalciteFixture>
+public partial class StoreValueGenerationWithoutReturningCalciteTest : StoreValueGenerationTestBase<StoreValueGenerationWithoutReturningCalciteTest.StoreValueGenerationWithoutReturningCalciteFixture>
 {
 
     public StoreValueGenerationWithoutReturningCalciteTest(StoreValueGenerationWithoutReturningCalciteFixture fixture, ITestOutputHelper testOutputHelper) :

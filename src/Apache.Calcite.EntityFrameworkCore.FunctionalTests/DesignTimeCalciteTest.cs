@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class DesignTimeCalciteTest(DesignTimeCalciteTest.DesignTimeCalciteFixture fixture) :
+public partial class DesignTimeCalciteTest(DesignTimeCalciteTest.DesignTimeCalciteFixture fixture) :
     DesignTimeTestBase<DesignTimeCalciteTest.DesignTimeCalciteFixture>(fixture)
 {
 

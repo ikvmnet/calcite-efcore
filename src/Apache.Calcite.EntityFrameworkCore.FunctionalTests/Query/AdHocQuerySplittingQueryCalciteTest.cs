@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query;
 
-public class AdHocQuerySplittingQueryCalciteTest(NonSharedFixture fixture) : AdHocQuerySplittingQueryTestBase(fixture)
+public partial class AdHocQuerySplittingQueryCalciteTest(NonSharedFixture fixture) : AdHocQuerySplittingQueryTestBase(fixture)
 {
 
     static readonly FieldInfo _querySplittingBehaviorFieldInfo =

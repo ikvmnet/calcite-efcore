@@ -7,7 +7,7 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class ComplexTypesTrackingCalciteTest : ComplexTypesTrackingRelationalTestBase<ComplexTypesTrackingCalciteTest.CalciteFixture>
+public partial class ComplexTypesTrackingCalciteTest : ComplexTypesTrackingRelationalTestBase<ComplexTypesTrackingCalciteTest.CalciteFixture>
 {
 
     public ComplexTypesTrackingCalciteTest(CalciteFixture fixture, ITestOutputHelper testOutputHelper) :

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class SeedingCalciteTest : SeedingTestBase
+public partial class SeedingCalciteTest : SeedingTestBase
 {
 
     protected override TestStore TestStore => CalciteTestStore.Create("SeedingTest");

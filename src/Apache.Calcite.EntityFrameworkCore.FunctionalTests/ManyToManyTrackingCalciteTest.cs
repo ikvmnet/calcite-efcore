@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class ManyToManyTrackingCalciteTest(ManyToManyTrackingCalciteTest.ManyToManyTrackingCalciteFixture fixture) :
+public partial class ManyToManyTrackingCalciteTest(ManyToManyTrackingCalciteTest.ManyToManyTrackingCalciteFixture fixture) :
     ManyToManyTrackingRelationalTestBase<ManyToManyTrackingCalciteTest.ManyToManyTrackingCalciteFixture>(fixture)
 {
 

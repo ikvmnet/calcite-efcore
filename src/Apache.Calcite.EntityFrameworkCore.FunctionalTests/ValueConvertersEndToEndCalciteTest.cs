@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class ValueConvertersEndToEndCalciteTest(ValueConvertersEndToEndCalciteTest.ValueConvertersEndToEndCalciteFixture fixture) :
+public partial class ValueConvertersEndToEndCalciteTest(ValueConvertersEndToEndCalciteTest.ValueConvertersEndToEndCalciteFixture fixture) :
     ValueConvertersEndToEndTestBase<ValueConvertersEndToEndCalciteTest.ValueConvertersEndToEndCalciteFixture>(fixture)
 {
 

@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public abstract class ConnectionInterceptionCalciteTestBase(ConnectionInterceptionCalciteTestBase.InterceptionCalciteFixtureBase fixture) : ConnectionInterceptionTestBase(fixture)
+public abstract partial class ConnectionInterceptionCalciteTestBase(ConnectionInterceptionCalciteTestBase.InterceptionCalciteFixtureBase fixture) : ConnectionInterceptionTestBase(fixture)
 {
 
     protected override DbContextOptionsBuilder ConfigureProvider(DbContextOptionsBuilder optionsBuilder) => optionsBuilder.UseCalcite();
@@ -30,7 +30,7 @@ public abstract class ConnectionInterceptionCalciteTestBase(ConnectionIntercepti
 
     }
 
-    public class ConnectionInterceptionCalciteTest(ConnectionInterceptionCalciteTest.InterceptionCalciteFixture fixture) :
+    public partial class ConnectionInterceptionCalciteTest(ConnectionInterceptionCalciteTest.InterceptionCalciteFixture fixture) :
         ConnectionInterceptionCalciteTestBase(fixture),
         IClassFixture<ConnectionInterceptionCalciteTest.InterceptionCalciteFixture>
     {
@@ -44,7 +44,7 @@ public abstract class ConnectionInterceptionCalciteTestBase(ConnectionIntercepti
 
     }
 
-    public class ConnectionInterceptionWithDiagnosticsCalciteTest(ConnectionInterceptionWithDiagnosticsCalciteTest.InterceptionCalciteFixture fixture) :
+    public partial class ConnectionInterceptionWithDiagnosticsCalciteTest(ConnectionInterceptionWithDiagnosticsCalciteTest.InterceptionCalciteFixture fixture) :
         ConnectionInterceptionCalciteTestBase(fixture),
         IClassFixture<ConnectionInterceptionWithDiagnosticsCalciteTest.InterceptionCalciteFixture>
     {

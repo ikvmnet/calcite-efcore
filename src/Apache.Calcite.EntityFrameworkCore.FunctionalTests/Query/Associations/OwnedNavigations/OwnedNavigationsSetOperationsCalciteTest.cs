@@ -5,7 +5,7 @@ using Xunit.Abstractions;
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query.Associations.OwnedNavigations
 {
 
-    public class OwnedNavigationsSetOperationsCalciteTest : OwnedNavigationsSetOperationsRelationalTestBase<OwnedNavigationsCalciteFixture>
+    public partial class OwnedNavigationsSetOperationsCalciteTest : OwnedNavigationsSetOperationsRelationalTestBase<OwnedNavigationsCalciteFixture>
     {
 
         public OwnedNavigationsSetOperationsCalciteTest(OwnedNavigationsCalciteFixture fixture, ITestOutputHelper testOutputHelper) :

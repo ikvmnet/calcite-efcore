@@ -8,7 +8,7 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query.Associations.OwnedJson;
 
-public class OwnedJsonStructuralEqualityCalciteTest(OwnedJsonCalciteFixture fixture, ITestOutputHelper testOutputHelper) :
+public partial class OwnedJsonStructuralEqualityCalciteTest(OwnedJsonCalciteFixture fixture, ITestOutputHelper testOutputHelper) :
     OwnedJsonStructuralEqualityRelationalTestBase<OwnedJsonCalciteFixture>(fixture, testOutputHelper)
 {
 

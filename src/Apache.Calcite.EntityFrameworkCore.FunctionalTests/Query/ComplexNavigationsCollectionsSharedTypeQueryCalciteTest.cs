@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query;
 
-public class ComplexNavigationsCollectionsSharedTypeQueryCalciteTest(ComplexNavigationsSharedTypeQueryCalciteFixture fixture) :
+public partial class ComplexNavigationsCollectionsSharedTypeQueryCalciteTest(ComplexNavigationsSharedTypeQueryCalciteFixture fixture) :
     ComplexNavigationsCollectionsSharedTypeQueryRelationalTestBase<ComplexNavigationsSharedTypeQueryCalciteFixture>(fixture)
 {
 

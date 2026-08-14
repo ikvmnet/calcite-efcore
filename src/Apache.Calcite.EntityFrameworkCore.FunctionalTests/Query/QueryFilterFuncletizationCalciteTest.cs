@@ -7,7 +7,7 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query;
 
-public class QueryFilterFuncletizationCalciteTest : QueryFilterFuncletizationTestBase<QueryFilterFuncletizationCalciteTest.QueryFilterFuncletizationCalciteFixture>
+public partial class QueryFilterFuncletizationCalciteTest : QueryFilterFuncletizationTestBase<QueryFilterFuncletizationCalciteTest.QueryFilterFuncletizationCalciteFixture>
 {
 
     public QueryFilterFuncletizationCalciteTest(QueryFilterFuncletizationCalciteFixture fixture, ITestOutputHelper testOutputHelper) :

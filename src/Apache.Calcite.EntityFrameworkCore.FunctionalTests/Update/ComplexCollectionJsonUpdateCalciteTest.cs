@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Update;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Update;
 
-public class ComplexCollectionJsonUpdateCalciteTest : ComplexCollectionJsonUpdateTestBase<ComplexCollectionJsonUpdateCalciteTest.ComplexCollectionJsonUpdateCalciteFixture>
+public partial class ComplexCollectionJsonUpdateCalciteTest : ComplexCollectionJsonUpdateTestBase<ComplexCollectionJsonUpdateCalciteTest.ComplexCollectionJsonUpdateCalciteFixture>
 {
 
     public ComplexCollectionJsonUpdateCalciteTest(ComplexCollectionJsonUpdateCalciteFixture fixture) :

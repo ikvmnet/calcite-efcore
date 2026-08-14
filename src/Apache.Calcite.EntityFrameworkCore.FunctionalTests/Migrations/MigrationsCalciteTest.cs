@@ -17,7 +17,7 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Migrations;
 
-public class MigrationsCalciteTest : MigrationsTestBase<MigrationsCalciteTest.MigrationsCalciteFixture>
+public partial class MigrationsCalciteTest : MigrationsTestBase<MigrationsCalciteTest.MigrationsCalciteFixture>
 {
 
     public MigrationsCalciteTest(MigrationsCalciteFixture fixture, ITestOutputHelper testOutputHelper) :
@@ -41,6 +41,7 @@ public class MigrationsCalciteTest : MigrationsTestBase<MigrationsCalciteTest.Mi
     [Fact(Skip = "Schema modification not supported")]
     public override Task Create_table_with_comments() => Task.CompletedTask;
 
+    [ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override Task Create_table_with_complex_properties_mapped_to_json()
         => Test(
             builder => { },

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class MonsterFixupChangedOnlyCalciteTest(MonsterFixupChangedOnlyCalciteTest.MonsterFixupChangedOnlyCalciteFixture fixture) : MonsterFixupTestBase<MonsterFixupChangedOnlyCalciteTest.MonsterFixupChangedOnlyCalciteFixture>(fixture)
+public partial class MonsterFixupChangedOnlyCalciteTest(MonsterFixupChangedOnlyCalciteTest.MonsterFixupChangedOnlyCalciteFixture fixture) : MonsterFixupTestBase<MonsterFixupChangedOnlyCalciteTest.MonsterFixupChangedOnlyCalciteFixture>(fixture)
 {
     public class MonsterFixupChangedOnlyCalciteFixture : MonsterFixupChangedOnlyFixtureBase
     {

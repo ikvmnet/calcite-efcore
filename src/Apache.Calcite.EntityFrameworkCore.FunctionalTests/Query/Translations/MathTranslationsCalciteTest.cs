@@ -8,7 +8,7 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query.Translations;
 
-public class MathTranslationsCalciteTest : MathTranslationsTestBase<BasicTypesQueryCalciteFixture>
+public partial class MathTranslationsCalciteTest : MathTranslationsTestBase<BasicTypesQueryCalciteFixture>
 {
 
     public MathTranslationsCalciteTest(BasicTypesQueryCalciteFixture fixture, ITestOutputHelper testOutputHelper) :

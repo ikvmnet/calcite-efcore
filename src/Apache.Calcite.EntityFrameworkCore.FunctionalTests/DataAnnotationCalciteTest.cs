@@ -9,7 +9,7 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class DataAnnotationCalciteTest : DataAnnotationRelationalTestBase<DataAnnotationCalciteTest.DataAnnotationCalciteFixture>
+public partial class DataAnnotationCalciteTest : DataAnnotationRelationalTestBase<DataAnnotationCalciteTest.DataAnnotationCalciteFixture>
 {
 
     public DataAnnotationCalciteTest(DataAnnotationCalciteFixture fixture, ITestOutputHelper testOutputHelper) : base(fixture)

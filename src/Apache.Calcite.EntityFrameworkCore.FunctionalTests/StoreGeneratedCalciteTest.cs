@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class StoreGeneratedCalciteTest(StoreGeneratedCalciteTest.StoreGeneratedCalciteFixture fixture) :
+public partial class StoreGeneratedCalciteTest(StoreGeneratedCalciteTest.StoreGeneratedCalciteFixture fixture) :
     StoreGeneratedTestBase<StoreGeneratedCalciteTest.StoreGeneratedCalciteFixture>(fixture)
 {
 

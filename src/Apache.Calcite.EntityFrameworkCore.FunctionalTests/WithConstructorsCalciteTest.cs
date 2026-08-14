@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class WithConstructorsCalciteTest(WithConstructorsCalciteTest.WithConstructorsCalciteFixture fixture) :
+public partial class WithConstructorsCalciteTest(WithConstructorsCalciteTest.WithConstructorsCalciteFixture fixture) :
     WithConstructorsTestBase<WithConstructorsCalciteTest.WithConstructorsCalciteFixture>(fixture)
 {
 
