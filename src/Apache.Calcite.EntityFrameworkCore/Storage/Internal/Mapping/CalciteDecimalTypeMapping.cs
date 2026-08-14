@@ -29,18 +29,13 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal.Mapping
         }
 
         /// <summary>
-        /// Initializes a new instance with the given precision and scale.
+        /// Initializes a new instance with the given precision and scale. The base constructor
+        /// carries the JSON reader/writer that primitive-collection composition requires.
         /// </summary>
         /// <param name="precision"></param>
         /// <param name="scale"></param>
         public CalciteDecimalTypeMapping(int precision, int scale) :
-            base(new RelationalTypeMappingParameters(
-                new CoreTypeMappingParameters(typeof(decimal)),
-                $"DECIMAL({precision}, {scale})",
-                StoreTypePostfix.PrecisionAndScale,
-                System.Data.DbType.Decimal,
-                precision: precision,
-                scale: scale))
+            base($"DECIMAL({precision}, {scale})", System.Data.DbType.Decimal, precision, scale)
         {
 
         }

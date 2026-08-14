@@ -63,7 +63,7 @@ VALUES('[{"RoundNumber":11,"SubRounds":[{"SubRoundNumber":111},{"SubRoundNumber"
     {
         await ctx.Database.ExecuteSqlAsync(
             $$"""
-INSERT INTO Entities (Id, Scenario, OptionalReference, RequiredReference, Collection)
+INSERT INTO "Entities" ("Id", "Scenario", "OptionalReference", "RequiredReference", "Collection")
 VALUES(
 1,
 'baseline',
@@ -77,7 +77,7 @@ VALUES(
 
         await ctx.Database.ExecuteSqlAsync(
             $$"""
-INSERT INTO Entities (Id, Scenario, OptionalReference, RequiredReference, Collection)
+INSERT INTO "Entities" ("Id", "Scenario", "OptionalReference", "RequiredReference", "Collection")
 VALUES(
 2,
 'duplicated navigations',
@@ -91,7 +91,7 @@ VALUES(
 
         await ctx.Database.ExecuteSqlAsync(
             $$"""
-INSERT INTO Entities (Id, Scenario, OptionalReference, RequiredReference, Collection)
+INSERT INTO "Entities" ("Id", "Scenario", "OptionalReference", "RequiredReference", "Collection")
 VALUES(
 3,
 'duplicated scalars',
@@ -105,7 +105,7 @@ VALUES(
 
         await ctx.Database.ExecuteSqlAsync(
             $$"""
-INSERT INTO Entities (Id, Scenario, OptionalReference, RequiredReference, Collection)
+INSERT INTO "Entities" ("Id", "Scenario", "OptionalReference", "RequiredReference", "Collection")
 VALUES(
 4,
 'empty navigation property names',
@@ -119,7 +119,7 @@ VALUES(
 
         await ctx.Database.ExecuteSqlAsync(
             $$"""
-INSERT INTO Entities (Id, Scenario, OptionalReference, RequiredReference, Collection)
+INSERT INTO "Entities" ("Id", "Scenario", "OptionalReference", "RequiredReference", "Collection")
 VALUES(
 5,
 'empty scalar property names',
@@ -133,7 +133,7 @@ VALUES(
 
         await ctx.Database.ExecuteSqlAsync(
             $$"""
-INSERT INTO Entities (Id, Scenario, OptionalReference, RequiredReference, Collection)
+INSERT INTO "Entities" ("Id", "Scenario", "OptionalReference", "RequiredReference", "Collection")
 VALUES(
 10,
 'null navigation property names',
@@ -147,7 +147,7 @@ VALUES(
 
         await ctx.Database.ExecuteSqlAsync(
             $$"""
-INSERT INTO Entities (Id, Scenario, OptionalReference, RequiredReference, Collection)
+INSERT INTO "Entities" ("Id", "Scenario", "OptionalReference", "RequiredReference", "Collection")
 VALUES(
 11,
 'null scalar property names',

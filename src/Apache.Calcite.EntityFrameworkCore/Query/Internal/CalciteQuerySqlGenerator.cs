@@ -300,12 +300,49 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
 
         /// <inheritdoc/>
         /// <remarks>
-        /// Calcite speaks standard SQL/JSON: the scalar is extracted with
-        /// <c>JSON_VALUE(col, 'strict $.path')</c> and CAST to the target store type when it is
-        /// not a string. Only constant array indexes can appear in a JSON path literal.
+        /// Calcite speaks standard SQL/JSON. A whole-document access (empty path) is the column
+        /// itself. A path whose result is itself a JSON document — an owned object or collection,
+        /// recognized by its JSON type mapping — is extracted with <c>JSON_QUERY</c>, which
+        /// returns objects and arrays where <c>JSON_VALUE</c> would return NULL. A scalar is
+        /// extracted with <c>JSON_VALUE(col, 'strict $.path')</c> and CAST to the target store
+        /// type when it is not a string. Only constant array indexes can appear in a JSON path
+        /// literal.
         /// </remarks>
         protected override Expression VisitJsonScalar(JsonScalarExpression jsonScalarExpression)
         {
+            if (jsonScalarExpression.Path.Count == 0)
+            {
+                Visit(jsonScalarExpression.Json);
+                return jsonScalarExpression;
+            }
+
+            if (jsonScalarExpression.TypeMapping is Storage.Internal.Mapping.CalciteJsonTypeMapping)
+            {
+                Sql.Append("JSON_QUERY(");
+                Visit(jsonScalarExpression.Json);
+                Sql.Append(", 'strict $");
+
+                foreach (var segment in jsonScalarExpression.Path)
+                {
+                    if (segment.PropertyName is not null)
+                    {
+                        Sql.Append(".").Append(segment.PropertyName);
+                    }
+                    else if (segment.ArrayIndex is SqlConstantExpression { Value: int index })
+                    {
+                        Sql.Append("[").Append(index.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("]");
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException(
+                            "A non-constant JSON array index cannot be rendered into Calcite's JSON path literal.");
+                    }
+                }
+
+                Sql.Append("')");
+                return jsonScalarExpression;
+            }
+
             var storeType = jsonScalarExpression.TypeMapping?.StoreType;
             var castNeeded = storeType is not null
                 && !storeType.StartsWith("VARCHAR", StringComparison.OrdinalIgnoreCase)
