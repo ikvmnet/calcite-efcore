@@ -149,7 +149,9 @@ jobs:
         }
 
         # scan and process test assemblies
-        $tests = $(gi .\tests\$tst\$tfm\*.Tests.dll)
+        # the suite's own assembly, exactly: a *.Tests.dll glob catches reference assemblies
+        # like Microsoft.EntityFrameworkCore.Relational.Specification.Tests.dll
+        $tests = $(gi .\tests\$tst\$tfm\$tst.dll)
         if ($tests) {
             $argl = @(
                 "-f", $tfm,
