@@ -27,7 +27,7 @@ jobs:
     - name: Setup .NET 9.0
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 9.0.x
+        dotnet-version: 10.0.x
     - name: Install GitVersion
       uses: gittools/actions/gitversion/setup@v3
       with:
@@ -110,7 +110,7 @@ jobs:
     - name: Setup .NET 9.0
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 9.0.x
+        dotnet-version: 10.0.x
     - name: Add NuGet Source (GitHub)
       shell: pwsh
       run: dotnet nuget add source --username USERNAME --password $env:GITHUB_TOKEN --store-password-in-clear-text --name ${{ github.repository_owner }} $env:GITHUB_REPOS
