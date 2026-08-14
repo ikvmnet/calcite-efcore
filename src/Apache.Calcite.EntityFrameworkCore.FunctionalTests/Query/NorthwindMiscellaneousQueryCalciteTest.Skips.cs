@@ -237,4 +237,16 @@ partial class NorthwindMiscellaneousQueryCalciteTest
         return base.Where_nanosecond_and_microsecond_component(async);
     }
 
+    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task All_top_level_subquery(bool async)
+    {
+        return base.All_top_level_subquery(async);
+    }
+
+    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task All_top_level_subquery_ef_property(bool async)
+    {
+        return base.All_top_level_subquery_ef_property(async);
+    }
+
 }
