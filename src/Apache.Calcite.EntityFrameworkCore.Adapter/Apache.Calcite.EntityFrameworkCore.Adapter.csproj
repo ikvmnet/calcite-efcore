@@ -10,10 +10,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="..\..\icon.png" Pack="true" PackagePath="\" />
-    </ItemGroup>
-
-    <ItemGroup>
         <PackageReference Include="IKVM" Version="8.15.0" />
         <PackageReference Include="IKVM.Java.Extensions" Version="8.15.0" />
         <PackageReference Include="IKVM.Maven.Sdk" Version="1.12.0">
