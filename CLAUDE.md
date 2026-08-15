@@ -22,11 +22,13 @@ commit message says what changed and why.
 | `Apache.Calcite.EntityFrameworkCore.Tests` | our own one-off provider tests |
 | `Apache.Calcite.EntityFrameworkCore.FunctionalTests` | the standard EF Core spec suite |
 
-Key generation is **test infrastructure, never provider surface**: the provider refuses plain
-numeric `OnAdd` keys by design (Calcite cannot generate or return keys), and the test projects
-wire the strategies via DI overrides (`CalciteTestStoreFactory.AddProviderServices`, or
-`ReplaceService` for contexts built outside the factory). Do not move these strategies into the
-provider.
+Key generation splits by type. **Guid keys are provider surface**: `CalciteValueGeneratorSelector`
+gives `OnAdd` Guid properties a client-side `SequentialGuidValueGenerator`, the same default SQL
+Server uses (`GuidKeyGenerationTests` locks it). **Numeric strategies are test infrastructure,
+never provider surface**: the provider refuses plain numeric `OnAdd` keys by design (Calcite
+cannot generate or return keys), and the test projects wire HiLo/MAX-seeded strategies via DI
+overrides (`CalciteTestStoreFactory.AddProviderServices`, or `ReplaceService` for contexts built
+outside the factory). Do not move those into the provider.
 
 The adapter has exactly **one outgoing converter**: `EfCoreToClrAsyncEnumerableConverter`, into
 `ClrAsyncEnumerableConvention` — EF Core's pipeline is natively asynchronous, so rows leave as an
