@@ -108,6 +108,13 @@ Calcite's `TIMESTAMP WITH TIME ZONE` normalizes values, losing the original offs
 offset means changing the storage strategy — SQLite stores ISO-8601 text for exactly this
 reason — with trade-offs across comparisons and every temporal suite. Decide deliberately.
 
+## Named parameter emulation in CalciteCommand
+
+Calcite's lexer rejects `@name` parameter markers outright, so every raw-SQL path that passes a
+named DbParameter fails at parse — 20 of the FromSqlQuery spec tests. The standard ADO fix is
+marker rewriting in the command: translate `@name` markers to `?` and order the parameter
+collection to match, the way JDBC-bridging providers do. Belongs in Apache.Calcite.Data.
+
 ## Spatial
 
 Calcite supports spatial: `GEOMETRY` type, ST_* functions (`SqlLibrary.SPATIAL`), backed by JTS +
