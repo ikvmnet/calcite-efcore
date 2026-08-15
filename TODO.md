@@ -95,11 +95,18 @@ transport; until fixed, "1.43.0-SNAPSHOT" means "whatever .m2 last downloaded".
 
 ## Missing spec-test derivations
 
-42 spec areas SQLite derives that we have no local class for, so they never run. Add derived
-classes area by area, following other providers' patterns. High-value first: `BuiltInDataTypes`,
-`FromSqlQuery`, `SqlQuery`, `GraphUpdates`, `TableSplitting` (+TPT/TPC variants),
-`PrimitiveCollectionsQuery`, `NorthwindBulkUpdates`, `OwnedRelationships`, `Logging`,
-`FieldMapping`, `OptimisticConcurrency`, `LazyLoadProxy`, `BuiltInDataTypes`.
+41 spec areas SQLite derives that we have no local class for, so they never run. Add derived
+classes area by area, following other providers' patterns. High-value first: `FromSqlQuery`,
+`SqlQuery`, `GraphUpdates`, `TableSplitting` (+TPT/TPC variants), `PrimitiveCollectionsQuery`,
+`NorthwindBulkUpdates`, `OwnedRelationships`, `Logging`, `FieldMapping`,
+`OptimisticConcurrency`, `LazyLoadProxy`.
+
+## DateTimeOffset offset fidelity
+
+Calcite's `TIMESTAMP WITH TIME ZONE` normalizes values, losing the original offset;
+`BuiltInDataTypes` asserts offsets round-trip (five tests skipped for this). Preserving the
+offset means changing the storage strategy — SQLite stores ISO-8601 text for exactly this
+reason — with trade-offs across comparisons and every temporal suite. Decide deliberately.
 
 ## Spatial
 
