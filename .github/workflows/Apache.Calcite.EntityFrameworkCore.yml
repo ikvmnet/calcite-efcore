@@ -99,8 +99,6 @@ jobs:
         - tfm: net472
           sys: linux-arm64
         - tfm: net472
-          sys: osx-x64
-        - tfm: net472
           sys: osx-arm64
     name: Test (${{ matrix.run }}:${{ matrix.tfm }}:${{ matrix.sys }})
     needs:
