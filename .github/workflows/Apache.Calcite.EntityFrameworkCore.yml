@@ -90,7 +90,6 @@ jobs:
         - win-x64
         - linux-x64
         - linux-arm64
-        - osx-x64
         - osx-arm64
         tfm:
         - net10.0
@@ -102,12 +101,6 @@ jobs:
         - tfm: net472
           sys: osx-x64
         - tfm: net472
-          sys: osx-arm64
-        # the specification suite runs tens of minutes on a hosted runner; the smaller provider
-        # suite keeps macOS coverage
-        - run: Apache.Calcite.EntityFrameworkCore.FunctionalTests
-          sys: osx-x64
-        - run: Apache.Calcite.EntityFrameworkCore.FunctionalTests
           sys: osx-arm64
     name: Test (${{ matrix.run }}:${{ matrix.tfm }}:${{ matrix.sys }})
     needs:
