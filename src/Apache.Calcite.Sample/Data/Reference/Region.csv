@@ -1,0 +1,5 @@
+Id:int,Code:string,Name:string,Headquarters:string
+1,NA,North America,Seattle
+2,SA,South America,Sao Paulo
+3,EU,Europe,London
+4,AP,Asia Pacific,Singapore

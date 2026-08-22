@@ -1,0 +1,6 @@
+Id:int,CompanyName:string,Phone:string,ServiceLevel:string,AverageTransitDays:int
+1,Speedy Express,(503) 555-9831,Ground,6
+2,United Package,(503) 555-3199,Ground,5
+3,Federal Shipping,(503) 555-9931,Air,3
+4,Blue Dart Freight,(206) 555-4412,Freight,9
+5,Kaiho Logistics,+81 3 5555 0182,Air,4
