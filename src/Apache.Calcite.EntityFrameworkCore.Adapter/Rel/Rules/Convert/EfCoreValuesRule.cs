@@ -47,7 +47,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules.Convert
                 rel.getCluster(),
                 values.getRowType(),
                 values.getTuples(),
-                rel.getTraitSet().replace(@out));
+                rel.getCluster().traitSetOf(@out));
         }
 
     }

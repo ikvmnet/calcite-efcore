@@ -69,9 +69,13 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules.Convert
             if (!TryExtractEquiJoinKeys(condition, join.getLeft(), join.getRight(), out var leftKey, out var rightKey))
                 return null; // Not an equi-join, can't convert
 
+            // Physical trait set built from the cluster, not carried over from the logical node: rule merging can
+            // leave a composite collation trait behind, and asking such a trait set for its single collation throws.
+            var traitSet = rel.getCluster().traitSetOf(@out);
+
             // Convert inputs to EF Core convention
-            var convertedLeft = convert(join.getLeft(), join.getLeft().getTraitSet().replace(@out));
-            var convertedRight = convert(join.getRight(), join.getRight().getTraitSet().replace(@out));
+            var convertedLeft = convert(join.getLeft(), traitSet);
+            var convertedRight = convert(join.getRight(), traitSet);
 
             // Build intermediate row type for GroupJoin result: { left fields..., IEnumerable<right> }
             var rexBuilder = join.getCluster().getRexBuilder();
@@ -108,7 +112,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules.Convert
             // Step 1: Create EfCoreGroupJoin
             var groupJoin = new EfCoreGroupJoin(
                 rel.getCluster(),
-                rel.getTraitSet().replace(@out),
+                traitSet,
                 convertedLeft,
                 convertedRight,
                 leftKey,
@@ -137,14 +141,14 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules.Convert
             // Create an EfCoreCollectionScan that scans the innersFieldAccess expression
             var collectionScan = new EfCoreCollectionScan(
                 rel.getCluster(),
-                rel.getTraitSet().replace(@out),
+                traitSet,
                 rightType,
                 innersFieldAccess);
 
             // Wrap the collection scan in EfCoreDefaultIfEmpty
             var defaultIfEmptyRel = new EfCoreDefaultIfEmpty(
                 rel.getCluster(),
-                rel.getTraitSet().replace(@out),
+                traitSet,
                 collectionScan);
 
             // Step 3: Build collectionSelector lambda: (g) => <RexSubQuery wrapping defaultIfEmptyRel>
@@ -194,7 +198,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules.Convert
             // Step 5: Create SelectMany with the lambda selectors
             return new EfCoreSelectMany(
                 rel.getCluster(),
-                rel.getTraitSet().replace(@out),
+                traitSet,
                 groupJoin,
                 collectionSelector,
                 resultSelector);

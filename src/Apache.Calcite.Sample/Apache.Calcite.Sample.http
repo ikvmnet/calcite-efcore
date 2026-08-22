@@ -1,0 +1,172 @@
+@host = http://localhost:5078
+
+### The index page: what this is, and every endpoint it serves
+GET {{host}}/
+
+### Every source, every view, and the SQL each view is defined by
+GET {{host}}/docs/federation
+
+### The same, for machines
+GET {{host}}/docs/federation.json
+Accept: application/json
+
+### Swagger UI over the JSON:API surface, the diagnostics and the documentation endpoints
+GET {{host}}/swagger
+
+### The OpenAPI document behind it
+GET {{host}}/swagger/v1/swagger.json
+Accept: application/json
+
+### The GraphQL schema as SDL
+GET {{host}}/graphql/sdl
+
+### The Calcite model document: the CSV schema and all fourteen views
+GET {{host}}/diagnostics/model
+
+### The plans and SQL of the last few requests, newest first
+GET {{host}}/diagnostics/plans?count=5
+
+### Forget the captured plans
+POST {{host}}/diagnostics/plans/clear
+
+###
+# JSON:API — read only controllers generated from the federated model
+###
+
+### Products, paged
+GET {{host}}/api/products?page[size]=5
+Accept: application/vnd.api+json
+
+### Products with the category and supplier joined in (catalog store, three way join)
+GET {{host}}/api/products?page[size]=5&include=category,supplier
+Accept: application/vnd.api+json
+
+### Products filtered and sorted, both pushed into Calcite
+GET {{host}}/api/products?filter=greaterThan(unitPrice,'100')&sort=-unitPrice&page[size]=5
+Accept: application/vnd.api+json
+
+### Orders with the customer (sales), employee (hr) and shipper (csv) resolved
+GET {{host}}/api/orders?page[size]=3&include=customer,employee,shipper
+Accept: application/vnd.api+json
+
+### Territories with their region: both sides of this join are CSV files
+GET {{host}}/api/territories?page[size]=5&include=region
+Accept: application/vnd.api+json
+
+### Territory assignments: the join row is CSV, the employee is SQLite
+GET {{host}}/api/employee-territories?page[size]=5&include=employee,territory
+Accept: application/vnd.api+json
+
+### The reporting hierarchy, plus the scorecard that spans all three sources
+GET {{host}}/api/employees?include=manager,scorecard
+Accept: application/vnd.api+json
+
+### Per employee sales and territory coverage
+GET {{host}}/api/employee-scorecards
+Accept: application/vnd.api+json
+
+### Known failure: the collection include generates OUTER APPLY with a parameterized FETCH
+GET {{host}}/api/orders?page[size]=2&include=lines.product
+Accept: application/vnd.api+json
+
+### Known failure: the view mixes a distinct aggregate with a string group key
+GET {{host}}/api/customer-value?page[size]=5
+Accept: application/vnd.api+json
+
+###
+# GraphQL — one schema over the same model
+###
+
+### Cursor paging with a total count
+POST {{host}}/graphql
+Content-Type: application/json
+
+{"query":"{ products(first: 5) { totalCount pageInfo { hasNextPage endCursor } nodes { id sku name unitPrice } } }"}
+
+### Filtering and sorting, composed by middleware rather than written by hand
+POST {{host}}/graphql
+Content-Type: application/json
+
+{"query":"{ products(first: 5, where: { unitPrice: { gt: 100 } }, order: [{ unitPrice: DESC }]) { nodes { name unitPrice category { name } } } }"}
+
+### Nested selection turns into a join the provider has to translate
+POST {{host}}/graphql
+Content-Type: application/json
+
+{"query":"{ products(first: 3) { nodes { name category { name } supplier { companyName country } } } }"}
+
+### A batched loader collapses the territory lookup into one federated query over CSV
+POST {{host}}/graphql
+Content-Type: application/json
+
+{"query":"{ employees { id fullName title territories { name timeZone region { name headquarters } } } }"}
+
+### The view that reaches both SQLite stores and the CSV store at once
+POST {{host}}/graphql
+Content-Type: application/json
+
+{"query":"{ employeeScorecards { employeeId firstName lastName orderCount revenue territoryCount } }"}
+
+### A grouped aggregate written as LINQ, planned by Calcite
+POST {{host}}/graphql
+Content-Type: application/json
+
+{"query":"{ salesByCountry(minimumOrders: 100) { country orderCount freight averageFreight } }"}
+
+### One order with its lines
+POST {{host}}/graphql
+Content-Type: application/json
+
+{"query":"{ orderById(id: 42) { id status orderedAt shipCountry lines { productId quantity unitPrice extendedPrice } } }"}
+
+### Writes go to the store that owns the row, then read back through the federation
+POST {{host}}/graphql
+Content-Type: application/json
+
+{"query":"mutation { updateProductPrice(productId: 1, unitPrice: 42.50) { id name unitPrice } }"}
+
+### Restock, same round trip
+POST {{host}}/graphql
+Content-Type: application/json
+
+{"query":"mutation { restockProduct(productId: 1, units: 25) { id name unitsInStock } }"}
+
+### Place an order in the sales store, priced from the catalog store
+POST {{host}}/graphql
+Content-Type: application/json
+
+{"query":"mutation { placeOrder(input: { customerId: 1, employeeId: 2, shipperId: 3, shipCity: \"Seattle\", shipCountry: \"USA\", lines: [{ productId: 1, quantity: 4 }, { productId: 2, quantity: 1, discount: 0.1 }] }) { id status orderedAt lines { productId quantity unitPrice extendedPrice } } }"}
+
+### Known failure: the ranked view mixes a distinct aggregate with a string group key
+POST {{host}}/graphql 
+Content-Type: application/json
+
+{"query":"{ topProducts(categoryId: 1, take: 5) { productName revenue unitsSold categoryRank } }"}
+
+###
+# Straight at the federation, below EF Core
+###
+
+### The scorecard view, as SQL
+POST {{host}}/diagnostics/sql
+Content-Type: application/json
+
+{"sql":"SELECT * FROM \"EmployeeScorecard\" ORDER BY \"Revenue\" DESC","maxRows":5}
+
+### A join across SQLite and CSV in one statement
+POST {{host}}/diagnostics/sql
+Content-Type: application/json
+
+{"sql":"SELECT e.\"LastName\", t.\"Name\" AS \"Territory\", r.\"Name\" AS \"Region\" FROM \"Employee\" AS e INNER JOIN \"EmployeeTerritory\" AS a ON a.\"EmployeeId\" = e.\"Id\" INNER JOIN \"Territory\" AS t ON t.\"Id\" = a.\"TerritoryId\" INNER JOIN \"Region\" AS r ON r.\"Id\" = t.\"RegionId\"","maxRows":10}
+
+### The smallest statement that reproduces the distinct-aggregate failure
+POST {{host}}/diagnostics/sql
+Content-Type: application/json
+
+{"sql":"SELECT p.\"Id\", COUNT(DISTINCT d.\"OrderId\") AS c, SUM(d.\"Quantity\") AS q FROM \"catalog\".\"Product\" AS p INNER JOIN \"sales\".\"OrderDetail\" AS d ON d.\"ProductId\" = p.\"Id\" GROUP BY p.\"Id\", p.\"Name\", p.\"CategoryId\"","maxRows":5}
+
+### The same statement without the string group key, which succeeds
+POST {{host}}/diagnostics/sql
+Content-Type: application/json
+
+{"sql":"SELECT p.\"Id\", COUNT(DISTINCT d.\"OrderId\") AS c, SUM(d.\"Quantity\") AS q FROM \"catalog\".\"Product\" AS p INNER JOIN \"sales\".\"OrderDetail\" AS d ON d.\"ProductId\" = p.\"Id\" GROUP BY p.\"Id\", p.\"CategoryId\"","maxRows":5}

@@ -43,7 +43,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules.Convert
         public override RelNode? convert(RelNode rel)
         {
             var sort = (Sort)rel;
-            var traitSet = sort.getTraitSet().replace(@out).replace(sort.getCollation());
+            // Collation is the one trait a sort defines, so it is set explicitly here rather than carried over from
+            // the logical node, whose trait set may hold several collations at once.
+            var traitSet = rel.getCluster().traitSetOf(@out).replace(sort.getCollation());
             return new EfCoreOrderBy(
                 rel.getCluster(),
                 traitSet,

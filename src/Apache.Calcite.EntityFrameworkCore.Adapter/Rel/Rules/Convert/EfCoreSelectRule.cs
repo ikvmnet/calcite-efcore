@@ -42,10 +42,14 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules.Convert
             if (!RexToLinqTranslator.Default.CanTranslateAll(project.getProjects(), rel.getRowType()))
                 return null;
 
+            // Physical trait set built from the cluster, not carried over from the logical node: rule merging can
+            // leave a composite collation trait behind, and asking such a trait set for its single collation throws.
+            var traitSet = rel.getCluster().traitSetOf(@out);
+
             return new EfCoreSelect(
                 rel.getCluster(),
-                rel.getTraitSet().replace(@out),
-                convert(project.getInput(), rel.getTraitSet().replace(@out)),
+                traitSet,
+                convert(project.getInput(), traitSet),
                 project.getProjects(),
                 project.getRowType());
         }

@@ -40,7 +40,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             ArgumentNullException.ThrowIfNull(columnNames);
             ArgumentNullException.ThrowIfNull(dataContext);
 
-            var template = ExpressionToQueryable(queryExpression);
+            // Bind dynamic parameters first: compiling the template below cannot leave a free parameter in the tree.
+            var bound = TemplateQueryable.BindDynamicParameters(queryExpression, i => dataContext.get("?" + i));
+            var template = ExpressionToQueryable(bound);
             var properties = ResolveProperties(template, columnNames);
 
             var context = convention.ContextFactory.CreateDbContext();
@@ -78,7 +80,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             ArgumentNullException.ThrowIfNull(columnNames);
             ArgumentNullException.ThrowIfNull(dataContext);
 
-            var template = ExpressionToQueryable(queryExpression);
+            // Bind dynamic parameters first: compiling the template below cannot leave a free parameter in the tree.
+            var bound = TemplateQueryable.BindDynamicParameters(queryExpression, i => dataContext.get("?" + i));
+            var template = ExpressionToQueryable(bound);
             var properties = ResolveProperties(template, columnNames);
 
             var context = convention.ContextFactory.CreateDbContext();

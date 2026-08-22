@@ -46,9 +46,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules.Convert
             if (intersect.all)
                 return null;
 
+            // Physical trait set built from the cluster, not carried over from the logical node: rule merging can
+            // leave a composite collation trait behind, and asking such a trait set for its single collation throws.
             return new EfCoreIntersect(
                 rel.getCluster(),
-                rel.getTraitSet().replace(@out),
+                rel.getCluster().traitSetOf(@out),
                 convertList(intersect.getInputs(), @out),
                 false);
         }

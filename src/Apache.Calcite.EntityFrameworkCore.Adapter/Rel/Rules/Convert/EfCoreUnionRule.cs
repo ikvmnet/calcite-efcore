@@ -43,9 +43,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules.Convert
         public override RelNode? convert(RelNode rel)
         {
             var union = (Union)rel;
+            // Physical trait set built from the cluster, not carried over from the logical node: rule merging can
+            // leave a composite collation trait behind, and asking such a trait set for its single collation throws.
             return new EfCoreUnion(
                 rel.getCluster(),
-                rel.getTraitSet().replace(@out),
+                rel.getCluster().traitSetOf(@out),
                 convertList(union.getInputs(), @out),
                 union.all);
         }

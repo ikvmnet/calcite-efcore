@@ -43,10 +43,14 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules.Convert
         public override RelNode? convert(RelNode rel)
         {
             var agg = (Aggregate)rel;
+            // Physical trait set built from the cluster, not carried over from the logical node: rule merging can
+            // leave a composite collation trait behind, and asking such a trait set for its single collation throws.
+            var traitSet = rel.getCluster().traitSetOf(@out);
+
             return new EfCoreGroupBy(
                 rel.getCluster(),
-                rel.getTraitSet().replace(@out),
-                convert(agg.getInput(), agg.getInput().getTraitSet().replace(@out)),
+                traitSet,
+                convert(agg.getInput(), traitSet),
                 agg.getGroupSet(),
                 agg.getGroupSets(),
                 agg.getAggCallList());

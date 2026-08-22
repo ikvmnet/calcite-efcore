@@ -63,11 +63,15 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules.Convert
             // Build result selector that concatenates left and right fields
             var resultSelector = BuildResultSelector(join);
 
+            // Physical trait set built from the cluster, not carried over from the logical node: rule merging can
+            // leave a composite collation trait behind, and asking such a trait set for its single collation throws.
+            var traitSet = rel.getCluster().traitSetOf(@out);
+
             return new EfCoreJoin(
                 rel.getCluster(),
-                rel.getTraitSet().replace(@out),
-                convert(join.getLeft(), join.getLeft().getTraitSet().replace(@out)),
-                convert(join.getRight(), join.getRight().getTraitSet().replace(@out)),
+                traitSet,
+                convert(join.getLeft(), traitSet),
+                convert(join.getRight(), traitSet),
                 leftKey,
                 rightKey,
                 resultSelector);
