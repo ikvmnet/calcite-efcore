@@ -17,25 +17,23 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
         submodules: recursive
-    - name: Setup .NET 9.0
-      uses: actions/setup-dotnet@v3
+    - name: Setup .NET 10.0
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 10.0.x
     - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v3
+      uses: gittools/actions/gitversion/setup@v4
       with:
         versionSpec: 6.x
     - name: Execute GitVersion
-      uses: gittools/actions/gitversion/execute@v3
-      with:
-        useConfigFile: true
+      uses: gittools/actions/gitversion/execute@v4
     - name: Add NuGet Source (GitHub)
       shell: pwsh
       run: dotnet nuget add source --username USERNAME --password $env:GITHUB_TOKEN --store-password-in-clear-text --name ${{ github.repository_owner }} $env:GITHUB_REPOS
@@ -63,12 +61,12 @@ jobs:
           Apache.Calcite.EntityFrameworkCore.dist.msbuildproj
     - name: Upload MSBuild Log
       if: ${{ always() }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: msbuild.binlog
         path: msbuild.binlog
     - name: Upload NuGet Packages
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: nuget
         path: dist/nuget
@@ -76,15 +74,19 @@ jobs:
       run: tar czvf tests.tar.gz tests
       working-directory: dist
     - name: Upload Tests
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: tests
         path: dist/tests.tar.gz
   test:
     strategy:
+      # One suite failing says nothing about the others, and the default cancels them: a red
+      # FunctionalTests job would otherwise take down every remaining platform's run.
+      fail-fast: false
       matrix:
         run:
         - Apache.Calcite.EntityFrameworkCore.Tests
+        - Apache.Calcite.EntityFrameworkCore.Adapter.Tests
         - Apache.Calcite.EntityFrameworkCore.FunctionalTests
         sys:
         - win-x64
@@ -93,20 +95,13 @@ jobs:
         - osx-arm64
         tfm:
         - net10.0
-        exclude:
-        - tfm: net472
-          sys: linux-x64
-        - tfm: net472
-          sys: linux-arm64
-        - tfm: net472
-          sys: osx-arm64
     name: Test (${{ matrix.run }}:${{ matrix.tfm }}:${{ matrix.sys }})
     needs:
     - build
-    runs-on: ${{ fromJSON('{"win-x64":["windows-2022"],"linux-x64":["ubuntu-22.04"],"linux-arm64":["ubuntu-22.04-arm"],"osx-x64":["macos-13"],"osx-arm64":["macos-14"]}')[matrix.sys] }}
+    runs-on: ${{ fromJSON('{"win-x86":["windows-2022"],"win-x64":["windows-2022"],"linux-x64":["ubuntu-24.04"],"linux-arm64":["ubuntu-24.04-arm"],"osx-x64":["macos-15-intel"],"osx-arm64":["macos-15"]}')[matrix.sys] }}
     steps:
-    - name: Setup .NET 9.0
-      uses: actions/setup-dotnet@v4
+    - name: Setup .NET 10.0
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 10.0.x
     - name: Add NuGet Source (GitHub)
@@ -116,7 +111,7 @@ jobs:
         GITHUB_REPOS: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Download Tests
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: tests
     - name: Restore Tests
@@ -142,36 +137,39 @@ jobs:
         # scan and process test assemblies
         # the suite's own assembly, exactly: a *.Tests.dll glob catches reference assemblies
         # like Microsoft.EntityFrameworkCore.Relational.Specification.Tests.dll
-        $tests = $(gi .\tests\$tst\$tfm\$tst.dll)
-        if ($tests) {
-            $argl = @(
-                "-f", $tfm,
-                "-v:diag",
-                "--results-directory", "TestResults",
-                "--logger:console;verbosity=diag",
-                "--logger:trx"
-            )
-            
-            $runsettings = $(gi .\tests\$tst\$tfm\*.runsettings)
-            if ($runsettings) {
-                $argl += "--settings:$runsettings"
-            }
-
-            if ($qry -ne "" -and $qry -ne $null) {
-                $argl += @("--filter", $qry)
-                Add-Content $env:GITHUB_ENV "`nRET=TestResults--$tst-$qry--$tfm--$sys"
-            } else {
-                Add-Content $env:GITHUB_ENV "`nRET=TestResults--$tst--$tfm--$sys"
-            }
-            
-            dotnet test @argl $tests[0].FullName
+        $tests = $(gi .\tests\$tst\$tfm\$tst.dll -ErrorAction SilentlyContinue)
+        # a missing assembly must fail the job: gi's error is non-terminating, so an unpublished
+        # suite would otherwise skip the run and leave the job green having tested nothing
+        if (-not $tests) {
+            throw "Test assembly not found: .\tests\$tst\$tfm\$tst.dll -- is $tst listed in src/dist-tests/dist-tests.csproj?"
         }
+        $argl = @(
+            "-f", $tfm,
+            "-v:diag",
+            "--results-directory", "TestResults",
+            "--logger:console;verbosity=diag",
+            "--logger:trx"
+        )
+        
+        $runsettings = $(gi .\tests\$tst\$tfm\*.runsettings -ErrorAction SilentlyContinue)
+        if ($runsettings) {
+            $argl += "--settings:$runsettings"
+        }
+
+        if ($qry -ne "" -and $qry -ne $null) {
+            $argl += @("--filter", $qry)
+            Add-Content $env:GITHUB_ENV "`nRET=TestResults--$tst-$qry--$tfm--$sys"
+        } else {
+            Add-Content $env:GITHUB_ENV "`nRET=TestResults--$tst--$tfm--$sys"
+        }
+        
+        dotnet test @argl $tests[0].FullName
     - name: Archive Test Results
       if: always() && startsWith(env.RET, 'TestResults--')
       run: tar czvf TestResults.tar.gz TestResults
     - name: Upload Test Results
       if: always() && startsWith(env.RET, 'TestResults--')
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ env.RET }}
         path: TestResults.tar.gz
@@ -180,23 +178,25 @@ jobs:
     if: github.event_name != 'pull_request'
     needs:
     - test
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout Source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0
+    - name: Setup .NET 10.0
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: 10.0.x
     - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v3
+      uses: gittools/actions/gitversion/setup@v4
       with:
         versionSpec: 6.x
     - name: Execute GitVersion
       id: GitVersion
-      uses: gittools/actions/gitversion/execute@v3
-      with:
-        useConfigFile: true
+      uses: gittools/actions/gitversion/execute@v4
     - name: Download NuGet Packages
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: nuget
         path: dist/nuget
