@@ -67,10 +67,15 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Rules.Convert
                     return null;
             }
 
+            // Build the physical trait set from the cluster rather than carrying the logical one over. A Calc that
+            // rule merging has folded several projects into can arrive with a composite collation trait, and asking
+            // such a trait set for its single collation throws — the Enumerable rules avoid this the same way.
+            var traitSet = rel.getCluster().traitSetOf(@out);
+
             return new EfCoreCalc(
                 rel.getCluster(),
-                rel.getTraitSet().replace(@out),
-                convert(calc.getInput(), rel.getTraitSet().replace(@out)),
+                traitSet,
+                convert(calc.getInput(), traitSet),
                 program);
         }
 

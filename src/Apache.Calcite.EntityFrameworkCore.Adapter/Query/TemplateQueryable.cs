@@ -5,6 +5,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
+using Apache.Calcite.EntityFrameworkCore.Core;
+
 using Microsoft.EntityFrameworkCore;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter.Query
@@ -45,6 +47,65 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Query
         }
 
         /// <summary>
+        /// Replaces every dynamic-parameter placeholder (<c>?0</c>, <c>?1</c>, …) in <paramref name="expression"/>
+        /// with the value <paramref name="getDynamicValue"/> supplies for it.
+        /// </summary>
+        /// <remarks>
+        /// Placeholders have to be bound before the expression is compiled, not after: a free
+        /// <see cref="ParameterExpression"/> anywhere in the tree makes <see cref="Expression{TDelegate}.Compile()"/>
+        /// throw, so a plan that carries an <c>OFFSET</c> or <c>FETCH</c> parameter never reaches
+        /// <see cref="Apply"/> to have it substituted there.
+        /// </remarks>
+        /// <param name="expression">The expression to bind placeholders in.</param>
+        /// <param name="getDynamicValue">Supplies the value bound to the parameter of the given ordinal.</param>
+        /// <returns>The expression with every placeholder replaced by a constant.</returns>
+        public static Expression BindDynamicParameters(Expression expression, Func<int, object?> getDynamicValue)
+        {
+            ArgumentNullException.ThrowIfNull(expression);
+            ArgumentNullException.ThrowIfNull(getDynamicValue);
+
+            return new DynamicParameterBinder(getDynamicValue).Visit(expression);
+        }
+
+        /// <summary>
+        /// Converts a value bound to a dynamic parameter into a constant of the type the placeholder declared.
+        /// </summary>
+        /// <param name="value">The value Calcite bound, which arrives boxed the Java way.</param>
+        /// <param name="type">The CLR type the placeholder was typed as.</param>
+        /// <returns>The constant to substitute.</returns>
+        static ConstantExpression ToConstant(object? value, Type type)
+        {
+            var clr = CalciteValueConverter.FromJavaObject(value);
+            if (clr is not null && type.IsInstanceOfType(clr) == false)
+            {
+                var target = Nullable.GetUnderlyingType(type) ?? type;
+                if (clr is IConvertible && typeof(IConvertible).IsAssignableFrom(target))
+                    clr = Convert.ChangeType(clr, target);
+            }
+
+            return Expression.Constant(clr, type);
+        }
+
+        /// <summary>
+        /// Replaces dynamic-parameter placeholders with the values bound to them.
+        /// </summary>
+        /// <param name="getDynamicValue">Supplies the value bound to the parameter of the given ordinal.</param>
+        sealed class DynamicParameterBinder(Func<int, object?> getDynamicValue) : ExpressionVisitor
+        {
+
+            /// <inheritdoc />
+            protected override Expression VisitParameter(ParameterExpression node)
+            {
+                var name = (node.Name ?? "").AsSpan();
+                if (name.StartsWith("?") && int.TryParse(name.Slice(1), out var index))
+                    return ToConstant(getDynamicValue(index), node.Type);
+
+                return base.VisitParameter(node);
+            }
+
+        }
+
+        /// <summary>
         /// Replaces every template root inside <paramref name="template"/>'s expression tree with
         /// the corresponding <see cref="DbSet{TEntity}"/> from <paramref name="context"/> and
         /// returns an executable <see cref="IQueryable"/> against the real EF Core provider.
@@ -77,7 +138,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Query
                 var name = (node.Name ?? "").AsSpan();
                 if (name.StartsWith("?"))
                     if (int.TryParse(name.Slice(1), out var index))
-                        return Expression.Constant(GetDynamicValue(index));
+                        return ToConstant(GetDynamicValue(index), node.Type);
 
                 return base.VisitParameter(node);
             }
