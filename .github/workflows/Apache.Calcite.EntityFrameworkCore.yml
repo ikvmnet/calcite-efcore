@@ -84,6 +84,7 @@ jobs:
     strategy:
       matrix:
         run:
+        - Apache.Calcite.EntityFrameworkCore.Adapter.Tests
         - Apache.Calcite.EntityFrameworkCore.Tests
         - Apache.Calcite.EntityFrameworkCore.FunctionalTests
         sys:
