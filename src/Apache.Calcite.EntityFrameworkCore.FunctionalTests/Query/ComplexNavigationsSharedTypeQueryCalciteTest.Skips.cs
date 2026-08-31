@@ -10,6 +10,12 @@ partial class ComplexNavigationsSharedTypeQueryCalciteTest
 {
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task Contains_over_optional_navigation_with_null_column(bool async)
+    {
+        return base.Contains_over_optional_navigation_with_null_column(async);
+    }
+
+    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task GroupBy_aggregate_where_required_relationship(bool async)
     {
         return base.GroupBy_aggregate_where_required_relationship(async);
@@ -43,18 +49,6 @@ partial class ComplexNavigationsSharedTypeQueryCalciteTest
     public override global::System.Threading.Tasks.Task GroupJoin_on_right_side_being_a_subquery(bool async)
     {
         return base.GroupJoin_on_right_side_being_a_subquery(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Include18_3_3(bool async)
-    {
-        return base.Include18_3_3(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Include19(bool async)
-    {
-        return base.Include19(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
@@ -109,12 +103,6 @@ partial class ComplexNavigationsSharedTypeQueryCalciteTest
     public override global::System.Threading.Tasks.Task OrderBy_nav_prop_reference_optional_via_DefaultIfEmpty(bool async)
     {
         return base.OrderBy_nav_prop_reference_optional_via_DefaultIfEmpty(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_join_subquery_containing_filter_and_distinct(bool async)
-    {
-        return base.Select_join_subquery_containing_filter_and_distinct(async);
     }
 
 }

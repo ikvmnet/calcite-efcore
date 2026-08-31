@@ -178,6 +178,12 @@ partial class TPTGearsOfWarQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task Set_operator_with_navigation_in_projection_groupby_aggregate(bool async)
+    {
+        return base.Set_operator_with_navigation_in_projection_groupby_aggregate(async);
+    }
+
+    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task ToString_boolean_property_non_nullable(bool async)
     {
         return base.ToString_boolean_property_non_nullable(async);

@@ -34,12 +34,6 @@ partial class AdHocMiscellaneousQueryCalciteTest
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Operators_combine_nullability_of_entity_shapers()
-    {
-        return base.Operators_combine_nullability_of_entity_shapers();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public new global::System.Threading.Tasks.Task Query_when_null_key_in_database_should_throw()
     {
         return base.Query_when_null_key_in_database_should_throw();

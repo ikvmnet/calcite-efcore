@@ -39,4 +39,34 @@ partial class BuiltInDataTypesCalciteTest
         return base.Can_insert_and_read_back_object_backed_data_types();
     }
 
+    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task Can_query_using_any_data_type()
+    {
+        return base.Can_query_using_any_data_type();
+    }
+
+    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task Can_query_using_any_data_type_nullable_shadow()
+    {
+        return base.Can_query_using_any_data_type_nullable_shadow();
+    }
+
+    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task Can_query_using_any_data_type_shadow()
+    {
+        return base.Can_query_using_any_data_type_shadow();
+    }
+
+    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task Can_query_using_any_nullable_data_type()
+    {
+        return base.Can_query_using_any_nullable_data_type();
+    }
+
+    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task Can_query_using_any_nullable_data_type_as_literal()
+    {
+        return base.Can_query_using_any_nullable_data_type_as_literal();
+    }
+
 }

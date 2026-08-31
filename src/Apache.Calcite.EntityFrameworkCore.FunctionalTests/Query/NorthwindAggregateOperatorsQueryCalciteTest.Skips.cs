@@ -46,12 +46,6 @@ partial class NorthwindAggregateOperatorsQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task String_FirstOrDefault_in_projection_does_not_do_client_eval(bool async)
-    {
-        return base.String_FirstOrDefault_in_projection_does_not_do_client_eval(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Sum_over_uncorrelated_subquery(bool async)
     {
         return base.Sum_over_uncorrelated_subquery(async);

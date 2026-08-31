@@ -51,10 +51,4 @@ partial class IncompleteMappingInheritanceQueryCalciteTest
         return base.Setting_foreign_key_to_a_different_type_throws();
     }
 
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Subquery_OfType(bool async)
-    {
-        return base.Subquery_OfType(async);
-    }
-
 }

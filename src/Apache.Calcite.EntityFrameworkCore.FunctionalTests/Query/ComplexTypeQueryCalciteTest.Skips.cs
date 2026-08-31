@@ -10,54 +10,6 @@ partial class ComplexTypeQueryCalciteTest
 {
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Filter_on_property_inside_complex_type_after_subquery(bool async)
-    {
-        return base.Filter_on_property_inside_complex_type_after_subquery(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Filter_on_property_inside_nested_complex_type_after_subquery(bool async)
-    {
-        return base.Filter_on_property_inside_nested_complex_type_after_subquery(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Filter_on_property_inside_nested_struct_complex_type_after_subquery(bool async)
-    {
-        return base.Filter_on_property_inside_nested_struct_complex_type_after_subquery(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Filter_on_property_inside_struct_complex_type_after_subquery(bool async)
-    {
-        return base.Filter_on_property_inside_struct_complex_type_after_subquery(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Project_same_nested_complex_type_twice_with_double_pushdown(bool async)
-    {
-        return base.Project_same_nested_complex_type_twice_with_double_pushdown(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Project_same_nested_complex_type_twice_with_pushdown(bool async)
-    {
-        return base.Project_same_nested_complex_type_twice_with_pushdown(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Project_same_struct_nested_complex_type_twice_with_double_pushdown(bool async)
-    {
-        return base.Project_same_struct_nested_complex_type_twice_with_double_pushdown(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Project_same_struct_nested_complex_type_twice_with_pushdown(bool async)
-    {
-        return base.Project_same_struct_nested_complex_type_twice_with_pushdown(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Same_entity_with_complex_type_projected_twice_with_pushdown_as_part_of_another_projection(bool async)
     {
         return base.Same_entity_with_complex_type_projected_twice_with_pushdown_as_part_of_another_projection(async);

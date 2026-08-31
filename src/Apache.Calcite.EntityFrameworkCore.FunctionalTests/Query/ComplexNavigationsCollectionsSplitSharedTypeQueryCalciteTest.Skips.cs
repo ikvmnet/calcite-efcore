@@ -27,10 +27,4 @@ partial class ComplexNavigationsCollectionsSplitSharedTypeQueryCalciteTest
         return base.Optional_navigation_with_order_by_and_Include(async);
     }
 
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task SelectMany_with_navigation_and_Distinct(bool async)
-    {
-        return base.SelectMany_with_navigation_and_Distinct(async);
-    }
-
 }

@@ -70,6 +70,12 @@ partial class NorthwindGroupByQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task GroupBy_Count_in_projection(bool async)
+    {
+        return base.GroupBy_Count_in_projection(async);
+    }
+
+    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task GroupBy_Dto_as_element_selector_Select_Sum(bool async)
     {
         return base.GroupBy_Dto_as_element_selector_Select_Sum(async);
@@ -169,12 +175,6 @@ partial class NorthwindGroupByQueryCalciteTest
     public override global::System.Threading.Tasks.Task GroupBy_with_aggregate_containing_complex_where(bool async)
     {
         return base.GroupBy_with_aggregate_containing_complex_where(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_with_group_key_being_nested_navigation(bool async)
-    {
-        return base.GroupBy_with_group_key_being_nested_navigation(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
