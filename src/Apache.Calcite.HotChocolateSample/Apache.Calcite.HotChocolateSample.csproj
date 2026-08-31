@@ -17,7 +17,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Apache.Calcite.Data" Version="2.0.0-pre.7" />
+        <PackageReference Include="Apache.Calcite.Data" Version="2.0.0-pre.8" />
         <PackageReference Include="JsonApiDotNetCore" Version="5.11.0" />
         <PackageReference Include="JsonApiDotNetCore.OpenApi.Swashbuckle" Version="5.11.0-preview.8" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
