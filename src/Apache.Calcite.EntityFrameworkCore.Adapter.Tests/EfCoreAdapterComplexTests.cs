@@ -88,6 +88,32 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             return rows;
         }
 
+        /// <summary>
+        /// Executes <paramref name="sql"/> with positional dynamic parameters bound to <paramref name="values"/>,
+        /// which Calcite numbers from one.
+        /// </summary>
+        List<Dictionary<string, object?>> ExecuteWithParameters(string sql, params object[] values)
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = sql;
+            for (int i = 0; i < values.Length; i++)
+                cmd.Parameters.Add(new CalciteParameter((i + 1).ToString(), values[i]));
+
+            var rows = new List<Dictionary<string, object?>>();
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                for (int i = 0; i < reader.FieldCount; i++)
+                    row[reader.GetName(i)] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+
+                rows.Add(row);
+            }
+
+            return rows;
+        }
+
         // ------------------------------------------------------------------ SELECT / filter
 
         [Fact]
@@ -239,6 +265,14 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             var rows = Execute($@"SELECT ""Name"" FROM ""{S}"".""Product""");
             Assert.Equal(6, rows.Count);
             Assert.All(rows, r => Assert.Single(r));
+        }
+
+        [Fact(Skip = "An alias over a bare column reference is lost: the reader reports the source column name")]
+        public void Projection_AliasOnBareColumn()
+        {
+            var rows = Execute($@"SELECT ""Name"" AS ""Alias"" FROM ""{S}"".""Supplier"" ORDER BY ""Id""");
+            Assert.Equal(3, rows.Count);
+            Assert.Equal("Northwind Traders", rows[0]["Alias"]);
         }
 
         [Fact]
@@ -609,6 +643,155 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             Assert.NotNull(rows[2]["Cat"]); // Doohickey has CategoryId=2 → 2
         }
 
+        // ------------------------------------------------------------------ temporal columns
+
+        [Fact]
+        public void Temporal_SelectTimestampColumn()
+        {
+            // Regression: a DateTime reached the reader as a CLR value it has no way to decode, so every query
+            // selecting a TIMESTAMP column failed.
+            var rows = Execute($@"SELECT ""Id"", ""ListedAt"" FROM ""{S}"".""Supplier"" ORDER BY ""Id""");
+            Assert.Equal(3, rows.Count);
+            Assert.Equal(new DateTime(2024, 3, 1, 8, 30, 0), AsDateTime(rows[0]["ListedAt"]));
+            Assert.Equal(new DateTime(2024, 6, 15, 14, 45, 0), AsDateTime(rows[1]["ListedAt"]));
+            Assert.Equal(new DateTime(2025, 1, 20, 19, 5, 0), AsDateTime(rows[2]["ListedAt"]));
+        }
+
+        [Fact]
+        public void Temporal_SelectTimestampAlone()
+        {
+            // A single-column row leaves through the SCALAR path, which casts the value to the Java type the
+            // physical row declares - so an unconverted DateTime fails there rather than at the reader.
+            var rows = Execute($@"SELECT ""ListedAt"" FROM ""{S}"".""Supplier"" ORDER BY ""ListedAt""");
+            Assert.Equal(3, rows.Count);
+            Assert.Equal(new DateTime(2024, 3, 1, 8, 30, 0), AsDateTime(rows[0]["ListedAt"]));
+        }
+
+        [Fact]
+        public void Temporal_SelectDateAlone()
+        {
+            var rows = Execute($@"SELECT ""FoundedOn"" FROM ""{S}"".""Supplier"" ORDER BY ""FoundedOn""");
+            Assert.Equal(3, rows.Count);
+            Assert.Equal(new DateOnly(1998, 4, 15), AsDateOnly(rows[0]["FoundedOn"]));
+        }
+
+        [Fact]
+        public void Temporal_SelectTimeAlone()
+        {
+            var rows = Execute($@"SELECT ""OpensAt"" FROM ""{S}"".""Supplier"" ORDER BY ""OpensAt""");
+            Assert.Equal(3, rows.Count);
+            Assert.Equal(new TimeOnly(7, 0), AsTimeOnly(rows[0]["OpensAt"]));
+        }
+
+        [Fact]
+        public void Temporal_SelectStarIncludesEveryTemporalColumn()
+        {
+            var rows = Execute($@"SELECT * FROM ""{S}"".""Supplier"" ORDER BY ""Id""");
+            Assert.Equal(3, rows.Count);
+            Assert.Equal(new DateTime(2024, 3, 1, 8, 30, 0), AsDateTime(rows[0]["ListedAt"]));
+            Assert.Equal(new DateOnly(1998, 4, 15), AsDateOnly(rows[0]["FoundedOn"]));
+            Assert.Equal(new TimeOnly(9, 15), AsTimeOnly(rows[0]["OpensAt"]));
+        }
+
+        [Fact(Skip = "Temporal literals reach the translator as GregorianCalendar, which TranslateConstant does not decode")]
+        public void Temporal_FilterOnTimestamp()
+        {
+            var rows = Execute($@"
+                SELECT ""Id"" FROM ""{S}"".""Supplier""
+                WHERE ""ListedAt"" > TIMESTAMP '2024-06-01 00:00:00'
+                ORDER BY ""Id""");
+            Assert.Equal(2, rows.Count);
+            Assert.Equal(2, rows[0]["Id"]);
+            Assert.Equal(3, rows[1]["Id"]);
+        }
+
+        [Fact(Skip = "Temporal literals reach the translator as GregorianCalendar, which TranslateConstant does not decode")]
+        public void Temporal_FilterOnDate()
+        {
+            var rows = Execute($@"
+                SELECT ""Id"" FROM ""{S}"".""Supplier""
+                WHERE ""FoundedOn"" < DATE '2006-01-01'
+                ORDER BY ""Id""");
+            Assert.Equal(2, rows.Count);
+            Assert.Equal(1, rows[0]["Id"]);
+            Assert.Equal(2, rows[1]["Id"]);
+        }
+
+        [Fact]
+        public void Temporal_OrderByTimestampDescending()
+        {
+            var rows = Execute($@"SELECT ""Id"" FROM ""{S}"".""Supplier"" ORDER BY ""ListedAt"" DESC");
+            Assert.Equal([3, 2, 1], rows.Select(r => (int)r["Id"]!));
+        }
+
+        // ------------------------------------------------------------------ dynamic parameters
+
+        [Fact]
+        public void Parameter_Filter_ByInteger()
+        {
+            // Regression: resolving the CLR type of a dynamic parameter recursed without bound, so any plan
+            // carrying one overflowed the stack and took the process with it.
+            var rows = ExecuteWithParameters($@"SELECT ""Id"", ""Name"" FROM ""{S}"".""Product"" WHERE ""Id"" = ?", 3);
+            Assert.Single(rows);
+            Assert.Equal("Doohickey", rows[0]["Name"]);
+        }
+
+        [Fact]
+        public void Parameter_Filter_ByString()
+        {
+            var rows = ExecuteWithParameters($@"SELECT ""Id"" FROM ""{S}"".""Product"" WHERE ""Name"" = ?", "Gizmo");
+            Assert.Single(rows);
+            Assert.Equal(6, rows[0]["Id"]);
+        }
+
+        [Fact]
+        public void Parameter_Limit_Offset()
+        {
+            // Regression: parameters were bound after the template was compiled, so a plan carrying OFFSET or
+            // FETCH failed with "variable '?0' is not defined" - Compile throws on a free parameter.
+            var rows = ExecuteWithParameters(
+                $@"SELECT ""Id"" FROM ""{S}"".""Product"" ORDER BY ""Id"" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY", 3, 2);
+            Assert.Equal([4, 5], rows.Select(r => (int)r["Id"]!));
+        }
+
+        [Fact]
+        public void Parameter_Fetch_Only()
+        {
+            var rows = ExecuteWithParameters(
+                $@"SELECT ""Id"" FROM ""{S}"".""Product"" ORDER BY ""Id"" FETCH FIRST ? ROWS ONLY", 2);
+            Assert.Equal([1, 2], rows.Select(r => (int)r["Id"]!));
+        }
+
+        // ------------------------------------------------------------------ three way join
+
+        [Fact]
+        public void Join_ThreeWay_BuildsNestedResultSelector()
+        {
+            // Regression: a three way join nests one join's result selector inside the next, which is a ROW, and
+            // ROW was unimplemented, so the plan failed to implement. Every key here is non-nullable, which keeps
+            // the test off the separate nullable-key mismatch that Join_ThreeWay_NullableKey records.
+            var rows = Execute($@"
+                SELECT s.""Id"", c.""Name"", s2.""CategoryId""
+                FROM ""{S}"".""Supplier"" s
+                INNER JOIN ""{S}"".""Category"" c ON s.""CategoryId"" = c.""Id""
+                INNER JOIN ""{S}"".""Supplier"" s2 ON c.""Id"" = s2.""CategoryId""");
+            Assert.Equal(3, rows.Count);
+            Assert.All(rows, r => Assert.Equal(r["Id"], r["CategoryId"]));
+            Assert.Equal("Electronics", rows.Single(r => (int)r["Id"]! == 1)["Name"]);
+        }
+
+        [Fact(Skip = "Join key nullability is not reconciled: a nullable outer key against a non-nullable inner key fails to implement")]
+        public void Join_ThreeWay_NullableKey()
+        {
+            var rows = Execute($@"
+                SELECT p.""Name"" AS ""Product"", c.""Name"" AS ""Category"", s.""Name"" AS ""Supplier""
+                FROM ""{S}"".""Product"" p
+                INNER JOIN ""{S}"".""Category"" c ON p.""CategoryId"" = c.""Id""
+                INNER JOIN ""{S}"".""Supplier"" s ON c.""Id"" = s.""CategoryId""");
+            Assert.Equal(5, rows.Count);
+            Assert.Equal("Northwind Traders", rows.Single(r => (string)r["Product"]! == "Widget")["Supplier"]);
+        }
+
         // ------------------------------------------------------------------ helpers
 
         /// <summary>Coerces the value returned by the Calcite reader to <see cref="decimal"/>.</summary>
@@ -621,6 +804,37 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             long l => l,
             java.math.BigDecimal bd => decimal.Parse(bd.toPlainString()),
             _ => decimal.Parse(v!.ToString()!),
+        };
+
+        /// <summary>Coerces the value returned by the Calcite reader to <see cref="DateTime"/>.</summary>
+        static DateTime AsDateTime(object? v) => v switch
+        {
+            DateTime d => d,
+            DateTimeOffset o => o.DateTime,
+            long l => DateTime.UnixEpoch.AddMilliseconds(l),
+            java.lang.Long jl => DateTime.UnixEpoch.AddMilliseconds(jl.longValue()),
+            _ => DateTime.Parse(v!.ToString()!),
+        };
+
+        /// <summary>Coerces the value returned by the Calcite reader to <see cref="DateOnly"/>.</summary>
+        static DateOnly AsDateOnly(object? v) => v switch
+        {
+            DateOnly d => d,
+            DateTime d => DateOnly.FromDateTime(d),
+            int i => DateOnly.FromDayNumber(new DateOnly(1970, 1, 1).DayNumber + i),
+            java.lang.Integer ji => DateOnly.FromDayNumber(new DateOnly(1970, 1, 1).DayNumber + ji.intValue()),
+            _ => DateOnly.Parse(v!.ToString()!),
+        };
+
+        /// <summary>Coerces the value returned by the Calcite reader to <see cref="TimeOnly"/>.</summary>
+        static TimeOnly AsTimeOnly(object? v) => v switch
+        {
+            TimeOnly t => t,
+            TimeSpan t => TimeOnly.FromTimeSpan(t),
+            DateTime d => TimeOnly.FromDateTime(d),
+            int i => new TimeOnly(i * TimeSpan.TicksPerMillisecond),
+            java.lang.Integer ji => new TimeOnly(ji.intValue() * TimeSpan.TicksPerMillisecond),
+            _ => TimeOnly.Parse(v!.ToString()!),
         };
 
         /// <summary>Coerces an aggregate result to <see cref="long"/>.</summary>

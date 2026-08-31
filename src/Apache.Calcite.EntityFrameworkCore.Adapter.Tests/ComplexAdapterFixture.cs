@@ -49,6 +49,15 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
         //   CategoryId IS NULL = 1  (Gizmo)
         //   INNER JOIN rows = 5  (Gizmo excluded)
         //   LEFT  JOIN rows = 6
+        //
+        // Three suppliers, one per category, carrying the temporal columns:
+        //
+        // Id  Name               CategoryId  ListedAt             FoundedOn   OpensAt
+        //  1  Northwind Traders   1          2024-03-01 08:30:00  1998-04-15  09:15
+        //  2  Household Depot     2          2024-06-15 14:45:00  2005-11-30  07:00
+        //  3  Toybox Ltd          3          2025-01-20 19:05:00  2012-02-29  10:30
+        //
+        //   Product-Category-Supplier three way join rows = 5 (Gizmo excluded, one supplier per category)
 
         const string ConnectionString = "Data Source=complex_adapter_tests;Mode=Memory;Cache=Shared";
 
@@ -71,6 +80,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
                 ctx.Database.EnsureCreated();
                 ctx.Database.ExecuteSqlRaw("DELETE FROM Products");
                 ctx.Database.ExecuteSqlRaw("DELETE FROM Categories");
+                ctx.Database.ExecuteSqlRaw("DELETE FROM Suppliers");
 
                 ctx.Categories.Add(new Category { Id = 1, Name = "Electronics" });
                 ctx.Categories.Add(new Category { Id = 2, Name = "Household" });
@@ -82,6 +92,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
                 ctx.Products.Add(new Product { Id = 4, Name = "Thingamajig", Price = 14.99m, InStock = false, CategoryId = 2 });
                 ctx.Products.Add(new Product { Id = 5, Name = "Whatsit", Price = 2.99m, InStock = true, CategoryId = 3 });
                 ctx.Products.Add(new Product { Id = 6, Name = "Gizmo", Price = 49.99m, InStock = false, CategoryId = null });
+
+                ctx.Suppliers.Add(new Supplier { Id = 1, Name = "Northwind Traders", CategoryId = 1, ListedAt = new DateTime(2024, 3, 1, 8, 30, 0), FoundedOn = new DateOnly(1998, 4, 15), OpensAt = new TimeOnly(9, 15) });
+                ctx.Suppliers.Add(new Supplier { Id = 2, Name = "Household Depot", CategoryId = 2, ListedAt = new DateTime(2024, 6, 15, 14, 45, 0), FoundedOn = new DateOnly(2005, 11, 30), OpensAt = new TimeOnly(7, 0) });
+                ctx.Suppliers.Add(new Supplier { Id = 3, Name = "Toybox Ltd", CategoryId = 3, ListedAt = new DateTime(2025, 1, 20, 19, 5, 0), FoundedOn = new DateOnly(2012, 2, 29), OpensAt = new TimeOnly(10, 30) });
 
                 ctx.SaveChanges();
             }

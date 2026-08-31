@@ -376,10 +376,12 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
                 case "CASE":
                     return ResolveDeclaredType(call);
                 // These can appear as RexCall but require special type handling not yet implemented.
+                // A row constructor is typed by its declared struct type, which the type mapper turns into a generated CLR type.
+                case "ROW":
+                    return ResolveDeclaredType(call);
                 case "OVER":
                 case "SCALAR_QUERY":
                 case "LAMBDA":
-                case "ROW":
                 case "COLUMN_LIST":
                 case "SAFE_CAST":
                     throw new NotImplementedException($"RexToLinqTranslator: CLR type resolution for RexCall kind '{call.getKind().name()}' is not yet implemented.");
@@ -453,11 +455,15 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         }
 
         /// <summary>
-        /// Resolves the CLR type of a <see cref="RexDynamicParam"/> from the corresponding registered parameter.
+        /// Resolves the CLR type of a <see cref="RexDynamicParam"/> from its declared row type.
         /// </summary>
+        /// <remarks>
+        /// Taken from the Rex node rather than from <see cref="ResolveDynamicParam"/>, which builds its parameter
+        /// out of this type: asking it would be an unbounded recursion.
+        /// </remarks>
         protected virtual Type ResolveDynamicParamType(RexDynamicParam dynParam, EfCoreTranslationContext context)
         {
-            return ResolveDynamicParam(dynParam, context).Type;
+            return CalciteTypeMapper.ToClrType(dynParam.getType());
         }
 
         /// <summary>
@@ -1079,10 +1085,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
                 // These can appear as RexCall but require special translation handling not yet implemented.
                 case "CASE":
                     return TranslateCase(call, context);
+                case "ROW":
+                    return TranslateRow(call, context);
                 case "OVER":
                 case "SCALAR_QUERY":
                 case "LAMBDA":
-                case "ROW":
                 case "COLUMN_LIST":
                 case "SAFE_CAST":
                     throw new NotImplementedException($"RexToLinqTranslator: translation for RexCall kind '{call.getKind().name()}' is not yet implemented.");
@@ -1645,6 +1652,41 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         protected virtual Expression TranslateCorrelVariable(RexCorrelVariable correlVar, EfCoreTranslationContext context)
         {
             return ResolveCorrelParam(correlVar, context);
+        }
+
+        /// <summary>
+        /// Translates a <c>ROW</c> constructor into a <see cref="MemberInitExpression"/> over the CLR type generated
+        /// for the declared row type, binding each operand to the property of the field in the same position.
+        /// </summary>
+        /// <remarks>
+        /// Row constructors turn up wherever a join builds its result selector, so a plan that joins three inputs
+        /// carries one nested inside the next join up.
+        /// </remarks>
+        protected virtual Expression TranslateRow(RexCall call, EfCoreTranslationContext context)
+        {
+            var rowType = call.getType();
+            var clrType = CalciteTypeMapper.ToClrType(rowType);
+            var fields = rowType.getFieldList();
+            var operands = call.getOperands();
+
+            if (fields.size() != operands.size())
+                throw new InvalidOperationException($"RexToLinqTranslator: ROW has {operands.size()} operands but its row type declares {fields.size()} fields.");
+
+            var bindings = new MemberBinding[operands.size()];
+            for (int i = 0, n = operands.size(); i < n; i++)
+            {
+                var name = ((RelDataTypeField)fields.get(i)).getName();
+                var property = clrType.GetProperty(name)
+                    ?? throw new InvalidOperationException($"RexToLinqTranslator: ROW field '{name}' has no property on generated type '{clrType.Name}'.");
+
+                var value = Translate((RexNode)operands.get(i), context);
+
+                // Coerce when the translated expression type doesn't exactly match the property type (e.g. widening numerics).
+                var coerced = value.Type == property.PropertyType ? value : Expression.Convert(value, property.PropertyType);
+                bindings[i] = Expression.Bind(property, coerced);
+            }
+
+            return Expression.MemberInit(Expression.New(clrType), bindings);
         }
 
         /// <summary>

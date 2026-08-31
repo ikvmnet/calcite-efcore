@@ -1,4 +1,6 @@
-﻿namespace Apache.Calcite.EntityFrameworkCore.Core
+﻿using System;
+
+namespace Apache.Calcite.EntityFrameworkCore.Core
 {
 
     /// <summary>
@@ -26,8 +28,28 @@
             float v => java.lang.Float.valueOf(v),
             double v => java.lang.Double.valueOf(v),
             decimal v => BigDecimalConverter.ToBigDecimal(v),
+
+            // Calcite carries temporal values as primitives, counted from the Unix epoch: DATE as a day count,
+            // TIME as milliseconds within the day, and TIMESTAMP as milliseconds. A CLR DateTime handed over
+            // unconverted is not something the reader on the other side knows how to decode.
+            DateTime v => java.lang.Long.valueOf((long)(v - UnixEpoch).TotalMilliseconds),
+            DateTimeOffset v => java.lang.Long.valueOf(v.ToUnixTimeMilliseconds()),
+            DateOnly v => java.lang.Integer.valueOf(v.DayNumber - UnixEpochDayNumber),
+            TimeOnly v => java.lang.Integer.valueOf((int)(v.Ticks / TimeSpan.TicksPerMillisecond)),
+            TimeSpan v => java.lang.Long.valueOf((long)v.TotalMilliseconds),
+
             _ => value,
         };
+
+        /// <summary>
+        /// The instant Calcite counts DATE and TIMESTAMP values from.
+        /// </summary>
+        static readonly DateTime UnixEpoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
+
+        /// <summary>
+        /// The day number of <see cref="UnixEpoch"/>, subtracted to turn a <see cref="DateOnly"/> into a day count.
+        /// </summary>
+        static readonly int UnixEpochDayNumber = new DateOnly(1970, 1, 1).DayNumber;
 
         /// <summary>
         /// Converts a Java-boxed object returned by Calcite back to the equivalent CLR primitive.
