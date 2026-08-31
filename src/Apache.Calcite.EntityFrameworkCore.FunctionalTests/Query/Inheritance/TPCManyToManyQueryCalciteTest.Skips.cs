@@ -10,6 +10,12 @@ partial class TPCManyToManyQueryCalciteTest
 {
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task Include_skip_navigation_split(bool async)
+    {
+        return base.Include_skip_navigation_split(async);
+    }
+
+    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Left_join_with_skip_navigation(bool async)
     {
         return base.Left_join_with_skip_navigation(async);

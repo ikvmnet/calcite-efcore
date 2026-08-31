@@ -10,9 +10,9 @@ partial class ComplexNavigationsQueryCalciteTest
 {
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Contains_with_subquery_optional_navigation_and_constant_item(bool async)
+    public override global::System.Threading.Tasks.Task Contains_over_optional_navigation_with_null_column(bool async)
     {
-        return base.Contains_with_subquery_optional_navigation_and_constant_item(async);
+        return base.Contains_over_optional_navigation_with_null_column(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
@@ -43,18 +43,6 @@ partial class ComplexNavigationsQueryCalciteTest
     public override global::System.Threading.Tasks.Task Include18_1_1(bool async)
     {
         return base.Include18_1_1(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Include18_3_3(bool async)
-    {
-        return base.Include18_3_3(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Include19(bool async)
-    {
-        return base.Include19(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]

@@ -148,12 +148,6 @@ partial class TPCGearsOfWarQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Query_reusing_parameter_doesnt_declare_duplicate_parameter_complex(bool async)
-    {
-        return base.Query_reusing_parameter_doesnt_declare_duplicate_parameter_complex(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Select_null_propagation_negative3(bool async)
     {
         return base.Select_null_propagation_negative3(async);

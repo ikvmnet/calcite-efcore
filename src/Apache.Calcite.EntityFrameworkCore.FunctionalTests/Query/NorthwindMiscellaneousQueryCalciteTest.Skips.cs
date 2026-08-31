@@ -10,6 +10,18 @@ partial class NorthwindMiscellaneousQueryCalciteTest
 {
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task All_top_level_subquery(bool async)
+    {
+        return base.All_top_level_subquery(async);
+    }
+
+    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task All_top_level_subquery_ef_property(bool async)
+    {
+        return base.All_top_level_subquery_ef_property(async);
+    }
+
+    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Anonymous_subquery_orderby(bool async)
     {
         return base.Anonymous_subquery_orderby(async);
@@ -172,39 +184,15 @@ partial class NorthwindMiscellaneousQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_Where_Subquery_Equality(bool async)
-    {
-        return base.Select_Where_Subquery_Equality(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task SelectMany_LongCount(bool async)
     {
         return base.SelectMany_LongCount(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Subquery_member_pushdown_does_not_change_original_subquery_model(bool async)
-    {
-        return base.Subquery_member_pushdown_does_not_change_original_subquery_model(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Subquery_member_pushdown_does_not_change_original_subquery_model2(bool async)
-    {
-        return base.Subquery_member_pushdown_does_not_change_original_subquery_model2(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Subquery_with_navigation_inside_inline_collection(bool async)
     {
         return base.Subquery_with_navigation_inside_inline_collection(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Take_skip_null_coalesce_operator(bool async)
-    {
-        return base.Take_skip_null_coalesce_operator(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
@@ -235,18 +223,6 @@ partial class NorthwindMiscellaneousQueryCalciteTest
     public override global::System.Threading.Tasks.Task Where_nanosecond_and_microsecond_component(bool async)
     {
         return base.Where_nanosecond_and_microsecond_component(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task All_top_level_subquery(bool async)
-    {
-        return base.All_top_level_subquery(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task All_top_level_subquery_ef_property(bool async)
-    {
-        return base.All_top_level_subquery_ef_property(async);
     }
 
 }

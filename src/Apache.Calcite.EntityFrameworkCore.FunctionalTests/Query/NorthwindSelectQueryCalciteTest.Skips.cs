@@ -10,12 +10,6 @@ partial class NorthwindSelectQueryCalciteTest
 {
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Collection_projection_selecting_outer_element_followed_by_take(bool async)
-    {
-        return base.Collection_projection_selecting_outer_element_followed_by_take(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Correlated_collection_after_distinct_with_complex_projection_not_containing_original_identifier(bool async)
     {
         return base.Correlated_collection_after_distinct_with_complex_projection_not_containing_original_identifier(async);
@@ -49,12 +43,6 @@ partial class NorthwindSelectQueryCalciteTest
     public override global::System.Threading.Tasks.Task Project_single_element_from_collection_with_OrderBy_Take_and_FirstOrDefault_with_parameter(bool async)
     {
         return base.Project_single_element_from_collection_with_OrderBy_Take_and_FirstOrDefault_with_parameter(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Projecting_after_navigation_and_distinct(bool async)
-    {
-        return base.Projecting_after_navigation_and_distinct(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]

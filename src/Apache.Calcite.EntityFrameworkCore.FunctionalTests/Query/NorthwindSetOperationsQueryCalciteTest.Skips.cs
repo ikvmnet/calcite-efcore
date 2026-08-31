@@ -28,18 +28,6 @@ partial class NorthwindSetOperationsQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Intersect(bool async)
-    {
-        return base.Intersect(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Intersect_nested(bool async)
-    {
-        return base.Intersect_nested(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Select_Union_different_fields_in_anonymous_with_subquery(bool async)
     {
         return base.Select_Union_different_fields_in_anonymous_with_subquery(async);

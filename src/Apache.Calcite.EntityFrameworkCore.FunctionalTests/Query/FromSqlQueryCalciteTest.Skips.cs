@@ -16,18 +16,6 @@ partial class FromSqlQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Bad_data_error_handling_invalid_cast_key(bool async)
-    {
-        return base.Bad_data_error_handling_invalid_cast_key(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Bad_data_error_handling_invalid_cast_no_tracking(bool async)
-    {
-        return base.Bad_data_error_handling_invalid_cast_no_tracking(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Bad_data_error_handling_invalid_cast_projection(bool async)
     {
         return base.Bad_data_error_handling_invalid_cast_projection(async);
@@ -79,12 +67,6 @@ partial class FromSqlQueryCalciteTest
     public override global::System.Threading.Tasks.Task FromSqlRaw_queryable_composed_compiled_with_DbParameter(bool async)
     {
         return base.FromSqlRaw_queryable_composed_compiled_with_DbParameter(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task FromSqlRaw_queryable_simple_columns_out_of_order_and_extra_columns(bool async)
-    {
-        return base.FromSqlRaw_queryable_simple_columns_out_of_order_and_extra_columns(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
