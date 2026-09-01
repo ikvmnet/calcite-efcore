@@ -32,6 +32,15 @@ services.AddDbContext<MyContext>(options =>
 
 The connection string is a standard Calcite model configuration — see the [Calcite adapter documentation](https://calcite.apache.org/docs/adapter.html) for modeling data sources. `Fun = "all"` enables the extended operator libraries and is required for JSON column updates.
 
+`ToCalciteSql()` turns a query into the SQL the provider would send, without running it:
+
+```csharp
+var city = "London";
+var sql = context.Customers.Where(c => c.City == city).ToCalciteSql();
+```
+
+Calcite binds parameters positionally, as `?`, so a statement handed back with its placeholders intact could not be run anywhere: the values are written in as literals instead, leaving SQL that Calcite accepts as it stands — hand it to a `CalciteCommand`, a view definition, or `sqlline`. It is `ToQueryString()` for the Calcite provider, and refuses a query belonging to any other provider rather than answering in that provider's dialect.
+
 ### [`Apache.Calcite.EntityFrameworkCore.Adapter`](https://www.nuget.org/packages/Apache.Calcite.EntityFrameworkCore.Adapter) · `src/Apache.Calcite.EntityFrameworkCore.Adapter`
 
 `EfCoreConvention` — a Calcite calling convention that translates relational expressions and Rex trees into LINQ `IQueryable` expressions executed by EF Core. Rows leave the convention as `IAsyncEnumerable`, matching EF Core's natively asynchronous pipeline. Register a `DbContext` as a Calcite schema and Calcite federates over it like any other adapter, pushing work into EF Core where the convention can express it.
