@@ -53,10 +53,8 @@ namespace Apache.Calcite.HotChocolateSample
             connection.RegisterHook(Hook.PLAN_BEFORE_IMPLEMENTATION, new DelegateConsumer<object>((object q) => Console.WriteLine($"PLAN_BEFORE_IMPLEMENTATION: {((RelRoot)q).ToString()}"))); 
             connection.Open();
 
-            var real1Schema = EfCoreSchema.Create(connection.RootSchema, "real1", () => new Real1DbContext());
-            connection.RootSchema.add("real1", real1Schema);
-            var real2Schema = EfCoreSchema.Create(connection.RootSchema, "real2", () => new Real2DbContext());
-            connection.RootSchema.add("real2", real2Schema);
+            EfCoreSchema.Create(connection.RootSchema, "real1", () => new Real1DbContext());
+            EfCoreSchema.Create(connection.RootSchema, "real2", () => new Real2DbContext());
 
             optionsBuilder.UseCalcite(connection, b => b.MaxBatchSize(1));
         }

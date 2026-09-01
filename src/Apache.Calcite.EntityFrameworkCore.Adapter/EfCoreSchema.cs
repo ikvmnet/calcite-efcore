@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 using Apache.Calcite.EntityFrameworkCore.Adapter.Rex;
 
@@ -32,7 +33,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         /// <summary>
         /// Creates an <see cref="EfCoreSchema"/> with default adapter configuration.
         /// </summary>
-        /// <param name="parentSchema">The parent schema to register under.</param>
+        /// <param name="parentSchema">The schema to register this schema on under <paramref name="name"/>, or <see langword="null"/> to leave registration to the caller.</param>
         /// <param name="name">The name of this schema.</param>
         /// <param name="contextFactory">Factory that produces a fresh <see cref="DbContext"/> on demand.</param>
         /// <returns>The newly created schema.</returns>
@@ -44,7 +45,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         /// <summary>
         /// Creates an <see cref="EfCoreSchema"/> with default adapter configuration.
         /// </summary>
-        /// <param name="parentSchema">The parent schema to register under.</param>
+        /// <param name="parentSchema">The schema to register this schema on under <paramref name="name"/>, or <see langword="null"/> to leave registration to the caller.</param>
         /// <param name="name">The name of this schema.</param>
         /// <param name="contextFactory">Factory that produces <see cref="DbContext"/> instances.</param>
         /// <returns>The newly created schema.</returns>
@@ -56,7 +57,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         /// <summary>
         /// Creates an <see cref="EfCoreSchema"/> with a Rex translator factory.
         /// </summary>
-        /// <param name="parentSchema">The parent schema to register under.</param>
+        /// <param name="parentSchema">The schema to register this schema on under <paramref name="name"/>, or <see langword="null"/> to leave registration to the caller.</param>
         /// <param name="name">The name of this schema.</param>
         /// <param name="contextFactory">Factory that produces a fresh <see cref="DbContext"/> on demand.</param>
         /// <param name="translatorFactory">Optional factory that creates Rex-to-LINQ translators. Pass <see langword="null"/> to use the default.</param>
@@ -64,14 +65,13 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         public static EfCoreSchema Create(SchemaPlus? parentSchema, string name, Func<DbContext> contextFactory, IRexToLinqTranslatorFactory? translatorFactory)
         {
             ArgumentNullException.ThrowIfNull(contextFactory);
-            translatorFactory ??= DefaultRexToLinqTranslatorFactory.Instance;
-            return new EfCoreSchema(parentSchema, name, new DelegateDbContextFactory(contextFactory), translatorFactory);
+            return Create(parentSchema, name, new DelegateDbContextFactory(contextFactory), translatorFactory);
         }
 
         /// <summary>
         /// Creates an <see cref="EfCoreSchema"/> with both context and translator factories.
         /// </summary>
-        /// <param name="parentSchema">The parent schema to register under.</param>
+        /// <param name="parentSchema">The schema to register this schema on under <paramref name="name"/>, or <see langword="null"/> to leave registration to the caller.</param>
         /// <param name="name">The name of this schema.</param>
         /// <param name="contextFactory">Factory that produces <see cref="DbContext"/> instances.</param>
         /// <param name="translatorFactory">Optional factory that creates Rex-to-LINQ translators. Pass <see langword="null"/> to use the default.</param>
@@ -80,21 +80,23 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         {
             ArgumentNullException.ThrowIfNull(contextFactory);
             translatorFactory ??= DefaultRexToLinqTranslatorFactory.Instance;
-            return new EfCoreSchema(parentSchema, name, contextFactory, translatorFactory);
+
+            var schema = new EfCoreSchema(name, contextFactory, translatorFactory);
+            parentSchema?.add(name, schema);
+            return schema;
         }
 
         readonly EfCoreConvention _convention;
         readonly IRexToLinqTranslatorFactory _translatorFactory;
 
         /// <summary>
-        /// Initializes a new instance of <see cref="EfCoreSchema"/> and registers it on <paramref name="parentSchema"/>.
+        /// Initializes a new instance of <see cref="EfCoreSchema"/>.
         /// </summary>
-        /// <param name="parentSchema">The parent schema to register under.</param>
         /// <param name="name">The name of this schema.</param>
         /// <param name="contextFactory">Factory that produces <see cref="DbContext"/> instances.</param>
         /// <param name="translatorFactory">Factory that creates Rex-to-LINQ translators.</param>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="contextFactory"/> or <paramref name="translatorFactory"/> is <see langword="null"/>.</exception>
-        EfCoreSchema(SchemaPlus? parentSchema, string name, IDbContextFactory contextFactory, IRexToLinqTranslatorFactory translatorFactory)
+        EfCoreSchema(string name, IDbContextFactory contextFactory, IRexToLinqTranslatorFactory translatorFactory)
         {
             _translatorFactory = translatorFactory ?? throw new ArgumentNullException(nameof(translatorFactory));
             _convention = EfCoreConvention.Create(name, contextFactory, translatorFactory);
@@ -112,10 +114,25 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
 
             using var context = _convention.ContextFactory.CreateDbContext();
 
-            foreach (var entityType in context.Model.GetEntityTypes())
+            // Only the entity types the adapter can root a query on. Every scan is a DbContext.Set<T>() call,
+            // which is unavailable for owned types (they are reached through their owner) and for shared-type
+            // entity types such as the implicit many-to-many join entities (they need Set<T>(string) instead).
+            var entityTypes = context.Model.GetEntityTypes()
+                .Where(static i => i.IsOwned() == false && i.HasSharedClrType == false)
+                .ToList();
+
+            // Tables are named for the entity class. Two entities can share a class name across namespaces;
+            // qualify both with the full name in that case rather than letting the duplicate key throw.
+            var ambiguous = entityTypes
+                .GroupBy(static i => i.ClrType.Name)
+                .Where(static i => i.Count() > 1)
+                .Select(static i => i.Key)
+                .ToHashSet();
+
+            foreach (var entityType in entityTypes)
             {
-                var tableName = entityType.ClrType.Name;
                 var clrType = entityType.ClrType;
+                var tableName = ambiguous.Contains(clrType.Name) ? clrType.FullName! : clrType.Name;
                 var table = new EfCoreTable(_convention, clrType, entityType);
                 builder.put(tableName, table);
             }

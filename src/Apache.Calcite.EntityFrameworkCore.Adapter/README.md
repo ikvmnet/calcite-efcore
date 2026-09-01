@@ -25,8 +25,7 @@ using var connection = new CalciteConnection("caseSensitive=false");
 connection.Open();
 
 // Expose the DbSet<T> properties of ProductDbContext as tables in a Calcite schema named "efcore".
-var schema = EfCoreSchema.Create(connection.RootSchema, "efcore", () => new ProductDbContext(connectionString));
-connection.RootSchema.add("efcore", schema);
+EfCoreSchema.Create(connection.RootSchema, "efcore", () => new ProductDbContext(connectionString));
 
 using var cmd = connection.CreateCommand();
 cmd.CommandText = @"SELECT ""Id"", ""Name"" FROM ""efcore"".""Product"" WHERE ""InStock"" = TRUE";
@@ -36,12 +35,18 @@ while (reader.Read())
     Console.WriteLine($"{reader.GetInt32(0)} {reader.GetString(1)}");
 ```
 
-Two details worth knowing up front:
+`Create` registers the schema on the parent under `name`. Pass `null` as the parent to build one without
+registering it — that is what `EfCoreSchemaFactory` does, because Calcite registers the schema a factory returns.
 
-- **`Create` does not register the schema for you** — pass the parent schema so the adapter can resolve against it,
-  then `add` it under the name you want, as above.
-- **Tables are named after the entity CLR type, not the `DbSet` property and not the mapped table.** A
-  `DbSet<Product> Products` on a table called `Products` is the Calcite table `"Product"`.
+**Tables are named after the entity class, not the `DbSet` property and not the mapped table.** A
+`DbSet<Product> Products` mapped to a table called `Products` is the Calcite table `"Product"`. Queries run as EF
+Core LINQ over `DbContext.Set<T>()` rather than as SQL against the store, so the entity is the identity that
+matters — and a store table name would not exist for every entity anyway. Where two entity classes in different
+namespaces share a short name, both are qualified with their full name instead.
+
+Only entity types the adapter can root a query on appear as tables. Owned types are reached through their owner,
+and shared-type entities — the implicit join entities behind a many-to-many — need `Set<T>(string)`; neither is a
+queryable root, so neither is exposed.
 
 The factory is called every time the adapter needs a context — once to read the model, and again for each
 execution — and the context is disposed afterwards, so it must return a fresh, independently usable instance

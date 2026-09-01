@@ -43,7 +43,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         {
             var dbContextFactory = LoadDbContextFactory(operand);
             var translatorFactory = LoadRexTranslatorFactory(operand);
-            return EfCoreSchema.Create(parentSchema, name, dbContextFactory, translatorFactory);
+
+            // Pass no parent: Calcite's model handler registers the schema this method returns, so registering
+            // it here as well would add it twice.
+            return EfCoreSchema.Create(null, name, dbContextFactory, translatorFactory);
         }
 
         /// <summary>
