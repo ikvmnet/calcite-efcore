@@ -145,16 +145,6 @@ and throws. Needs an upstream fix, a rewrite that pre-binds the fetch, or the re
 which never parses SQL in the first place. Note the connection must also ask for `LENIENT`
 conformance for `OUTER APPLY` to parse at all.
 
-## Temporal literals in a predicate
-
-`WHERE "ListedAt" > TIMESTAMP '2024-06-01 00:00:00'` fails with
-`NotSupportedException: RexToLinqTranslator: unsupported literal value type 'GregorianCalendar'
-(SQL type=TIMESTAMP)`. `TranslateLiteral` reads `RexLiteral.getValue()`, which hands temporal
-literals over as a `GregorianCalendar`; `TranslateConstant` recognises `DateString`/`TimeString`/
-`TimestampString` but not that. Selecting a temporal column works — only comparing one against a
-literal does not. `EfCoreAdapterComplexTests.Temporal_FilterOnTimestamp` and `Temporal_FilterOnDate`
-are skipped on this.
-
 ## Join key nullability is not reconciled
 
 A join whose outer key is nullable and whose inner key is not fails to implement:

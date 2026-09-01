@@ -693,7 +693,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             Assert.Equal(new TimeOnly(9, 15), AsTimeOnly(rows[0]["OpensAt"]));
         }
 
-        [Fact(Skip = "Temporal literals reach the translator as GregorianCalendar, which TranslateConstant does not decode")]
+        [Fact]
         public void Temporal_FilterOnTimestamp()
         {
             var rows = Execute($@"
@@ -705,7 +705,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             Assert.Equal(3, rows[1]["Id"]);
         }
 
-        [Fact(Skip = "Temporal literals reach the translator as GregorianCalendar, which TranslateConstant does not decode")]
+        [Fact]
         public void Temporal_FilterOnDate()
         {
             var rows = Execute($@"
@@ -715,6 +715,18 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             Assert.Equal(2, rows.Count);
             Assert.Equal(1, rows[0]["Id"]);
             Assert.Equal(2, rows[1]["Id"]);
+        }
+
+        [Fact]
+        public void Temporal_FilterOnTime()
+        {
+            var rows = Execute($@"
+                SELECT ""Id"" FROM ""{S}"".""Supplier""
+                WHERE ""OpensAt"" > TIME '09:00:00'
+                ORDER BY ""Id""");
+            Assert.Equal(2, rows.Count);
+            Assert.Equal(1, rows[0]["Id"]);
+            Assert.Equal(3, rows[1]["Id"]);
         }
 
         [Fact]
