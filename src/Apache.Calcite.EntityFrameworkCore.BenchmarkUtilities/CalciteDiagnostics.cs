@@ -50,8 +50,9 @@ public static class CalciteDiagnostics
         if (exception is not java.lang.Throwable throwable)
             return;
 
+        // IKVM surfaces a suppressed throwable as the CLR exception it maps onto, so it is read with CLR members.
         foreach (var suppressed in throwable.getSuppressed())
-            builder.Append(" [suppressed: ").Append(suppressed.getClass().getName()).Append(": ").Append(suppressed.getMessage()).Append(']');
+            builder.Append(" [suppressed: ").Append(suppressed.GetType().Name).Append(": ").Append(suppressed.Message).Append(']');
     }
 
 }
