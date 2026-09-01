@@ -61,6 +61,10 @@ jobs:
           /p:BuildInParallel=true \
           /p:ContinuousIntegrationBuild=true \
           Apache.Calcite.EntityFrameworkCore.dist.msbuildproj
+    - name: Build Benchmarks
+      run: |
+        dotnet build -c Release src/Apache.Calcite.EntityFrameworkCore.Adapter.Benchmarks/Apache.Calcite.EntityFrameworkCore.Adapter.Benchmarks.csproj
+        dotnet build -c Release src/Apache.Calcite.EntityFrameworkCore.Benchmarks/Apache.Calcite.EntityFrameworkCore.Benchmarks.csproj
     - name: Upload MSBuild Log
       if: ${{ always() }}
       uses: actions/upload-artifact@v4
