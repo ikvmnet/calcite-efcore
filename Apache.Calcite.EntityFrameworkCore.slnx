@@ -28,6 +28,11 @@
     <Project Path="src/Apache.Calcite.EntityFrameworkCore/Apache.Calcite.EntityFrameworkCore.csproj" />
     <Project Path="src/Apache.Calcite.Sample/Apache.Calcite.Sample.csproj" />
   </Folder>
+  <Folder Name="/src/benchmarks/">
+    <Project Path="src/Apache.Calcite.EntityFrameworkCore.Adapter.Benchmarks/Apache.Calcite.EntityFrameworkCore.Adapter.Benchmarks.csproj" />
+    <Project Path="src/Apache.Calcite.EntityFrameworkCore.BenchmarkUtilities/Apache.Calcite.EntityFrameworkCore.BenchmarkUtilities.csproj" />
+    <Project Path="src/Apache.Calcite.EntityFrameworkCore.Benchmarks/Apache.Calcite.EntityFrameworkCore.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/src/dist/">
     <Project Path="src/dist-nuget/dist-nuget.csproj" />
     <Project Path="src/dist-tests/dist-tests.csproj" />
