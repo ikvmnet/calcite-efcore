@@ -28,6 +28,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
 
         public DbSet<Product> Products { get; set; } = null!;
         public DbSet<Category> Categories { get; set; } = null!;
+        public DbSet<Supplier> Suppliers { get; set; } = null!;
 
         /// <inheritdoc />
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -48,6 +49,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
 
             modelBuilder.Entity<Category>().HasKey(c => c.Id);
             modelBuilder.Entity<Category>().Property(c => c.Id).ValueGeneratedNever();
+
+            modelBuilder.Entity<Supplier>().HasKey(s => s.Id);
+            modelBuilder.Entity<Supplier>().Property(s => s.Id).ValueGeneratedNever();
         }
 
     }

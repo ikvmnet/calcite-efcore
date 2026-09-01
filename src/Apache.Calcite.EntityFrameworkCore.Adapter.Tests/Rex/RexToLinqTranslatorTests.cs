@@ -679,6 +679,103 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests.Rex
             Assert.Equal(Math.PI, Eval<double>(expr, param, new Row { Score = 180.0 }), 10);
         }
 
+
+        // -----------------------------------------------------------------------------------------
+        // RexDynamicParam
+        // -----------------------------------------------------------------------------------------
+
+        [Fact]
+        public void DynamicParam_ResolvesTypeFromTheRexNode()
+        {
+            // Regression: the type used to be resolved by asking ResolveDynamicParam, which builds its parameter
+            // out of that same type. The recursion was unbounded and took the process down with it.
+            var (t, ctx, _, rex, tf) = Build();
+            var node = rex.makeDynamicParam(tf.createSqlType(SqlTypeName.INTEGER), 0);
+
+            var expr = t.Translate(node, ctx);
+
+            var param = Assert.IsAssignableFrom<ParameterExpression>(expr);
+            Assert.Equal(typeof(int), param.Type);
+            Assert.Equal("?0", param.Name);
+        }
+
+        [Fact]
+        public void DynamicParam_Nullable_ResolvesToNullableType()
+        {
+            var (t, ctx, _, rex, tf) = Build();
+            var type = tf.createTypeWithNullability(tf.createSqlType(SqlTypeName.INTEGER), true);
+            var node = rex.makeDynamicParam(type, 3);
+
+            var expr = t.Translate(node, ctx);
+
+            var param = Assert.IsAssignableFrom<ParameterExpression>(expr);
+            Assert.Equal(typeof(int?), param.Type);
+            Assert.Equal("?3", param.Name);
+        }
+
+        [Fact]
+        public void DynamicParam_Timestamp_ResolvesToDateTime()
+        {
+            var (t, ctx, _, rex, tf) = Build();
+            var node = rex.makeDynamicParam(tf.createSqlType(SqlTypeName.TIMESTAMP), 1);
+
+            var expr = t.Translate(node, ctx);
+
+            Assert.Equal(typeof(DateTime), expr.Type);
+        }
+
+        [Fact]
+        public void DynamicParam_Varchar_ResolvesToString()
+        {
+            var (t, ctx, _, rex, tf) = Build();
+            var node = rex.makeDynamicParam(tf.createSqlType(SqlTypeName.VARCHAR), 2);
+
+            var expr = t.Translate(node, ctx);
+
+            Assert.Equal(typeof(string), expr.Type);
+        }
+
+        // -----------------------------------------------------------------------------------------
+        // ROW
+        // -----------------------------------------------------------------------------------------
+
+        [Fact]
+        public void Row_BuildsMemberInitOverGeneratedType()
+        {
+            // Regression: ROW threw NotImplementedException, so any plan carrying a nested join result selector -
+            // which is to say any three way join - failed to implement.
+            var (t, ctx, param, rex, tf) = Build();
+            var idRef = rex.makeInputRef(tf.createSqlType(SqlTypeName.INTEGER), 0);
+            var nameRef = rex.makeInputRef(tf.createSqlType(SqlTypeName.VARCHAR), 1);
+            var call = (RexCall)rex.makeCall(SqlStdOperatorTable.ROW, idRef, nameRef);
+
+            var expr = t.Translate(call, ctx);
+
+            var init = Assert.IsType<MemberInitExpression>(expr);
+            Assert.Equal(2, init.Bindings.Count);
+
+            var row = Eval<object>(Expression.Convert(expr, typeof(object)), param, new Row { Id = 7, Name = "Widget" });
+            var type = row.GetType();
+            Assert.Equal(7, type.GetProperty(init.Bindings[0].Member.Name)!.GetValue(row));
+            Assert.Equal("Widget", type.GetProperty(init.Bindings[1].Member.Name)!.GetValue(row));
+        }
+
+        [Fact]
+        public void Row_FieldsAreBoundToPropertiesOfTheDeclaredRowType()
+        {
+            var (t, ctx, _, rex, tf) = Build();
+            var idRef = rex.makeInputRef(tf.createSqlType(SqlTypeName.INTEGER), 0);
+            var priceRef = rex.makeInputRef(tf.createSqlType(SqlTypeName.DECIMAL), 2);
+            var call = (RexCall)rex.makeCall(SqlStdOperatorTable.ROW, idRef, priceRef);
+
+            var expr = t.Translate(call, ctx);
+
+            var init = Assert.IsType<MemberInitExpression>(expr);
+            var fields = call.getType().getFieldList();
+            for (int i = 0; i < init.Bindings.Count; i++)
+                Assert.Equal(((RelDataTypeField)fields.get(i)).getName(), init.Bindings[i].Member.Name);
+        }
+
     }
 
 }

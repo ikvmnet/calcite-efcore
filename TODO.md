@@ -144,3 +144,30 @@ for a collection include. `RelDecorrelator` casts the `RexDynamicParam` in the f
 and throws. Needs an upstream fix, a rewrite that pre-binds the fetch, or the rel-tree route above,
 which never parses SQL in the first place. Note the connection must also ask for `LENIENT`
 conformance for `OUTER APPLY` to parse at all.
+
+## Temporal literals in a predicate
+
+`WHERE "ListedAt" > TIMESTAMP '2024-06-01 00:00:00'` fails with
+`NotSupportedException: RexToLinqTranslator: unsupported literal value type 'GregorianCalendar'
+(SQL type=TIMESTAMP)`. `TranslateLiteral` reads `RexLiteral.getValue()`, which hands temporal
+literals over as a `GregorianCalendar`; `TranslateConstant` recognises `DateString`/`TimeString`/
+`TimestampString` but not that. Selecting a temporal column works — only comparing one against a
+literal does not. `EfCoreAdapterComplexTests.Temporal_FilterOnTimestamp` and `Temporal_FilterOnDate`
+are skipped on this.
+
+## Join key nullability is not reconciled
+
+A join whose outer key is nullable and whose inner key is not fails to implement:
+`Expression of type 'Func<Category,int>' cannot be used for parameter of type
+'Expression<Func<Category,int?>>'`. `EfCoreJoin` takes the key type from one side and builds both
+selectors against it. Any FK modelled `int?` against a non-nullable PK hits this, which is the
+ordinary shape of an optional relationship — and is why the join tests in the adapter suite are
+skipped. `EfCoreAdapterComplexTests.Join_ThreeWay_NullableKey` is skipped on this; the three way
+join over non-nullable keys beside it passes.
+
+## An alias over a bare column reference is lost
+
+`SELECT "Name" AS "Alias" FROM …` comes back with the column named `Name`, not `Alias`, so a
+projection that aliases two columns of the same name to different ones collapses to one. Aliases
+over computed columns (`"Price" * 2 AS "DoublePrice"`) are kept, which is why the suite never caught
+it. `EfCoreAdapterComplexTests.Projection_AliasOnBareColumn` is skipped on this.
