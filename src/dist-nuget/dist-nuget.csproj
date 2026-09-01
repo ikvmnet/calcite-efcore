@@ -10,6 +10,12 @@
         <PackageProjectReference Include="..\Apache.Calcite.EntityFrameworkCore\Apache.Calcite.EntityFrameworkCore.csproj">
             <PackageTargetPath>.</PackageTargetPath>
         </PackageProjectReference>
+        <PackageProjectReference Include="..\Apache.Calcite.EntityFrameworkCore.Core\Apache.Calcite.EntityFrameworkCore.Core.csproj">
+            <PackageTargetPath>.</PackageTargetPath>
+        </PackageProjectReference>
+        <PackageProjectReference Include="..\Apache.Calcite.EntityFrameworkCore.Adapter\Apache.Calcite.EntityFrameworkCore.Adapter.csproj">
+            <PackageTargetPath>.</PackageTargetPath>
+        </PackageProjectReference>
     </ItemGroup>
 
 </Project>
