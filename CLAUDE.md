@@ -22,6 +22,9 @@ commit message says what changed and why.
 | `Apache.Calcite.EntityFrameworkCore.Tests` | our own one-off provider tests |
 | `Apache.Calcite.EntityFrameworkCore.FunctionalTests` | the standard EF Core spec suite |
 | `Apache.Calcite.Sample` | a Northwind federation over three SQLite stores and a CSV directory, exposed as both JSON:API and GraphQL; the auto-mapping layers generate the queries, so it is the broadest provider exercise outside the spec suite. Has its own README and a request book. |
+| `Apache.Calcite.EntityFrameworkCore.BenchmarkUtilities` | **benchmark-only**: the seeded SQLite store, the model both suites share, the BenchmarkDotNet jobs, and the `--verify` runner |
+| `Apache.Calcite.EntityFrameworkCore.Adapter.Benchmarks` | times the adapter: SQL through Calcite into EF Core, against the same query written as plain LINQ |
+| `Apache.Calcite.EntityFrameworkCore.Benchmarks` | times the provider: EF Core feature by EF Core feature, against the same LINQ on `Microsoft.EntityFrameworkCore.Sqlite` |
 
 Key generation splits by type. **Guid keys are provider surface**: `CalciteValueGeneratorSelector`
 gives `OnAdd` Guid properties a client-side `SequentialGuidValueGenerator`, the same default SQL
@@ -81,6 +84,14 @@ Sibling checkouts this project depends on:
   (`dotnet run --project tools/GenerateSkips -- <trx> <FunctionalTests.dll> <FunctionalTests source root>`).
 - Parallel builds sometimes fail with an IOException on a `.deps.json` from IKVM.Core.MSBuild's
   `GenerateDepsFileExtensions` racing itself. It is transient — rebuild, or build with `-m:1`.
+- Benchmarks are two BenchmarkDotNet consoles, each with its own README. Run them in **Release**
+  (`dotnet run -c Release --project src\Apache.Calcite.EntityFrameworkCore.Benchmarks`). Before
+  trusting a table: `-- --verify` runs every benchmark once and names the ones the current build
+  cannot answer, and the adapter suite's `-- --plans` says which shapes reached the EfCore
+  convention and which fell back — a shape that falls back is not slow, it is not being done.
+  The seeded stores live under the temp directory and are reused; `-- --clean` discards them.
+  Neither project is packaged or in the CI test matrix, but the build job compiles both, so a
+  benchmark that stops compiling is a red build.
 - **Cluster a functional run before fixing anything**: run with
   `--logger "trx;LogFileName=run.trx" --results-directory TestResults\functional`, then
   `tools\cluster-trx.ps1 -Path <trx>` tallies failures by error fingerprint (unwrapping the
