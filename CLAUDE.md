@@ -74,9 +74,9 @@ Sibling checkouts this project depends on:
   `EnumerableTableModify` rewrite behind the mutable test stores). A test project's own 1.43
   request wins over the 1.42 arriving transitively from the provider — each project resolves one
   closure. IKVM.Maven.Sdk resolves from the repositories in `$(MavenAdditionalRepositories)`.
-- `FunctionalTests` is the EF Core relational **specification suite** (~22,000 tests, ~20 minutes).
-  It runs **green with skips**: 20,340 pass / 0 fail / ~1,400 skipped as of 2026-08-13 on Calcite
-  1.43.0-SNAPSHOT + Apache.Calcite.Data 2.0.0-pre.4. Known-failing tests carry generated
+- `FunctionalTests` is the EF Core relational **specification suite** (~25,000 tests, ~40 minutes).
+  It runs **green with skips**: 23,117 pass / 0 fail / 2,092 skipped as of 2026-09-01 on Calcite
+  1.43.0-SNAPSHOT + Apache.Calcite.Data 2.0.0-pre.9. Known-failing tests carry generated
   `Skip` overrides in `*.Skips.cs` files produced by `tools/GenerateSkips` from a trx run —
   **a red FunctionalTests run is now a regression signal**, alongside the gates `Adapter.Tests`
   (110) and `EntityFrameworkCore.Tests` (27). To un-skip after fixing behavior: delete the

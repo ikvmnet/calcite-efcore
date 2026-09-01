@@ -95,15 +95,21 @@ transport; until fixed, "1.43.0-SNAPSHOT" means "whatever .m2 last downloaded".
 
 ## Missing spec-test derivations
 
-29 spec classes SQLite derives that we have no local class for, so they never run. Measured as
+14 spec classes SQLite derives that we have no local class for, so they never run. Measured as
 `test/EFCore.Sqlite.FunctionalTests/**/*SqliteTest.cs` with `Sqlite` renamed to `Calcite`, minus
 the classes this project already declares — recount that way rather than trusting the number.
-Add derived classes area by area, following other providers' patterns. High-value first:
-`GearsOfWarQuery` and `JsonQuery` (both fixtures are already here, only the test class is
-missing), `TableSplitting` (+`TPTTableSplitting`, `OwnedTableSplittingProjection`),
-`PrimitiveCollectionsQuery` (+`NonSharedPrimitiveCollectionsQuery`), `NorthwindBulkUpdates`
-(+the TPH/TPT/TPC `FiltersInheritanceBulkUpdates` trio), `ProxyGraphUpdates`, `Logging`,
-`FieldMapping`, `OptimisticConcurrency`, `LazyLoadProxy`.
+Add derived classes area by area, following other providers' patterns. What is left: `BadData`
+(+`BadDataJsonDeserialization`), `CompiledModel`, `DataBinding`, `JsonQuery` (blocked, below),
+`JsonTypes`, `MigrationsInfrastructure`, `NonLoadingNavigationsManyToManyLoad`,
+`NorthwindQueryTaggingQuery`, `OperatorsProcedural`, `Serialization`, `StoreValueGeneration`,
+and the `Spatial`/`SpatialQuery` pair the spatial item below covers.
+
+`JsonQuery` is blocked rather than merely missing. `JsonQueryCalciteFixture` is already here, but
+all 438 cases fail identically before any query runs: `RelationalModelValidator` rejects
+`JsonEntityAllTypes.TestBooleanCollectionCollection` (`bool[][]`) as a nested primitive
+collection, so the model never builds. Providers that carry the suite map those owned entities to
+JSON columns, which takes the property off the primitive-collection path entirely. Deriving the
+class today buys 219 skips and no coverage — do it once JSON column mapping exists.
 
 ## DateTimeOffset offset fidelity
 
