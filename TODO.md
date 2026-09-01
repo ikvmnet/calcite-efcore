@@ -95,11 +95,15 @@ transport; until fixed, "1.43.0-SNAPSHOT" means "whatever .m2 last downloaded".
 
 ## Missing spec-test derivations
 
-41 spec areas SQLite derives that we have no local class for, so they never run. Add derived
-classes area by area, following other providers' patterns. High-value first: `FromSqlQuery`,
-`SqlQuery`, `GraphUpdates`, `TableSplitting` (+TPT/TPC variants), `PrimitiveCollectionsQuery`,
-`NorthwindBulkUpdates`, `OwnedRelationships`, `Logging`, `FieldMapping`,
-`OptimisticConcurrency`, `LazyLoadProxy`.
+29 spec classes SQLite derives that we have no local class for, so they never run. Measured as
+`test/EFCore.Sqlite.FunctionalTests/**/*SqliteTest.cs` with `Sqlite` renamed to `Calcite`, minus
+the classes this project already declares — recount that way rather than trusting the number.
+Add derived classes area by area, following other providers' patterns. High-value first:
+`GearsOfWarQuery` and `JsonQuery` (both fixtures are already here, only the test class is
+missing), `TableSplitting` (+`TPTTableSplitting`, `OwnedTableSplittingProjection`),
+`PrimitiveCollectionsQuery` (+`NonSharedPrimitiveCollectionsQuery`), `NorthwindBulkUpdates`
+(+the TPH/TPT/TPC `FiltersInheritanceBulkUpdates` trio), `ProxyGraphUpdates`, `Logging`,
+`FieldMapping`, `OptimisticConcurrency`, `LazyLoadProxy`.
 
 ## DateTimeOffset offset fidelity
 
@@ -111,9 +115,10 @@ reason — with trade-offs across comparisons and every temporal suite. Decide d
 ## Named parameter emulation in CalciteCommand
 
 Calcite's lexer rejects `@name` parameter markers outright, so every raw-SQL path that passes a
-named DbParameter fails at parse — 20 of the FromSqlQuery spec tests. The standard ADO fix is
-marker rewriting in the command: translate `@name` markers to `?` and order the parameter
-collection to match, the way JDBC-bridging providers do. Belongs in Apache.Calcite.Data.
+named DbParameter fails at parse — 20 of the FromSqlQuery spec tests, plus 7 of SqlQuery's. The
+standard ADO fix is marker rewriting in the command: translate `@name` markers to `?` and order
+the parameter collection to match, the way JDBC-bridging providers do. Belongs in
+Apache.Calcite.Data.
 
 ## Spatial
 
