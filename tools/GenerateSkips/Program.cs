@@ -225,16 +225,35 @@ static string CSharpName(Type type)
         return "string";
     if (type.IsArray)
         return CSharpName(type.GetElementType()!) + "[]";
-    if (type.IsGenericType)
+
+    // the declaration chain, outermost first: a type nested in a generic type reports IsGenericType
+    // itself and carries its declaring type's arguments, so the name has to be built level by level
+    var chain = new List<Type>();
+    for (var t = type; t is not null; t = t.DeclaringType)
+        chain.Insert(0, t);
+
+    var arguments = type.IsGenericType ? type.GetGenericArguments() : [];
+    var consumed = 0;
+    var parts = new List<string>();
+
+    foreach (var t in chain)
     {
-        var name = type.GetGenericTypeDefinition().FullName!;
-        name = name[..name.IndexOf('`')];
-        var arguments = string.Join(", ", type.GetGenericArguments().Select(CSharpName));
-        return $"global::{name}<{arguments}>";
+        var name = t.Name;
+        var tick = name.IndexOf('`');
+        if (tick >= 0)
+            name = name[..tick];
+
+        // each level owns the arguments its declaring types did not
+        var count = (t.IsGenericType ? t.GetGenericArguments().Length : 0) - consumed;
+        if (count > 0)
+        {
+            name += "<" + string.Join(", ", arguments.Skip(consumed).Take(count).Select(CSharpName)) + ">";
+            consumed += count;
+        }
+
+        parts.Add(name);
     }
 
-    if (type.IsNested)
-        return $"global::{type.DeclaringType!.FullName!.Replace('+', '.')}.{type.Name}";
-
-    return $"global::{type.FullName}";
+    var ns = type.Namespace is null ? "" : type.Namespace + ".";
+    return $"global::{ns}{string.Join(".", parts)}";
 }
