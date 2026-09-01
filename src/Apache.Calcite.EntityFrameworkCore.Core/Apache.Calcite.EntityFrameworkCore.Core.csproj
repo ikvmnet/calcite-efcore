@@ -10,13 +10,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="IKVM" Version="8.15.0" />
-        <PackageReference Include="IKVM.Java.Extensions" Version="8.15.0" />
+        <PackageReference Include="IKVM" Version="8.16.0" />
+        <PackageReference Include="IKVM.Java.Extensions" Version="8.16.0" />
         <PackageReference Include="IKVM.Maven.Sdk" Version="1.12.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Apache.Calcite.Data" Version="2.0.0-pre.8" />
+        <PackageReference Include="Apache.Calcite.Data" Version="2.0.0-pre.9" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.8" />
     </ItemGroup>
 
