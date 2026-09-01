@@ -1,0 +1,59 @@
+Id:int,Name:string,RegionId:int,TimeZone:string
+1,Seattle,1,America/Los_Angeles
+2,Portland,1,America/Los_Angeles
+3,San Francisco,1,America/Los_Angeles
+4,Denver,1,America/Denver
+5,Phoenix,1,America/Phoenix
+6,Dallas,1,America/Chicago
+7,Austin,1,America/Chicago
+8,Minneapolis,1,America/Chicago
+9,Chicago,1,America/Chicago
+10,Detroit,1,America/Detroit
+11,Atlanta,1,America/New_York
+12,Miami,1,America/New_York
+13,Boston,1,America/New_York
+14,New York,1,America/New_York
+15,Philadelphia,1,America/New_York
+16,Toronto,1,America/Toronto
+17,Montreal,1,America/Toronto
+18,Vancouver,1,America/Vancouver
+19,Mexico City,1,America/Mexico_City
+20,Guadalajara,1,America/Mexico_City
+21,Sao Paulo,2,America/Sao_Paulo
+22,Rio de Janeiro,2,America/Sao_Paulo
+23,Brasilia,2,America/Sao_Paulo
+24,Buenos Aires,2,America/Argentina/Buenos_Aires
+25,Cordoba,2,America/Argentina/Cordoba
+26,Santiago,2,America/Santiago
+27,Lima,2,America/Lima
+28,Bogota,2,America/Bogota
+29,Caracas,2,America/Caracas
+30,Montevideo,2,America/Montevideo
+31,London,3,Europe/London
+32,Manchester,3,Europe/London
+33,Dublin,3,Europe/Dublin
+34,Paris,3,Europe/Paris
+35,Lyon,3,Europe/Paris
+36,Brussels,3,Europe/Brussels
+37,Amsterdam,3,Europe/Amsterdam
+38,Berlin,3,Europe/Berlin
+39,Munich,3,Europe/Berlin
+40,Hamburg,3,Europe/Berlin
+41,Zurich,3,Europe/Zurich
+42,Milan,3,Europe/Rome
+43,Rome,3,Europe/Rome
+44,Madrid,3,Europe/Madrid
+45,Barcelona,3,Europe/Madrid
+46,Lisbon,3,Europe/Lisbon
+47,Stockholm,3,Europe/Stockholm
+48,Oslo,3,Europe/Oslo
+49,Copenhagen,3,Europe/Copenhagen
+50,Warsaw,3,Europe/Warsaw
+51,Tokyo,4,Asia/Tokyo
+52,Osaka,4,Asia/Tokyo
+53,Seoul,4,Asia/Seoul
+54,Singapore,4,Asia/Singapore
+55,Hong Kong,4,Asia/Hong_Kong
+56,Sydney,4,Australia/Sydney
+57,Melbourne,4,Australia/Melbourne
+58,Auckland,4,Pacific/Auckland

@@ -21,6 +21,7 @@ commit message says what changed and why.
 | `Apache.Calcite.EntityFrameworkCore.TestUtilities` | **test-only** provider strategies shared by both test projects: entity-sequence HiLo, the MAX-seeded key generator, `CalciteTestValueGeneratorSelector`/`CalciteTestDatabaseCreator`/`CalciteTestConventionSetPlugin` |
 | `Apache.Calcite.EntityFrameworkCore.Tests` | our own one-off provider tests |
 | `Apache.Calcite.EntityFrameworkCore.FunctionalTests` | the standard EF Core spec suite |
+| `Apache.Calcite.Sample` | a Northwind federation over three SQLite stores and a CSV directory, exposed as both JSON:API and GraphQL; the auto-mapping layers generate the queries, so it is the broadest provider exercise outside the spec suite. Has its own README and a request book. |
 
 Key generation splits by type. **Guid keys are provider surface**: `CalciteValueGeneratorSelector`
 gives `OnAdd` Guid properties a client-side `SequentialGuidValueGenerator`, the same default SQL
