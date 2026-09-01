@@ -5,6 +5,7 @@
         <Nullable>enable</Nullable>
         <Description>Shared primitives for the Apache Calcite Entity Framework Core provider and adapter.</Description>
         <PackageIcon>icon.png</PackageIcon>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageTags>apache;calcite;entity-framework-core;efcore;ikvm</PackageTags>
     </PropertyGroup>
 
@@ -27,6 +28,7 @@
 
     <ItemGroup>
         <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="." Visible="false" />
+        <None Include="README.md" Pack="true" PackagePath="." />
         <None Include="..\..\icon.png" Pack="true" PackagePath="." Visible="false" />
     </ItemGroup>
 

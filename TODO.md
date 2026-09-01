@@ -123,6 +123,30 @@ mapping through IKVM is plausible. Note: `fun=all` **excludes** spatial; the con
 must name `spatial` in `Fun` explicitly. Investigate before deriving the `Spatial`/`SpatialQuery`
 suites.
 
+
+## Distinct aggregate beside a string group key (calcite-dotnet)
+
+`SELECT k, COUNT(DISTINCT a), SUM(b) … GROUP BY k, <string column>` fails with
+`InvalidCastException: System.String → java.lang.Comparable` in
+`Apache.Calcite.Extensions.Adapter.AsyncEnumerable.ClrAsyncEnumerableDefaults.GroupByMultiple`.
+Expanding the distinct aggregate builds a composite group key whose emitted key builder casts each
+element to `java.lang.Comparable`, which a CLR string is not. A single aggregate, or the same query
+without the string key, both succeed.
+
+Found by `Apache.Calcite.Sample`, which loses two report views to it (`CustomerValue`,
+`ProductSalesSummary`); the smallest reproduction is in that project's request book. The fix belongs
+in Apache.Calcite.Extensions — the key builder needs to wrap CLR values the way the rest of the
+adapter does rather than casting them.
+
+## Correlated subquery with a parameterized FETCH (upstream Calcite)
+
+EF Core generates `OUTER APPLY (SELECT … WHERE outer.Id = inner.FK ORDER BY … FETCH FIRST ? ROWS ONLY)`
+for a collection include. `RelDecorrelator` casts the `RexDynamicParam` in the fetch to `RexLiteral`
+and throws. Needs an upstream fix, a rewrite that pre-binds the fetch, or the rel-tree route above,
+which never parses SQL in the first place. Note the connection must also ask for `LENIENT`
+conformance for `OUTER APPLY` to parse at all.
+
+
 ## Temporal literals in a predicate
 
 `WHERE "ListedAt" > TIMESTAMP '2024-06-01 00:00:00'` fails with
