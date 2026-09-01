@@ -6,6 +6,7 @@
         <NoWarn>EF1001</NoWarn>
         <Description>Apache Calcite adapter convention that executes relational plans as Entity Framework Core LINQ queries.</Description>
         <PackageIcon>icon.png</PackageIcon>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageTags>apache;calcite;entity-framework-core;efcore;adapter;convention;ikvm</PackageTags>
     </PropertyGroup>
 
@@ -32,7 +33,7 @@
 
     <ItemGroup>
         <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="." Visible="false" />
-        <None Include="..\..\README.md" Pack="true" PackagePath="." Visible="false" />
+        <None Include="README.md" Pack="true" PackagePath="." />
         <None Include="..\..\icon.png" Pack="true" PackagePath="." Visible="false" />
     </ItemGroup>
 
