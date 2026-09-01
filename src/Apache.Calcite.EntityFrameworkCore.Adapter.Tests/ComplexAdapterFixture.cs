@@ -94,8 +94,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             Connection.RegisterHook(Hook.QUERY_PLAN, new DelegateConsumer<object>((object q) => Console.WriteLine($"Query: {q}")));
             Connection.Open();
 
-            var schema = EfCoreSchema.Create(Connection.RootSchema, SchemaName, () => new ProductDbContext(ConnectionString));
-            Connection.RootSchema.add(SchemaName, schema);
+            EfCoreSchema.Create(Connection.RootSchema, SchemaName, () => new ProductDbContext(ConnectionString));
         }
 
         public CalciteConnection Connection { get; }

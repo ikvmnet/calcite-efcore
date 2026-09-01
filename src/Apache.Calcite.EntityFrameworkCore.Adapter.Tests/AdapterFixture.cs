@@ -60,8 +60,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             Connection = new CalciteConnection("caseSensitive=false");
             Connection.Open();
 
-            var schema = EfCoreSchema.Create(Connection.RootSchema, SchemaName, () => new ProductDbContext(connectionString));
-            Connection.RootSchema.add(SchemaName, schema);
+            EfCoreSchema.Create(Connection.RootSchema, SchemaName, () => new ProductDbContext(connectionString));
         }
 
         /// <summary>
