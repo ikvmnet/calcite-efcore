@@ -47,14 +47,33 @@ namespace Apache.Calcite.EntityFrameworkCore.Update
 
                 // the validator rejects a bare dynamic parameter inside JSON_SET ("Illegal use of
                 // dynamic parameter"), so the value is CAST to the property's store type
+                var storeType = columnModification.Property.GetRelationalTypeMapping().StoreType;
+                var valueStoreType = columnModification.TypeMapping?.StoreType;
+
                 stringBuilder.Append("JSON_SET(");
                 updateSqlGeneratorHelper.DelimitIdentifier(stringBuilder, columnModification.ColumnName);
                 stringBuilder.Append(", '");
                 stringBuilder.Append(columnModification.JsonPath);
                 stringBuilder.Append("', CAST(");
+
+                // a bare parameter takes the type of the cast around it rather than converting to
+                // it, so where the value is bound as something other than the property's store
+                // type it is named first and converted second
+                var reinterprets = valueStoreType is not null && valueStoreType != storeType;
+                if (reinterprets)
+                    stringBuilder.Append("CAST(");
+
                 base.AppendUpdateColumnValue(updateSqlGeneratorHelper, columnModification, stringBuilder, name, schema);
+
+                if (reinterprets)
+                {
+                    stringBuilder.Append(" AS ");
+                    stringBuilder.Append(valueStoreType);
+                    stringBuilder.Append(')');
+                }
+
                 stringBuilder.Append(" AS ");
-                stringBuilder.Append(columnModification.Property.GetRelationalTypeMapping().StoreType);
+                stringBuilder.Append(storeType);
                 stringBuilder.Append("))");
                 return;
             }
