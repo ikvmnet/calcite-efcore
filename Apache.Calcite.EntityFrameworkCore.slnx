@@ -26,7 +26,7 @@
     <Project Path="src/Apache.Calcite.EntityFrameworkCore.TestUtilities/Apache.Calcite.EntityFrameworkCore.TestUtilities.csproj" />
     <Project Path="src/Apache.Calcite.EntityFrameworkCore.Tests/Apache.Calcite.EntityFrameworkCore.Tests.csproj" />
     <Project Path="src/Apache.Calcite.EntityFrameworkCore/Apache.Calcite.EntityFrameworkCore.csproj" />
-    <Project Path="src/Apache.Calcite.HotChocolateSample/Apache.Calcite.HotChocolateSample.csproj" />
+    <Project Path="src/Apache.Calcite.Sample/Apache.Calcite.Sample.csproj" />
   </Folder>
   <Folder Name="/src/dist/">
     <Project Path="src/dist-nuget/dist-nuget.csproj" />
