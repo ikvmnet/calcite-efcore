@@ -33,9 +33,9 @@ public static class CalciteParameterInliner
     /// </remarks>
     /// <param name="command">The command whose text and parameter values are rendered.</param>
     /// <param name="typeMappingSource">
-    /// The source consulted for the type mapping that writes each value; where it has no mapping for
-    /// a value — or the value is a <see cref="Guid"/>, whose mapping would convert it away from the
-    /// UUID Calcite binds — a built-in rendering is used instead.
+    /// The source consulted for the type mapping that writes each value. Where it has no mapping for
+    /// a value, or only one that would convert the value away from what the command binds — as it
+    /// does for a <see cref="Guid"/>, which Calcite holds as a UUID — a built-in rendering is used.
     /// </param>
     /// <returns></returns>
     public static string Inline(DbCommand command, IRelationalTypeMappingSource? typeMappingSource = null)
@@ -161,18 +161,16 @@ public static class CalciteParameterInliner
         if (value is null or DBNull)
             return "NULL";
 
-        // Calcite's type for a Guid is UUID, but Entity Framework Core's default conversion for one
-        // writes it as a string, and the mapping found for the CLR type carries that converter. What
-        // the command binds is what this parameter holds: a Guid here is bound as a Guid, so it is
-        // written as the UUID it is. A Guid property whose mapping did convert reaches this as the
-        // string it was converted to, and takes the mapping below.
-        if (value is Guid)
-            return GenerateDefaultLiteral(value);
-
-        // the mapping is found by the value's own type, so the value is that mapping's model value:
-        // any converter it carries belongs on the way to the literal
+        // The literal has to mean what the command binds, and what it binds is this value as it
+        // stands. A mapping found for the value's own type is the provider's own way of writing that
+        // type — unless it carries a value converter, which describes a value the parameter is not.
+        // The provider has no mapping to offer for a Guid, so Entity Framework Core answers with the
+        // string mapping and its conversion composed on, while Calcite is handed the Guid: that goes
+        // to the built-in rendering, which writes the UUID Calcite holds. A Guid property is
+        // unaffected — its mapping converts before the parameter exists, so what arrives here is
+        // already the string — and a Guid mapping of the provider's own would win here as it should.
         var mapping = typeMappingSource?.FindMapping(value.GetType());
-        if (mapping != null)
+        if (mapping != null && mapping.Converter == null)
             return mapping.GenerateSqlLiteral(value);
 
         return GenerateDefaultLiteral(value);
