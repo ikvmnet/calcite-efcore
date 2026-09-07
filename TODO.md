@@ -95,14 +95,38 @@ transport; until fixed, "1.43.0-SNAPSHOT" means "whatever .m2 last downloaded".
 
 ## Missing spec-test derivations
 
-14 spec classes SQLite derives that we have no local class for, so they never run. Measured as
+Spec classes SQLite derives that we have no local class for, so they never run. Measured as
 `test/EFCore.Sqlite.FunctionalTests/**/*SqliteTest.cs` with `Sqlite` renamed to `Calcite`, minus
 the classes this project already declares — recount that way rather than trusting the number.
-Add derived classes area by area, following other providers' patterns. What is left: `BadData`
-(+`BadDataJsonDeserialization`), `CompiledModel`, `DataBinding`, `JsonQuery` (blocked, below),
-`JsonTypes`, `MigrationsInfrastructure`, `NonLoadingNavigationsManyToManyLoad`,
-`NorthwindQueryTaggingQuery`, `OperatorsProcedural`, `Serialization`, `StoreValueGeneration`,
-and the `Spatial`/`SpatialQuery` pair the spatial item below covers.
+Add derived classes area by area, following other providers' patterns.
+
+Recounted 2026-09-07 against `D:\efcore` at `35d954220a`: 213 SQLite classes, and the gap had
+grown past the 14 recorded here, because upstream added the JSON and table-splitting inheritance
+variants. Two names in the list are false positives — read them before deriving. The recount is by
+file name, and `StoreValueGeneration` is already covered by
+`StoreValueGenerationWithoutReturningCalciteTest`, which the file name hides.
+
+What is left, with why it is left:
+
+- **Blocked on JSON column mapping**: `JsonQuery` (below), `JsonTranslations`, `JsonTypes`,
+  `BadDataJsonDeserialization`, and the `TPC`/`TPH`/`TPT` `InheritanceJsonQuery` trio.
+- **Blocked on the spatial item below**: `Spatial`, `SpatialQuery`.
+- **Needs infrastructure we do not have**: `CompiledModel`, `MigrationsInfrastructure`,
+  `RuntimeMigration`, `OperatorsProcedural` (no `OperatorsData` locally).
+- **Plain derivations, not yet attempted**: `BadData` (SQLite's fakes a `DbDataReader` over
+  `Microsoft.Data.Sqlite`, so it needs a Calcite equivalent rather than a rename),
+  `NavigationsBulkUpdate`, and the `TPC`/`TPH`/`TPT` `InheritanceTableSplittingQuery` trio.
+
+Derived 2026-09-07: `DataBinding`, `Serialization`, `NorthwindQueryTaggingQuery`,
+`NonLoadingNavigationsManyToManyLoad` — 414 tests that did not run before, 387 passing.
+
+The 25 skips those brought in are worth a second look, because they are not scattered. Every one
+is on the F1 fixture, in `DataBinding` and `Serialization`, and every one is a case that reads
+seeded F1 rows back through a fresh context and sees an empty set (`Expected: 3, Actual: 0`, or
+`Sequence contains no elements`). The F1 cases that never read seeded rows all pass, and
+`OptimisticConcurrency` on the same fixture already carries 28 skips. That shape points at the
+store rather than at any of these suites, so it likely belongs to the test-backend item at the
+top of this file; it has not been diagnosed.
 
 `JsonQuery` is blocked rather than merely missing. `JsonQueryCalciteFixture` is already here, but
 all 438 cases fail identically before any query runs: `RelationalModelValidator` rejects
