@@ -156,16 +156,6 @@ and throws. Needs an upstream fix, a rewrite that pre-binds the fetch, or the re
 which never parses SQL in the first place. Note the connection must also ask for `LENIENT`
 conformance for `OUTER APPLY` to parse at all.
 
-## Join key nullability is not reconciled
-
-A join whose outer key is nullable and whose inner key is not fails to implement:
-`Expression of type 'Func<Category,int>' cannot be used for parameter of type
-'Expression<Func<Category,int?>>'`. `EfCoreJoin` takes the key type from one side and builds both
-selectors against it. Any FK modelled `int?` against a non-nullable PK hits this, which is the
-ordinary shape of an optional relationship — and is why the join tests in the adapter suite are
-skipped. `EfCoreAdapterComplexTests.Join_ThreeWay_NullableKey` is skipped on this; the three way
-join over non-nullable keys beside it passes.
-
 ## An alias over a bare column reference is lost
 
 `SELECT "Name" AS "Alias" FROM …` comes back with the column named `Name`, not `Alias`, so a
