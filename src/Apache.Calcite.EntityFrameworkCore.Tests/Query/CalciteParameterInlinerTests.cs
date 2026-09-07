@@ -52,8 +52,8 @@ public class CalciteParameterInlinerTests
 
         using var command = CreateCommand(connection, "SELECT * FROM \"T\" WHERE \"Id\" = ?", Id);
 
-        // the mapping the source finds for a Guid carries Entity Framework Core's default
-        // conversion to a string; the value Calcite is handed is a UUID, so the literal is one
+        // CalciteGuidTypeMapping writes it, and the built-in rendering behind it says the same:
+        // the literal Calcite reads back as the UUID that was bound
         Assert.Equal(
             "SELECT * FROM \"T\" WHERE \"Id\" = UUID '5a2c9e7e-3f4b-4c8a-9d1e-6b0f2a7c4d31'",
             CalciteParameterInliner.Inline(command, typeMappingSource));

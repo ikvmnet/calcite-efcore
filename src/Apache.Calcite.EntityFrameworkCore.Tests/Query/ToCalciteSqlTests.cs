@@ -197,10 +197,9 @@ public class ToCalciteSqlTests
         var id = Guid.Parse("5a2c9e7e-3f4b-4c8a-9d1e-6b0f2a7c4d31");
         var sql = context.Entities.Where(e => e.Id == id).ToCalciteSql();
 
-        // the value reaches the statement as its canonical text either way: as a string literal
-        // while a Guid key goes to the store through Entity Framework Core's conversion, and inside
-        // a UUID literal once the provider maps the native type
-        Assert.Contains(id.ToString(), sql);
+        // the key is a UUID column, so the statement carries the UUID literal Calcite reads back as
+        // one rather than the text of a converted string
+        Assert.Contains($"UUID '{id}'", sql);
         Assert.DoesNotContain("?", sql);
     }
 

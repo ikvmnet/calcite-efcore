@@ -34,8 +34,8 @@ public static class CalciteParameterInliner
     /// <param name="command">The command whose text and parameter values are rendered.</param>
     /// <param name="typeMappingSource">
     /// The source consulted for the type mapping that writes each value. Where it has no mapping for
-    /// a value, or only one that would convert the value away from what the command binds — as it
-    /// does for a <see cref="Guid"/>, which Calcite holds as a UUID — a built-in rendering is used.
+    /// a value, or only one that would convert the value away from what the command binds, a
+    /// built-in rendering is used instead.
     /// </param>
     /// <returns></returns>
     public static string Inline(DbCommand command, IRelationalTypeMappingSource? typeMappingSource = null)
@@ -163,12 +163,10 @@ public static class CalciteParameterInliner
 
         // The literal has to mean what the command binds, and what it binds is this value as it
         // stands. A mapping found for the value's own type is the provider's own way of writing that
-        // type — unless it carries a value converter, which describes a value the parameter is not.
-        // The provider has no mapping to offer for a Guid, so Entity Framework Core answers with the
-        // string mapping and its conversion composed on, while Calcite is handed the Guid: that goes
-        // to the built-in rendering, which writes the UUID Calcite holds. A Guid property is
-        // unaffected — its mapping converts before the parameter exists, so what arrives here is
-        // already the string — and a Guid mapping of the provider's own would win here as it should.
+        // type — unless it carries a value converter, which describes a value the parameter is not:
+        // where the provider maps nothing for a type, Entity Framework Core answers with another
+        // type's mapping and one of its conversions composed on, and no such conversion happened to
+        // this parameter. Those go to the built-in rendering, which writes the value as it is.
         var mapping = typeMappingSource?.FindMapping(value.GetType());
         if (mapping != null && mapping.Converter == null)
             return mapping.GenerateSqlLiteral(value);
