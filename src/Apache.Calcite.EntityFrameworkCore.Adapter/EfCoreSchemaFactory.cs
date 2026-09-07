@@ -43,7 +43,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         {
             var dbContextFactory = LoadDbContextFactory(operand);
             var translatorFactory = LoadRexTranslatorFactory(operand);
-            return EfCoreSchema.Create(parentSchema, name, dbContextFactory, translatorFactory);
+            return EfCoreSchema.Create(name, dbContextFactory, translatorFactory);
         }
 
         /// <summary>

@@ -14,13 +14,17 @@ itself; instead it relies on EF Core's own query translation pipeline to execute
 
 ## Registration
 
-An `EfCoreSchema` is registered on a Calcite `SchemaPlus` (root or sub-schema) by calling the static
-factory method:
+An `EfCoreSchema` is named on the `CalciteDataSourceBuilder` that builds the data source connections
+are opened from, since the root schema belongs to the data source rather than to a connection:
 
 ```csharp
-EfCoreSchema.Create(rootSchema, "myschema", () => new MyDbContext());
-rootSchema.add("myschema", schema);
+var dataSource = new CalciteDataSourceBuilder(connectionString)
+    .AddEfCoreSchema("myschema", () => new MyDbContext())
+    .Build();
 ```
+
+`EfCoreSchema.Create` builds one directly, for a caller holding a `SchemaPlus` of its own to register
+it on — which is what `EfCoreSchemaFactory` does with the one Calcite hands it.
 
 Alternatively, a schema can be registered via a Calcite model JSON file by referencing
 `EfCoreSchemaFactory`. The factory reads the `contextType` operand (an assembly-qualified CLR type

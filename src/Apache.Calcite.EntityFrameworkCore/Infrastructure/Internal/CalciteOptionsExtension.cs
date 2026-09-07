@@ -21,6 +21,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Infrastructure.Internal
 
         DbContextOptionsExtensionInfo? _info;
         CalciteProviderFactory? _providerFactory;
+        CalciteDataSource? _dataSource;
 
         /// <summary>
         /// Initializes a new instance.
@@ -37,7 +38,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Infrastructure.Internal
         protected CalciteOptionsExtension(CalciteOptionsExtension copyFrom) :
             base(copyFrom)
         {
-
+            _providerFactory = copyFrom._providerFactory;
+            _dataSource = copyFrom._dataSource;
         }
 
         /// <inheritdoc />
@@ -60,6 +62,29 @@ namespace Apache.Calcite.EntityFrameworkCore.Infrastructure.Internal
         {
             var clone = (CalciteOptionsExtension)Clone();
             clone._providerFactory = providerFactory;
+            return clone;
+        }
+
+        /// <summary>
+        /// Gets the <see cref="CalciteDataSource"/> new connections are drawn from, or <see langword="null"/>
+        /// when connections are constructed from the connection string.
+        /// </summary>
+        /// <remarks>
+        /// A data source holds the root schema and hands it to every connection it opens, which is how a
+        /// context reaches schemas registered before it — an Entity Framework Core context named as a
+        /// Calcite schema, among them.
+        /// </remarks>
+        public virtual CalciteDataSource? DataSource => _dataSource;
+
+        /// <summary>
+        /// Sets the <see cref="CalciteDataSource"/> new connections are drawn from.
+        /// </summary>
+        /// <param name="dataSource"></param>
+        /// <returns></returns>
+        public virtual CalciteOptionsExtension WithDataSource(CalciteDataSource dataSource)
+        {
+            var clone = (CalciteOptionsExtension)Clone();
+            clone._dataSource = dataSource;
             return clone;
         }
 
@@ -90,6 +115,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Infrastructure.Internal
                         if (Extension._providerFactory != null)
                             builder.Append("CalciteProviderFactory ");
 
+                        if (Extension._dataSource != null)
+                            builder.Append("CalciteDataSource ");
+
                         _logFragment = builder.ToString();
                     }
 
@@ -103,7 +131,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Infrastructure.Internal
                 _serviceProviderHash ??= HashCode.Combine(
                     base.GetServiceProviderHashCode(),
                     3313,
-                    Extension._providerFactory);
+                    Extension._providerFactory,
+                    Extension._dataSource);
 
                 return _serviceProviderHash.Value;
             }
@@ -112,6 +141,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Infrastructure.Internal
             public override void PopulateDebugInfo(IDictionary<string, string> debugInfo)
             {
                 debugInfo["Calcite:" + nameof(ProviderFactory)] = (Extension._providerFactory?.GetHashCode() ?? 0L).ToString(CultureInfo.InvariantCulture);
+                debugInfo["Calcite:" + nameof(DataSource)] = (Extension._dataSource?.GetHashCode() ?? 0L).ToString(CultureInfo.InvariantCulture);
             }
 
         }

@@ -99,6 +99,34 @@ namespace Apache.Calcite.EntityFrameworkCore.Extensions
         }
 
         /// <summary>
+        /// Configures the context to draw its connections from an existing <see cref="CalciteDataSource" />.
+        /// </summary>
+        /// <remarks>
+        /// A data source holds the root schema and hands it to every connection it opens, so the schemas
+        /// registered on the builder that made it — an Entity Framework Core context named through
+        /// <c>AddEfCoreSchema</c> among them — are the schemas this context sees. The caller owns the data
+        /// source and is responsible for its disposal.
+        /// </remarks>
+        /// <param name="optionsBuilder">The builder being used to configure the context.</param>
+        /// <param name="dataSource">The data source connections are drawn from.</param>
+        /// <param name="calciteOptionsAction">An optional action to allow additional Calcite specific configuration.</param>
+        /// <returns>The options builder so that further configuration can be chained.</returns>
+        public static DbContextOptionsBuilder UseCalcite(this DbContextOptionsBuilder optionsBuilder, CalciteDataSource dataSource, Action<CalciteDbContextOptionsBuilder>? calciteOptionsAction = null)
+        {
+            ArgumentNullException.ThrowIfNull(optionsBuilder);
+            ArgumentNullException.ThrowIfNull(dataSource);
+
+            // the connection string travels with it so everything that reads one off the options — validation,
+            // logging, the compiled query cache key — carries on reading the same string it always did
+            var extension = (CalciteOptionsExtension)GetOrCreateExtension(optionsBuilder)
+                .WithDataSource(dataSource)
+                .WithConnectionString(dataSource.ConnectionString);
+            ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(extension);
+
+            return ApplyConfiguration(optionsBuilder, calciteOptionsAction);
+        }
+
+        /// <summary>
         /// Configures the context to connect to a Calcite connection, but without initially setting any
         /// <see cref="CalciteConnection" /> or connection string.
         /// </summary>
@@ -130,6 +158,20 @@ namespace Apache.Calcite.EntityFrameworkCore.Extensions
             where TContext : DbContext
         {
             return (DbContextOptionsBuilder<TContext>)UseCalcite((DbContextOptionsBuilder)optionsBuilder, connectionString, calciteOptionsAction);
+        }
+
+        /// <summary>
+        /// Configures the context to draw its connections from an existing <see cref="CalciteDataSource" />.
+        /// </summary>
+        /// <typeparam name="TContext">The type of context to be configured.</typeparam>
+        /// <param name="optionsBuilder">The builder being used to configure the context.</param>
+        /// <param name="dataSource">The data source connections are drawn from.</param>
+        /// <param name="calciteOptionsAction">An optional action to allow additional Calcite specific configuration.</param>
+        /// <returns>The options builder so that further configuration can be chained.</returns>
+        public static DbContextOptionsBuilder<TContext> UseCalcite<TContext>(this DbContextOptionsBuilder<TContext> optionsBuilder, CalciteDataSource dataSource, Action<CalciteDbContextOptionsBuilder>? calciteOptionsAction = null)
+            where TContext : DbContext
+        {
+            return (DbContextOptionsBuilder<TContext>)UseCalcite((DbContextOptionsBuilder)optionsBuilder, dataSource, calciteOptionsAction);
         }
 
         /// <summary>

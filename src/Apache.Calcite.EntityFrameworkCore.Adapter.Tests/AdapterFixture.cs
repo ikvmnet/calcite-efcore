@@ -56,13 +56,22 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
                 ctx.SaveChanges();
             }
 
-            // Open the CalciteConnection and register the EF Core schema.
-            Connection = new CalciteConnection("caseSensitive=false");
-            Connection.Open();
+            // Build the data source carrying the EF Core schema, and open a connection on it. The root
+            // belongs to the data source, so the schema is named once here rather than added to a connection
+            // after it opens, and this fixture's root is its own: what is shared by connection string is the
+            // data source a bare connection string resolves to, which is not this one.
+            DataSource = new CalciteDataSourceBuilder("caseSensitive=false")
+                .AddEfCoreSchema(SchemaName, () => new ProductDbContext(connectionString))
+                .Build();
 
-            var schema = EfCoreSchema.Create(Connection.RootSchema, SchemaName, () => new ProductDbContext(connectionString));
-            Connection.RootSchema.add(SchemaName, schema);
+            Connection = DataSource.CreateConnection();
+            Connection.Open();
         }
+
+        /// <summary>
+        /// Gets the data source the connection is drawn from, which holds the EF Core schema.
+        /// </summary>
+        public CalciteDataSource DataSource { get; }
 
         /// <summary>
         /// Gets the open <see cref="CalciteConnection"/> for use in tests.
@@ -73,6 +82,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
         public void Dispose()
         {
             Connection.Dispose();
+            DataSource.Dispose();
             _keepAlive.Dispose();
         }
 

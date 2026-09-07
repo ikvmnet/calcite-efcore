@@ -21,7 +21,7 @@ namespace Apache.Calcite.Sample.Federation;
 /// connections are not built to be used concurrently. Opening one costs a model parse, which is why the sample
 /// hands contexts out through a factory rather than newing them up per resolver.
 /// </remarks>
-public sealed class FederationConnectionFactory
+public sealed class FederationConnectionFactory : IDisposable
 {
 
     /// <summary>
@@ -38,6 +38,7 @@ public sealed class FederationConnectionFactory
     readonly QueryPlanRecorder _recorder;
     readonly ILogger<FederationConnectionFactory> _logger;
     readonly string _model;
+    readonly CalciteDataSource _dataSource;
 
     /// <summary>
     /// Initializes a new instance.
@@ -51,6 +52,24 @@ public sealed class FederationConnectionFactory
         _model = FederationModel.Build();
 
         _logger.LogDebug("Federated model: {Model}", _model);
+
+        // The three EF Core sources are named once, on the data source that holds the root schema, rather
+        // than added to each connection as it opens: the model is read and the schemas built once for every
+        // connection this factory hands out.
+        _dataSource = new CalciteDataSourceBuilder(new CalciteConnectionStringBuilder
+        {
+            CaseSensitive = false,
+            Schema = FederationModel.SchemaName,
+            Model = "inline:" + _model,
+
+            // EF Core generates SQL Server flavoured SQL, including OUTER APPLY for collection includes, which the
+            // default conformance rejects outright at parse time.
+            Conformance = "LENIENT",
+        }.ConnectionString)
+            .AddEfCoreSchema("catalog", () => new CatalogDbContext())
+            .AddEfCoreSchema("sales", () => new SalesDbContext())
+            .AddEfCoreSchema("hr", () => new HumanResourcesDbContext())
+            .Build();
     }
 
     /// <summary>
@@ -80,16 +99,7 @@ public sealed class FederationConnectionFactory
     /// <returns>The opened connection.</returns>
     public CalciteConnection Create()
     {
-        var connection = new CalciteConnection(new CalciteConnectionStringBuilder
-        {
-            CaseSensitive = false,
-            Schema = FederationModel.SchemaName,
-            Model = "inline:" + _model,
-
-            // EF Core generates SQL Server flavoured SQL, including OUTER APPLY for collection includes, which the
-            // default conformance rejects outright at parse time.
-            Conformance = "LENIENT",
-        }.ConnectionString);
+        var connection = _dataSource.CreateConnection();
 
         // The QUERY_PLAN payload is a LINQ expression tree, not a queryable; rendering it is all this may do with it.
         connection.RegisterHook(Hook.QUERY_PLAN, new DelegateConsumer<object>(p => _recorder.Record("QUERY_PLAN", p?.ToString() ?? "")));
@@ -97,10 +107,6 @@ public sealed class FederationConnectionFactory
         connection.RegisterHook(Hook.PLAN_BEFORE_IMPLEMENTATION, new DelegateConsumer<object>(p => _recorder.Record("PLAN_BEFORE_IMPLEMENTATION", ((RelRoot)p).ToString())));
 
         connection.Open();
-
-        connection.RootSchema.add("catalog", EfCoreSchema.Create(connection.RootSchema, "catalog", () => new CatalogDbContext()));
-        connection.RootSchema.add("sales", EfCoreSchema.Create(connection.RootSchema, "sales", () => new SalesDbContext()));
-        connection.RootSchema.add("hr", EfCoreSchema.Create(connection.RootSchema, "hr", () => new HumanResourcesDbContext()));
 
         return connection;
     }
@@ -117,6 +123,14 @@ public sealed class FederationConnectionFactory
 
         var files = Directory.GetFiles(directory, "*.csv");
         _logger.LogInformation("Reference CSV store at {Directory}: {Files}", directory, string.Join(", ", files.Select(Path.GetFileName)));
+    }
+
+    /// <summary>
+    /// Releases the data source, and with it the root schema and the connections it holds.
+    /// </summary>
+    public void Dispose()
+    {
+        _dataSource.Dispose();
     }
 
 }

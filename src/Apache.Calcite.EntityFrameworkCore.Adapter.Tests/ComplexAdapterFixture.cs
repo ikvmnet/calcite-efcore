@@ -104,19 +104,26 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             str.CaseSensitive = false;
             str.Conformance = "DEFAULT";
 
-            Connection = new CalciteConnection(str.ConnectionString);
+            // The root belongs to the data source, so the schema is named on the builder rather than added to
+            // an open connection, and this fixture's root is its own rather than one shared by connection
+            // string with every other fixture spelling it the same way.
+            DataSource = new CalciteDataSourceBuilder(str.ConnectionString)
+                .AddEfCoreSchema(SchemaName, () => new ProductDbContext(ConnectionString))
+                .Build();
+
+            Connection = DataSource.CreateConnection();
             Connection.RegisterHook(Hook.QUERY_PLAN, new DelegateConsumer<object>((object q) => Console.WriteLine($"Query: {q}")));
             Connection.Open();
-
-            var schema = EfCoreSchema.Create(Connection.RootSchema, SchemaName, () => new ProductDbContext(ConnectionString));
-            Connection.RootSchema.add(SchemaName, schema);
         }
+
+        public CalciteDataSource DataSource { get; }
 
         public CalciteConnection Connection { get; }
 
         public void Dispose()
         {
             Connection.Dispose();
+            DataSource.Dispose();
             _keepAlive.Dispose();
         }
 

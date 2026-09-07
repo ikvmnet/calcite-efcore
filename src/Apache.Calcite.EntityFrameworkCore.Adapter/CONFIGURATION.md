@@ -80,11 +80,18 @@ public class CustomOperatorProvider : SqlOperatorTranslationProvider
 
 ```csharp
 // Default configuration
-var schema = EfCoreSchema.Create(parentSchema, "mySchema", contextFactory);
+var dataSource = new CalciteDataSourceBuilder(connectionString)
+    .AddEfCoreSchema("mySchema", contextFactory)
+    .Build();
 
 // Custom factory
 var customFactory = new CustomRexTranslatorFactory();
-var schema = EfCoreSchema.Create(parentSchema, "mySchema", contextFactory, customFactory);
+var dataSource = new CalciteDataSourceBuilder(connectionString)
+    .AddEfCoreSchema("mySchema", contextFactory, customFactory)
+    .Build();
+
+// Or build the schema alone, to register on a SchemaPlus of your own
+var schema = EfCoreSchema.Create("mySchema", contextFactory, customFactory);
 ```
 
 ## Configuration via Calcite Model JSON
