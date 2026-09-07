@@ -34,7 +34,8 @@ public static class CalciteParameterInliner
     /// <param name="command">The command whose text and parameter values are rendered.</param>
     /// <param name="typeMappingSource">
     /// The source consulted for the type mapping that writes each value; where it has no mapping for
-    /// a value, a built-in rendering is used instead.
+    /// a value — or the value is a <see cref="Guid"/>, whose mapping would convert it away from the
+    /// UUID Calcite binds — a built-in rendering is used instead.
     /// </param>
     /// <returns></returns>
     public static string Inline(DbCommand command, IRelationalTypeMappingSource? typeMappingSource = null)
@@ -160,18 +161,26 @@ public static class CalciteParameterInliner
         if (value is null or DBNull)
             return "NULL";
 
-        // the parameter already holds a provider value, so the mapping for its own type writes it
-        // without a converter in the way
+        // Calcite's type for a Guid is UUID, but Entity Framework Core's default conversion for one
+        // writes it as a string, and the mapping found for the CLR type carries that converter. What
+        // the command binds is what this parameter holds: a Guid here is bound as a Guid, so it is
+        // written as the UUID it is. A Guid property whose mapping did convert reaches this as the
+        // string it was converted to, and takes the mapping below.
+        if (value is Guid)
+            return GenerateDefaultLiteral(value);
+
+        // the mapping is found by the value's own type, so the value is that mapping's model value:
+        // any converter it carries belongs on the way to the literal
         var mapping = typeMappingSource?.FindMapping(value.GetType());
         if (mapping != null)
-            return mapping.GenerateProviderValueSqlLiteral(value);
+            return mapping.GenerateSqlLiteral(value);
 
         return GenerateDefaultLiteral(value);
     }
 
     /// <summary>
-    /// Writes a value for which no type mapping was found, covering the types an ADO.NET parameter
-    /// can carry.
+    /// Writes a value whose type mapping is not used, covering the types an ADO.NET parameter can
+    /// carry.
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>
@@ -183,6 +192,9 @@ public static class CalciteParameterInliner
         DateTimeOffset dateTimeOffset => "TIMESTAMP WITH TIME ZONE '" + dateTimeOffset.ToString("yyyy-MM-dd HH:mm:ss.fff 'GMT'zzz", CultureInfo.InvariantCulture) + "'",
         DateOnly dateOnly => "DATE '" + dateOnly.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + "'",
         TimeOnly timeOnly => "TIME '" + timeOnly.ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture) + "'",
+        // Calcite's UUID is the CLR Guid, and the prefixed literal is how its parser takes one:
+        // a bare quoted string would be a CHAR literal, which no UUID comparison accepts
+        Guid guid => "UUID '" + guid.ToString("D", CultureInfo.InvariantCulture) + "'",
         char c => Quote(c.ToString()),
         string s => Quote(s),
         sbyte or byte or short or ushort or int or uint or long or ulong or float or double or decimal =>

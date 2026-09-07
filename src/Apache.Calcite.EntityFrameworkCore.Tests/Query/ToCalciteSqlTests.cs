@@ -4,6 +4,7 @@ using System.Linq;
 
 using Apache.Calcite.Data;
 using Apache.Calcite.EntityFrameworkCore.Extensions;
+using Apache.Calcite.EntityFrameworkCore.Tests.ValueGeneration;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -185,6 +186,21 @@ public class ToCalciteSqlTests
 
             Assert.Equal(query.ToQueryString(), query.ToCalciteSql());
         }
+    }
+
+    [Fact]
+    public void A_guid_key_comparison_carries_its_value()
+    {
+        using var connection = GuidKeyDbContext.CreateConnection();
+        using var context = new GuidKeyDbContext(connection);
+
+        var id = Guid.Parse("5a2c9e7e-3f4b-4c8a-9d1e-6b0f2a7c4d31");
+        var sql = context.Entities.Where(e => e.Id == id).ToCalciteSql();
+
+        // a Guid key is stored through Entity Framework Core's conversion to its canonical text, so
+        // that is what the statement carries
+        Assert.Contains(id.ToString(), sql);
+        Assert.DoesNotContain("?", sql);
     }
 
     [Fact]
