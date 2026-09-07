@@ -242,6 +242,83 @@ Order of work: element-type resolution (`getComponentType()` to `IEnumerable<T>`
 `UNNEST`, which is what makes a collection useful without needing per-element operators at all; then
 the aggregates.
 
+## Primitive collections as native `ARRAY` columns (decided direction)
+
+An EF primitive collection is one column of one table — `Post.Tags` as `VARCHAR ARRAY` — not a
+navigation: no FK, no join, nothing to `Include`. EF resolves it through `IProperty.GetElementType()`
+and a type mapping carrying an `ElementTypeMapping`. It has nothing to do with the
+`MULTISET(SELECT ...)` the planner synthesizes for a correlated collection sub-query, which is the
+adapter-side item above; the two only share a SQL type family.
+
+Today `CalciteTypeMappingSource` does not override `FindCollectionMapping`, so EF's default applies:
+the property resolves to the JSON collection mapping, the `JsonTypePlaceholder` branch turns that
+into `CalciteJsonTypeMapping`, and the value is stored as a JSON document in a VARCHAR column.
+Storage and materialization round-trip. Every operation *into* the column fails — `Contains`,
+`Count`, `Index`, `Any_predicate`, `Nested_Count` and `Select_Sum` are skipped identically in all six
+`*PrimitiveCollection*CalciteTest` classes.
+
+Decision: map the collection to a native Calcite `ARRAY` column rather than keeping the JSON text.
+The JSON route needs a table function to turn a document into rows — SQL Server's `OPENJSON`,
+SQLite's `json_each`, Postgres's `jsonb_array_elements` — and Calcite's JSON support is scalar
+(`JSON_VALUE`, `JSON_QUERY`, `JSON_EXISTS`) with no `JSON_TABLE` equivalent, so those six operations
+have no relational form to be translated into. `ARRAY` has one for each: `Index` is `ITEM`, `Count`
+is `CARDINALITY`, and the remaining four are `UNNEST`, which Calcite plans as
+`COLLECTION_TABLE`/`LATERAL` — the same column-to-rows shape EF asks the provider for and Npgsql
+fills with `unnest`.
+
+`MULTISET` gets no provider-side mapping. EF has no bag-typed property, and every EF collection
+property is ordered and indexable.
+
+The work:
+
+1. `CalciteArrayTypeMapping`: store type `<element> ARRAY`, `ElementTypeMapping` taken from the
+   element's own mapping, literal generation as `ARRAY[...]`.
+2. A `FindCollectionMapping` override on `CalciteTypeMappingSource` producing it for `T[]` and
+   `List<T>` (and the `IList<T>`/`IReadOnlyList<T>`/`ICollection<T>` surfaces EF accepts), leaving
+   `CalciteJsonTypeMapping` to the owned and complex JSON documents it is actually for.
+3. The column-to-rows translation in `CalciteQueryableMethodTranslatingExpressionVisitor`, which has
+   no collection handling at all today, plus `ITEM` and `CARDINALITY` in the translators.
+4. Delete the six `*PrimitiveCollection*CalciteTest.Skips.cs` and regenerate.
+
+Two dependencies to confirm before starting:
+
+- calcite-server DDL has to be able to declare the column (`CREATE TABLE t (tags VARCHAR ARRAY)`).
+  The parser takes a collection suffix on a type spec; whether `ServerDdlExecutor`'s
+  `MutableArrayTable` can hold one is the open half. The purpose-built C# backend above would
+  support it natively instead.
+- `Apache.Calcite.Data` has to surface an array column value to the reader as a CLR collection.
+
+## Calcite's native types have no EF provider mapping
+
+`CalciteTypeMappingSource` covers the scalar core and stops there, so a Calcite type outside that
+core either resolves to nothing or is quietly converted to something else. What is missing, roughly
+in order of how likely it is to be hit:
+
+- **`UUID`.** Calcite has a native UUID type, and the adapter's `CalciteTypeMapper` maps `Guid` onto
+  it in both directions — but the provider has no `Guid` entry in `_clrTypeMappings` and no `UUID`
+  entry in `_storeTypeMappings`. A `Guid` property still round-trips (`GuidKeyGenerationTests`
+  inserts two and reads them back), which means it is reaching the store through EF's
+  value-converter fallback onto the VARCHAR mapping, as text. The two halves of this repo therefore
+  disagree about what a `Guid` column is: the adapter tells Calcite `UUID`, the provider writes a
+  string. Wants a `CalciteGuidTypeMapping` over the native type; confirm the fallback route while
+  fixing it, since only the absence of both entries is established.
+- **The `INTERVAL_*` family.** No store type, no `TimeSpan` entry, while the adapter maps `TimeSpan`
+  to `INTERVAL_DAY_SECOND` — the same disagreement, just unexercised: `AllTypesEntity` has no
+  `TimeSpan` column, so nothing catches it.
+- **The unsigned store-type names.** `_clrTypeMappings` maps `byte`, `ushort`, `uint` and `ulong`,
+  but `_storeTypeMappings` names only `TINYINT UNSIGNED`; an explicit or scaffolded
+  `SMALLINT UNSIGNED`, `INTEGER UNSIGNED` or `BIGINT UNSIGNED` column resolves to nothing.
+- **Missing spellings of types we do map**: no bare `TINYINT`, no bare `BINARY`, no `FLOAT`, and
+  none of the `WITH LOCAL TIME ZONE` forms. `CalciteDatabaseModelFactory` writes
+  `SqlTypeName.getName()` straight into `DatabaseColumn.StoreType`, so scaffolding reaches these
+  first.
+- **`ARRAY`, `MULTISET`, `MAP`, `ROW` and `ANY`** — the items above.
+- **`GEOMETRY`** — see the spatial item.
+
+Worth one pass over `_storeTypeMappings` against `SqlTypeName` in the Calcite version we target,
+with a round-trip column per type added to `AllTypesEntity`, so the table stops drifting from what
+Calcite actually has.
+
 ## The CLR→SQL type fallback silently answers VARCHAR
 
 `CalciteTypeMapper.ToSqlTypeName` ends in `return SqlTypeName.VARCHAR` for every CLR type it does
