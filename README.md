@@ -32,14 +32,14 @@ services.AddDbContext<MyContext>(options =>
 
 The connection string is a standard Calcite model configuration — see the [Calcite adapter documentation](https://calcite.apache.org/docs/adapter.html) for modeling data sources. `Fun = "all"` enables the extended operator libraries and is required for JSON column updates.
 
-`ToCalciteSql()` turns a query into the SQL the provider would send, without running it:
+`ToQueryString()` returns the SQL the provider would send, without running it:
 
 ```csharp
 var city = "London";
-var sql = context.Customers.Where(c => c.City == city).ToCalciteSql();
+var sql = context.Customers.Where(c => c.City == city).ToQueryString();
 ```
 
-Calcite binds parameters positionally, as `?`, so a statement handed back with its placeholders intact could not be run anywhere: the values are written in as literals instead, leaving SQL that Calcite accepts as it stands — hand it to a `CalciteCommand`, a view definition, or `sqlline`. It is `ToQueryString()` for the Calcite provider, and refuses a query belonging to any other provider rather than answering in that provider's dialect.
+Calcite binds parameters positionally, as `?`, so the relational default — a comment line per parameter above a statement whose placeholders stay in place — describes values the statement has no way to pick up. This provider writes the values in as literals instead, leaving SQL that Calcite accepts as it stands: hand it to a `CalciteCommand`, a view definition, or `sqlline`.
 
 ### [`Apache.Calcite.EntityFrameworkCore.Adapter`](https://www.nuget.org/packages/Apache.Calcite.EntityFrameworkCore.Adapter) · `src/Apache.Calcite.EntityFrameworkCore.Adapter`
 

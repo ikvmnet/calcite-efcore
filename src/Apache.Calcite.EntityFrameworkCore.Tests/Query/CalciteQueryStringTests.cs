@@ -13,10 +13,11 @@ using Xunit;
 namespace Apache.Calcite.EntityFrameworkCore.Tests.Query;
 
 /// <summary>
-/// Tests covering <see cref="CalciteQueryableExtensions.ToCalciteSql"/>: the SQL it hands back
-/// carries its own values, and Calcite runs it as it stands.
+/// Tests covering the query string the provider hands back through
+/// <see cref="EntityFrameworkQueryableExtensions.ToQueryString"/>: it carries its own values, and
+/// Calcite runs it as it stands.
 /// </summary>
-public class ToCalciteSqlTests
+public class CalciteQueryStringTests
 {
 
     const string Schema = "adhoc";
@@ -95,7 +96,7 @@ public class ToCalciteSqlTests
         using (conn)
         using (ctx)
         {
-            var sql = ctx.Cities.ToCalciteSql();
+            var sql = ctx.Cities.ToQueryString();
 
             Assert.Contains("SELECT", sql, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("CITIES", sql, StringComparison.OrdinalIgnoreCase);
@@ -110,7 +111,7 @@ public class ToCalciteSqlTests
         using (ctx)
         {
             var name = "London";
-            var sql = ctx.Cities.Where(c => c.Name == name).ToCalciteSql();
+            var sql = ctx.Cities.Where(c => c.Name == name).ToQueryString();
 
             Assert.Contains("'London'", sql);
             Assert.DoesNotContain("?", sql);
@@ -125,7 +126,7 @@ public class ToCalciteSqlTests
         using (ctx)
         {
             var name = "London";
-            var sql = ctx.Cities.Where(c => c.Name == name).Select(c => c.Population).ToCalciteSql();
+            var sql = ctx.Cities.Where(c => c.Name == name).Select(c => c.Population).ToQueryString();
 
             if (conn.State != ConnectionState.Open)
                 conn.Open();
@@ -149,7 +150,7 @@ public class ToCalciteSqlTests
         {
             var name = "Lon?don";
             var population = 8;
-            var sql = ctx.Cities.Where(c => c.Name == name && c.Population == population).ToCalciteSql();
+            var sql = ctx.Cities.Where(c => c.Name == name && c.Population == population).ToQueryString();
 
             // the '?' arrives inside the first value; the second parameter still has to land in the
             // placeholder that follows, not in the one the value brought with it
@@ -167,24 +168,10 @@ public class ToCalciteSqlTests
         using (ctx)
         {
             var name = "London";
-            var sql = ctx.Cities.TagWith("which city?").Where(c => c.Name == name).ToCalciteSql();
+            var sql = ctx.Cities.TagWith("which city?").Where(c => c.Name == name).ToQueryString();
 
             Assert.Contains("-- which city?", sql);
             Assert.Contains("'London'", sql);
-        }
-    }
-
-    [Fact]
-    public void Matches_the_query_string_of_the_context()
-    {
-        var (conn, ctx) = CreateContext();
-        using (conn)
-        using (ctx)
-        {
-            var name = "London";
-            var query = ctx.Cities.Where(c => c.Name == name);
-
-            Assert.Equal(query.ToQueryString(), query.ToCalciteSql());
         }
     }
 
@@ -195,26 +182,12 @@ public class ToCalciteSqlTests
         using var context = new GuidKeyDbContext(connection);
 
         var id = Guid.Parse("5a2c9e7e-3f4b-4c8a-9d1e-6b0f2a7c4d31");
-        var sql = context.Entities.Where(e => e.Id == id).ToCalciteSql();
+        var sql = context.Entities.Where(e => e.Id == id).ToQueryString();
 
         // the key is a UUID column, so the statement carries the UUID literal Calcite reads back as
         // one rather than the text of a converted string
         Assert.Contains($"UUID '{id}'", sql);
         Assert.DoesNotContain("?", sql);
-    }
-
-    [Fact]
-    public void Refuses_a_query_that_is_not_from_entity_framework()
-    {
-        var queryable = new[] { 1, 2, 3 }.AsQueryable();
-
-        Assert.Throws<InvalidOperationException>(() => queryable.ToCalciteSql());
-    }
-
-    [Fact]
-    public void Refuses_a_null_query()
-    {
-        Assert.Throws<ArgumentNullException>(() => ((IQueryable)null!).ToCalciteSql());
     }
 
 }
