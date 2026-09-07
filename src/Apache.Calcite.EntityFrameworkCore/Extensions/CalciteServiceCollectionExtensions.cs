@@ -126,6 +126,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Extensions
                 .TryAdd<IAggregateMethodCallTranslatorProvider, CalciteAggregateMethodCallTranslatorProvider>()
                 .TryAdd<IMemberTranslatorProvider, CalciteMemberTranslatorProvider>()
                 .TryAdd<IQuerySqlGeneratorFactory, CalciteQuerySqlGeneratorFactory>()
+                .TryAdd<IRelationalQueryStringFactory, CalciteQueryStringFactory>()
                 .TryAdd<IRelationalSqlTranslatingExpressionVisitorFactory, CalciteSqlTranslatingExpressionVisitorFactory>()
                 .TryAdd<ISqlExpressionFactory, CalciteSqlExpressionFactory>()
                 .TryAdd<IQueryTranslationPostprocessorFactory, CalciteQueryTranslationPostprocessorFactory>()
