@@ -171,3 +171,51 @@ join over non-nullable keys beside it passes.
 projection that aliases two columns of the same name to different ones collapses to one. Aliases
 over computed columns (`"Price" * 2 AS "DoublePrice"`) are kept, which is why the suite never caught
 it. `EfCoreAdapterComplexTests.Projection_AliasOnBareColumn` is skipped on this.
+
+## `ROW` translates but is never admitted
+
+`RexToLinqTranslator.TranslateRow` builds a `MemberInit` over the CLR type
+`ClrDataTypeGenerator` emits for the declared struct type, and it works — but `CanTranslateCall`
+has no `ROW` case, so it falls through to `default: return false`. `EfCoreSelectRule`,
+`EfCoreWhereRule` and `EfCoreCalcRule` therefore decline any project or filter carrying a row
+constructor, and the node stays logical. ROW only ever reaches `TranslateRow` because
+`EfCoreJoinRule`/`EfCoreLeftJoinRule` construct one *after* conversion; a `ROW(...)` written in user
+SQL is never pushed into EF Core. Admitting it is `case "ROW": return CanTranslateOperands(...)`,
+but that exposes the second half: a row-valued column reaching the output boundary is handed to
+`CalciteValueConverter.ToJavaObject`, which has no case for a generated row type and returns it
+unchanged, where the ARRAY-format reader on the other side wants an `Object[]`. Today that never
+fires because the join ROWs are flattened before output.
+
+## No field access out of a `ROW`, `MAP` or `ARRAY`
+
+`ITEM` (`m['k']`, `a[1]`) and `DOT` (`r.field`) both throw `NotImplementedException` in
+`TranslateCall` and are absent from `CanTranslateCall`, so indexing a map or array — and reading a
+field back off a row value — is never pushed down. `RexFieldAccess` is restricted to
+`RexCorrelVariable` references besides, so a struct-typed column cannot be projected field by field
+either: rows can be built and not read.
+
+MAP and ARRAY have no CLR representation at all to read into. `CalciteTypeMapper.ToClrType` has no
+case for either, so both resolve to `typeof(object)` through the `?? typeof(object)` fallback, and
+the whole function family (`MAP_KEYS`/`MAP_VALUES`/`MAP_ENTRIES`/`MAP_CONTAINS_KEY`/`STR_TO_MAP`,
+`ARRAY_*`, the value and query constructors) is `NotImplementedException`. Choosing the mapping —
+`IDictionary<K,V>` and `T[]`, presumably, with the marshalling to match on both sides of
+`CalciteValueConverter` — comes before any of the operators.
+
+## The CLR→SQL type fallback silently answers VARCHAR
+
+`CalciteTypeMapper.ToSqlTypeName` ends in `return SqlTypeName.VARCHAR` for every CLR type it does
+not recognise, and `EfCoreTable.getRowType` feeds it `property.ClrType` taken straight from the EF
+model. An enum property — which EF stores as an int — is therefore declared VARCHAR in the Calcite
+row type, and so is any other unmapped type (`Dictionary<,>`, a primitive collection, a
+value-converted property). Nothing warns; the mismatch surfaces later as a conversion failure, or
+not at all. What Calcite should see is the property's *provider* type — the type mapping's
+`ClrType`, falling back to `ClrType` only where there is no converter.
+
+The value side has the same hole: `CalciteValueConverter.ToJavaObject` falls through `_ => value`
+for an enum and for a `Guid` (despite `UUID` being in the type map), handing the CLR value to
+Calcite unconverted. Both row paths go through it — `EfCoreEnumerable.ExecuteArrayAsync` on the
+compiled plan and `EfCoreTable.scan` on the `ScannableTable` fallback.
+
+Whether an unmapped type should instead map to `ANY` is worth deciding at the same time. `ANY` has
+no CLR mapping either — it resolves to `object` — but it at least fails honestly rather than
+claiming to be a string.
