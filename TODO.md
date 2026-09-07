@@ -195,12 +195,53 @@ field back off a row value — is never pushed down. `RexFieldAccess` is restric
 `RexCorrelVariable` references besides, so a struct-typed column cannot be projected field by field
 either: rows can be built and not read.
 
-MAP and ARRAY have no CLR representation at all to read into. `CalciteTypeMapper.ToClrType` has no
-case for either, so both resolve to `typeof(object)` through the `?? typeof(object)` fallback, and
-the whole function family (`MAP_KEYS`/`MAP_VALUES`/`MAP_ENTRIES`/`MAP_CONTAINS_KEY`/`STR_TO_MAP`,
-`ARRAY_*`, the value and query constructors) is `NotImplementedException`. Choosing the mapping —
-`IDictionary<K,V>` and `T[]`, presumably, with the marshalling to match on both sides of
-`CalciteValueConverter` — comes before any of the operators.
+`MAP` has no CLR representation to read into either. `CalciteTypeMapper.ToClrType` has no case for
+it, so it resolves to `typeof(object)` through the `?? typeof(object)` fallback, there is no
+`Dictionary<,>` direction in `ToSqlTypeName`, and the whole function family (`MAP_KEYS`,
+`MAP_VALUES`, `MAP_ENTRIES`, `MAP_CONCAT`, `MAP_CONTAINS_KEY`, `MAP_FROM_ARRAYS`,
+`MAP_FROM_ENTRIES`, `STR_TO_MAP`, and both value and query constructors) is
+`NotImplementedException`. Settling the mapping — `IDictionary<K,V>`, presumably, with the
+`CalciteValueConverter` bridge to `java.util.Map` on both sides — comes before any of the operators.
+The collection types are the same story, below.
+
+## `MULTISET` and `ARRAY` are unmapped end to end
+
+Calcite's two collection types — `MULTISET` a bag, `ARRAY` ordered and indexable, both over a single
+element type that is very often itself a `ROW` — have no representation anywhere in the adapter.
+`MULTISET<ROW(...)>` is the shape a collection navigation takes, so this is the item standing between
+us and anything that is not a flat row.
+
+They arrive from `MULTISET(SELECT ...)` and `ARRAY(SELECT ...)` subqueries, the value constructors
+(`MULTISET[...]`, `ARRAY[...]`), `UNNEST`/`LATERAL`/`COLLECTION_TABLE` flattening one back into rows,
+and the collecting aggregates (`COLLECT`, `ARRAY_AGG`, `ARRAY_CONCAT_AGG`, `FUSION`, `INTERSECTION`).
+Nothing handles any of it:
+
+- No CLR mapping. `ToClrType` has no `ARRAY` or `MULTISET` case, so both land on `typeof(object)`,
+  and `getComponentType()` is consulted in exactly one place in the whole adapter — the MULTISET
+  unwrap in `EfCoreSelectMany.GetCollectionElementType`.
+- No CLR→SQL direction: `ToSqlTypeName` answers VARCHAR for `List<T>` and for every `T[]` but
+  `byte[]`, which is VARBINARY. See the fallback item below.
+- No marshalling: `CalciteValueConverter` has no case bridging a CLR collection and a `java.util.List`
+  in either direction.
+- Every operator throws `NotImplementedException` and is absent from `CanTranslateCall` — the value
+  and query constructors, `UNNEST`, `LATERAL`, `COLLECTION_TABLE`, and the whole `ARRAY_*` family.
+
+The collecting aggregates fail harder than the rest, and separably: `EfCoreGroupByRule.convert`
+accepts any `Aggregate` without inspecting its calls, so `COLLECT`/`ARRAY_AGG` convert into the
+convention and then throw from `EfCoreGroupBy.BuildAggregateExpression` — which builds
+COUNT/SUM/MIN/MAX/AVG and nothing else — at implement time. That surfaces as Calcite's "Unable to
+implement" with the cause suppressed, instead of the rule declining and the aggregate degrading to
+another convention. Gating the rule on the aggregate kinds it can actually build is worth doing on
+its own, ahead of any collection work.
+
+Note that the collection machinery already in the tree is not this: `EfCoreCollectionScan` and
+`EfCoreSelectMany` model the LINQ-side grouping `EfCoreLeftJoinRule` builds for its
+GroupJoin/DefaultIfEmpty LEFT JOIN rewrite, not a SQL collection value.
+
+Order of work: element-type resolution (`getComponentType()` to `IEnumerable<T>`/`T[]`) and the
+`CalciteValueConverter` bridge first, since everything downstream needs a CLR shape to produce; then
+`UNNEST`, which is what makes a collection useful without needing per-element operators at all; then
+the aggregates.
 
 ## The CLR→SQL type fallback silently answers VARCHAR
 
