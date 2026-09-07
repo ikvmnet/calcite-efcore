@@ -295,14 +295,6 @@ Two dependencies to confirm before starting:
 core either resolves to nothing or is quietly converted to something else. What is missing, roughly
 in order of how likely it is to be hit:
 
-- **`UUID`.** Calcite has a native UUID type, and the adapter's `CalciteTypeMapper` maps `Guid` onto
-  it in both directions — but the provider has no `Guid` entry in `_clrTypeMappings` and no `UUID`
-  entry in `_storeTypeMappings`. A `Guid` property still round-trips (`GuidKeyGenerationTests`
-  inserts two and reads them back), which means it is reaching the store through EF's
-  value-converter fallback onto the VARCHAR mapping, as text. The two halves of this repo therefore
-  disagree about what a `Guid` column is: the adapter tells Calcite `UUID`, the provider writes a
-  string. Wants a `CalciteGuidTypeMapping` over the native type; confirm the fallback route while
-  fixing it, since only the absence of both entries is established.
 - **The `INTERVAL_*` family.** No store type, no `TimeSpan` entry, while the adapter maps `TimeSpan`
   to `INTERVAL_DAY_SECOND` — the same disagreement, just unexercised: `AllTypesEntity` has no
   `TimeSpan` column, so nothing catches it.
