@@ -137,14 +137,17 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             var leftFields = leftRel.getRowType().getFieldList();
             var leftContext = rexContext.WithReplacedInputs(new InputSegment(leftFields, leftParam));
             var leftKeyExpr = translator.Translate(LeftKeySelector, leftContext);
-            var leftKeySelector = Expression.Lambda(leftKeyExpr, leftParam);
 
             // Build right key selector: right => right.Key
             var rightParam = Expression.Parameter(rightType, "right");
             var rightFields = rightRel.getRowType().getFieldList();
             var rightContext = rexContext.WithReplacedInputs(new InputSegment(rightFields, rightParam));
             var rightKeyExpr = translator.Translate(RightKeySelector, rightContext);
-            var rightKeySelector = Expression.Lambda(rightKeyExpr, rightParam);
+
+            // Calcite types each side's key on its own; the join closes over one key type for both
+            var keys = JoinKeys.Reconcile(leftKeyExpr, rightKeyExpr);
+            var leftKeySelector = Expression.Lambda(keys.Left, leftParam);
+            var rightKeySelector = Expression.Lambda(keys.Right, rightParam);
 
             // Build result selector: (left, right) => new Result { ... }
             var resultContext = rexContext.WithReplacedInputs(
@@ -157,7 +160,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             var joinMethod = QueryableMethods.Join.MakeGenericMethod(
                 leftType,
                 rightType,
-                leftKeyExpr.Type,
+                keys.KeyType,
                 resultType);
 
             return Expression.Call(joinMethod, leftExpr, rightExpr, leftKeySelector, rightKeySelector, resultSelector);

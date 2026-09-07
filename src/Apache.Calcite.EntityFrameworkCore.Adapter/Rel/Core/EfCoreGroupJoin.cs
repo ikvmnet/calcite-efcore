@@ -137,14 +137,17 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             var leftParam = Expression.Parameter(leftType, "outer");
             var leftFields = leftRel.getRowType().getFieldList();
             var leftKeyExpr = translator.Translate(LeftKeySelector, context.WithInputs([new InputSegment(leftFields, leftParam)]));
-            var leftKeySelector = Expression.Lambda(leftKeyExpr, leftParam);
 
             // Build right key selector: inner => inner.Key
             var rightParam = Expression.Parameter(rightType, "inner");
             var rightFields = rightRel.getRowType().getFieldList();
             var rightContext = context.WithInputs([new InputSegment(rightFields, rightParam)]);
             var rightKeyExpr = translator.Translate(RightKeySelector, rightContext);
-            var rightKeySelector = Expression.Lambda(rightKeyExpr, rightParam);
+
+            // Calcite types each side's key on its own; the join closes over one key type for both
+            var keys = JoinKeys.Reconcile(leftKeyExpr, rightKeyExpr);
+            var leftKeySelector = Expression.Lambda(keys.Left, leftParam);
+            var rightKeySelector = Expression.Lambda(keys.Right, rightParam);
 
             // Build result selector: (outer, inners) => new Result { ... }
             var innersType = typeof(IEnumerable<>).MakeGenericType(rightType);
@@ -158,7 +161,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Core
             var groupJoinMethod = QueryableMethods.GroupJoin.MakeGenericMethod(
                 leftType,
                 rightType,
-                leftKeyExpr.Type,
+                keys.KeyType,
                 resultType);
 
             return Expression.Call(groupJoinMethod, leftExpr, rightExpr, leftKeySelector, rightKeySelector, resultSelector);
