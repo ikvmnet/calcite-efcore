@@ -38,6 +38,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.AllTypes
             ColDateTimeOffset = new DateTimeOffset(2024, 6, 15, 12, 30, 0, TimeSpan.Zero),
             ColDateOnly = new DateOnly(2024, 6, 15),
             ColTimeOnly = new TimeOnly(12, 30, 0),
+            ColGuid = new Guid("cccccccc-0000-0000-0000-000000000001"),
             ColString = "hello",
             ColBytes = [1, 2, 3],
         };
@@ -93,6 +94,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.AllTypes
                 Assert.Equal(new DateTimeOffset(2024, 6, 15, 12, 30, 0, TimeSpan.Zero), row.ColDateTimeOffset);
                 Assert.Equal(new DateOnly(2024, 6, 15), row.ColDateOnly);
                 Assert.Equal(new TimeOnly(12, 30, 0), row.ColTimeOnly);
+                Assert.Equal(new Guid("cccccccc-0000-0000-0000-000000000001"), row.ColGuid);
                 Assert.Equal("hello", row.ColString);
                 Assert.Equal(new byte[] { 1, 2, 3 }, row.ColBytes);
             }
@@ -123,6 +125,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.AllTypes
                 Assert.Null(row.ColDateTimeOffset);
                 Assert.Null(row.ColDateOnly);
                 Assert.Null(row.ColTimeOnly);
+                Assert.Null(row.ColGuid);
                 Assert.Null(row.ColString);
                 Assert.Null(row.ColBytes);
             }
@@ -152,6 +155,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.AllTypes
                 row.ColDateTimeOffset = new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
                 row.ColDateOnly = new DateOnly(2000, 1, 1);
                 row.ColTimeOnly = new TimeOnly(0, 0, 0);
+                row.ColGuid = new Guid("dddddddd-0000-0000-0000-000000000002");
                 row.ColString = "updated";
                 row.ColBytes = [9, 8];
                 ctx.SaveChanges();
@@ -170,6 +174,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.AllTypes
                 Assert.Equal(new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero), updated.ColDateTimeOffset);
                 Assert.Equal(new DateOnly(2000, 1, 1), updated.ColDateOnly);
                 Assert.Equal(new TimeOnly(0, 0, 0), updated.ColTimeOnly);
+                Assert.Equal(new Guid("dddddddd-0000-0000-0000-000000000002"), updated.ColGuid);
                 Assert.Equal("updated", updated.ColString);
                 Assert.Equal(new byte[] { 9, 8 }, updated.ColBytes);
             }

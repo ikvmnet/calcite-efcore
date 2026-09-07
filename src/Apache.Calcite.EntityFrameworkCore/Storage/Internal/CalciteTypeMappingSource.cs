@@ -30,6 +30,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
             [typeof(DateTimeOffset)] = CalciteDateTimeOffsetTypeMapping.Default,
             [typeof(DateOnly)] = CalciteDateOnlyTypeMapping.Default,
             [typeof(TimeOnly)] = CalciteTimeOnlyTypeMapping.Default,
+            [typeof(Guid)] = CalciteGuidTypeMapping.Default,
             [typeof(string)] = CalciteStringTypeMapping.Default,
             [typeof(byte[])] = CalciteByteArrayTypeMapping.Default,
         };
@@ -53,6 +54,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
             ["TIMESTAMP WITH TIME ZONE"] = [CalciteDateTimeOffsetTypeMapping.Default],
             ["VARCHAR"] = [CalciteStringTypeMapping.Default],
             ["CHARACTER VARYING"] = [CalciteStringTypeMapping.Default],
+            ["UUID"] = [CalciteGuidTypeMapping.Default],
             ["VARBINARY"] = [CalciteByteArrayTypeMapping.Default],
             ["BINARY VARYING"] = [CalciteByteArrayTypeMapping.Default],
         };

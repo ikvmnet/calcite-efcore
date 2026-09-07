@@ -95,11 +95,21 @@ transport; until fixed, "1.43.0-SNAPSHOT" means "whatever .m2 last downloaded".
 
 ## Missing spec-test derivations
 
-41 spec areas SQLite derives that we have no local class for, so they never run. Add derived
-classes area by area, following other providers' patterns. High-value first: `FromSqlQuery`,
-`SqlQuery`, `GraphUpdates`, `TableSplitting` (+TPT/TPC variants), `PrimitiveCollectionsQuery`,
-`NorthwindBulkUpdates`, `OwnedRelationships`, `Logging`, `FieldMapping`,
-`OptimisticConcurrency`, `LazyLoadProxy`.
+14 spec classes SQLite derives that we have no local class for, so they never run. Measured as
+`test/EFCore.Sqlite.FunctionalTests/**/*SqliteTest.cs` with `Sqlite` renamed to `Calcite`, minus
+the classes this project already declares — recount that way rather than trusting the number.
+Add derived classes area by area, following other providers' patterns. What is left: `BadData`
+(+`BadDataJsonDeserialization`), `CompiledModel`, `DataBinding`, `JsonQuery` (blocked, below),
+`JsonTypes`, `MigrationsInfrastructure`, `NonLoadingNavigationsManyToManyLoad`,
+`NorthwindQueryTaggingQuery`, `OperatorsProcedural`, `Serialization`, `StoreValueGeneration`,
+and the `Spatial`/`SpatialQuery` pair the spatial item below covers.
+
+`JsonQuery` is blocked rather than merely missing. `JsonQueryCalciteFixture` is already here, but
+all 438 cases fail identically before any query runs: `RelationalModelValidator` rejects
+`JsonEntityAllTypes.TestBooleanCollectionCollection` (`bool[][]`) as a nested primitive
+collection, so the model never builds. Providers that carry the suite map those owned entities to
+JSON columns, which takes the property off the primitive-collection path entirely. Deriving the
+class today buys 219 skips and no coverage — do it once JSON column mapping exists.
 
 ## DateTimeOffset offset fidelity
 
@@ -111,9 +121,10 @@ reason — with trade-offs across comparisons and every temporal suite. Decide d
 ## Named parameter emulation in CalciteCommand
 
 Calcite's lexer rejects `@name` parameter markers outright, so every raw-SQL path that passes a
-named DbParameter fails at parse — 20 of the FromSqlQuery spec tests. The standard ADO fix is
-marker rewriting in the command: translate `@name` markers to `?` and order the parameter
-collection to match, the way JDBC-bridging providers do. Belongs in Apache.Calcite.Data.
+named DbParameter fails at parse — 20 of the FromSqlQuery spec tests, plus 7 of SqlQuery's. The
+standard ADO fix is marker rewriting in the command: translate `@name` markers to `?` and order
+the parameter collection to match, the way JDBC-bridging providers do. Belongs in
+Apache.Calcite.Data.
 
 ## Spatial
 
@@ -144,16 +155,6 @@ for a collection include. `RelDecorrelator` casts the `RexDynamicParam` in the f
 and throws. Needs an upstream fix, a rewrite that pre-binds the fetch, or the rel-tree route above,
 which never parses SQL in the first place. Note the connection must also ask for `LENIENT`
 conformance for `OUTER APPLY` to parse at all.
-
-## Temporal literals in a predicate
-
-`WHERE "ListedAt" > TIMESTAMP '2024-06-01 00:00:00'` fails with
-`NotSupportedException: RexToLinqTranslator: unsupported literal value type 'GregorianCalendar'
-(SQL type=TIMESTAMP)`. `TranslateLiteral` reads `RexLiteral.getValue()`, which hands temporal
-literals over as a `GregorianCalendar`; `TranslateConstant` recognises `DateString`/`TimeString`/
-`TimestampString` but not that. Selecting a temporal column works — only comparing one against a
-literal does not. `EfCoreAdapterComplexTests.Temporal_FilterOnTimestamp` and `Temporal_FilterOnDate`
-are skipped on this.
 
 ## Join key nullability is not reconciled
 

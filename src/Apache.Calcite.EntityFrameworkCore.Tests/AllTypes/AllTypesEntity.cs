@@ -46,6 +46,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.AllTypes
         [Column("COL_TIMEONLY")]
         public TimeOnly? ColTimeOnly { get; set; }
 
+        [Column("COL_GUID")]
+        public Guid? ColGuid { get; set; }
+
         [Column("COL_STRING")]
         public string? ColString { get; set; }
 

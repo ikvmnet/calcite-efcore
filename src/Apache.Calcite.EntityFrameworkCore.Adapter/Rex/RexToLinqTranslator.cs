@@ -57,6 +57,13 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// </summary>
         public static readonly RexToLinqTranslator Default = new();
 
+        /// <summary>
+        /// The <c>java.lang.Comparable</c> class literal handed to <c>RexLiteral.getValueAs</c> to read a literal
+        /// in its internal representation. Every <see cref="RexLiteral"/> value is a <c>Comparable</c>, so the
+        /// call is a plain accessor rather than a conversion.
+        /// </summary>
+        static readonly java.lang.Class ComparableClass = (java.lang.Class)typeof(java.lang.Comparable);
+
         readonly ISqlOperatorTranslationProvider operatorTranslations;
 
         /// <summary>
@@ -1779,9 +1786,16 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
         /// <summary>
         /// Translates a <see cref="RexLiteral"/> into a <see cref="ConstantExpression"/> of the appropriate CLR type.
         /// </summary>
+        /// <remarks>
+        /// The value is read through <see cref="ComparableClass"/> rather than <c>getValue()</c>, which converts
+        /// <c>DATE</c>, <c>TIME</c> and <c>TIMESTAMP</c> literals to a <see cref="java.util.Calendar"/>. The
+        /// <c>Comparable</c> form is the literal's internal representation — <see cref="DateString"/>,
+        /// <see cref="TimeString"/> and <see cref="TimestampString"/> for those three — which is what
+        /// <see cref="TranslateConstant"/> decodes, and what the <c>SEARCH</c>/<c>Sarg</c> endpoints already carry.
+        /// </remarks>
         protected virtual Expression TranslateLiteral(RexLiteral literal)
         {
-            return TranslateConstant(literal.isNull(), literal.getType(), literal.getValue());
+            return TranslateConstant(literal.isNull(), literal.getType(), literal.getValueAs(ComparableClass));
         }
 
         /// <summary>

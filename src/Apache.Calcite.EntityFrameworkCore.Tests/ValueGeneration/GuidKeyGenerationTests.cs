@@ -76,4 +76,28 @@ public class GuidKeyGenerationTests
         Assert.Equal(new[] { first.Id, second.Id }, reloaded.Select(e => e.Id));
     }
 
+    /// <summary>
+    /// A key mapped to <c>UUID</c> has to survive both directions: bound as a parameter and
+    /// written as a literal on the way out, read back as a <see cref="Guid"/> on the way in.
+    /// </summary>
+    [Fact]
+    public async Task Guid_key_round_trips_through_a_predicate()
+    {
+        using var connection = GuidKeyDbContext.CreateConnection();
+        await using var context = new GuidKeyDbContext(connection);
+        await context.Database.EnsureCreatedAsync();
+
+        var entity = new GuidKeyEntity { Name = "a" };
+        context.Add(entity);
+        await context.SaveChangesAsync();
+
+        context.ChangeTracker.Clear();
+        var byParameter = await context.Entities.SingleAsync(e => e.Id == entity.Id);
+        Assert.Equal(entity.Id, byParameter.Id);
+
+        context.ChangeTracker.Clear();
+        var byLiteral = await context.Entities.SingleAsync(e => e.Id == EF.Constant(entity.Id));
+        Assert.Equal(entity.Id, byLiteral.Id);
+    }
+
 }
