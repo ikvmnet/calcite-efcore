@@ -88,10 +88,43 @@ D:\efcore.pg for how SQLite/Npgsql derive, override, and skip.
 
 ## Snapshot staleness
 
-`MAVEN0011: Transfer failed … maven-metadata.xml` on every build: snapshot metadata refresh from
-repository.apache.org fails inside the resolver (plain curl works), so resolution silently serves
-the `~/.m2` copy — currently the 2026-08-05 snapshot, not today's. Investigate the resolver's
-transport; until fixed, "1.43.0-SNAPSHOT" means "whatever .m2 last downloaded".
+Measured 2026-09-07. The `MAVEN0011: Transfer failed … maven-metadata.xml` warning is **not** the
+problem it was taken for, and there is no transport bug: `repository.apache.org` answers `200` and
+the resolver refreshes from it on its daily policy, leaving no `.error` entry in
+`resolver-status.properties`. The warning comes from the *other* repositories the build offers.
+Every repository is asked for every artifact's metadata, and an Apache snapshot cannot exist in
+three of them:
+
+| repository | `org/apache/calcite/calcite-core/1.43.0-SNAPSHOT/maven-metadata.xml` |
+|---|---|
+| central | 404 |
+| redhat | 404 |
+| jboss | 301 |
+| apache-snapshots | 200 |
+
+Five snapshot artifacts against three repositories that cannot hold them, logged twice each, is the
+30 `Transfer failed` lines a clean build prints. It is noise, and suppressing it means either
+`NoWarn`ing `MAVEN0011` — which would also hide a real transfer failure — or teaching the SDK which
+repository an artifact may come from. Neither is obviously right; that is the open question here.
+
+The staleness is real, but it is downstream of resolution. The file IKVM compiles is the
+**non-timestamped alias** `calcite-core-1.43.0-SNAPSHOT.jar` in `~/.m2`, and each project's
+`obj\*.maven.cache` pins the path to it. The alias is replaced only when a project re-resolves, so
+the metadata beside it can advertise a newer build for days while the alias holds an older one, and
+the build says nothing. On the morning of 2026-09-07 the metadata advertised build
+`20260905.171803-216` while the alias still held `20260830.093627-212` — six days behind. Deleting
+the project's `obj\*.maven.cache` and rebuilding replaced it.
+
+`tools\check-snapshot.ps1` reports the gap: per artifact, the build the remote advertises against
+the build the alias actually holds (identified by the remote `.jar.sha1`, so it needs no download),
+plus which projects are pinned. `-Refresh` deletes the caches of the stale ones. **Run it before
+trusting a green functional run**, which is the only reason any of this matters.
+
+Two loose ends. The durable fix belongs upstream in `D:\ikvm-maven`: resolve snapshots to their
+timestamped filenames, or invalidate the cache when the metadata advances. And concurrent
+resolutions race to install the same alias — the losers leave their downloads behind, so build
+single-threaded (`-m:1`) when a re-resolve is expected. 50 orphaned `.tmp` files, roughly 460 MB,
+had accumulated in the `calcite-core` directory alone by the time this was measured.
 
 ## Missing spec-test derivations
 

@@ -74,6 +74,14 @@ Sibling checkouts this project depends on:
   `EnumerableTableModify` rewrite behind the mutable test stores). A test project's own 1.43
   request wins over the 1.42 arriving transitively from the provider — each project resolves one
   closure. IKVM.Maven.Sdk resolves from the repositories in `$(MavenAdditionalRepositories)`.
+- **"1.43.0-SNAPSHOT" does not name a build.** What IKVM compiles is the non-timestamped alias jar
+  in `~/.m2`, and each project's `obj\*.maven.cache` pins the path to it, so the alias can sit days
+  behind the metadata beside it with nothing in the build output saying so.
+  `pwsh tools\check-snapshot.ps1` prints the build the remote advertises against the build the
+  alias holds, and `-Refresh` clears the caches of the stale projects; re-resolve with `-m:1`,
+  because concurrent resolutions race to install the same alias. Run it before trusting a green
+  functional run. The `MAVEN0011: Transfer failed … maven-metadata.xml` warnings are unrelated
+  noise: central, redhat and jboss cannot hold an Apache snapshot, and are asked anyway.
 - `FunctionalTests` is the EF Core relational **specification suite** (~25,000 tests, ~40 minutes).
   It runs **green with skips**: 23,117 pass / 0 fail / 2,092 skipped as of 2026-09-02 on Calcite
   1.43.0-SNAPSHOT + Apache.Calcite.Data 2.0.1-pre.11. Known-failing tests carry generated
