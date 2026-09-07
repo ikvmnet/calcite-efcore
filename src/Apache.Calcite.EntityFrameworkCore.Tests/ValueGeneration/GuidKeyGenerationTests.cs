@@ -55,6 +55,24 @@ public class GuidKeyDbContext : DbContext
 public class GuidKeyGenerationTests
 {
 
+    /// <summary>
+    /// The behavioral tests below would pass over the converted text as well, so the shape is worth
+    /// stating on its own: the column is Calcite's own type, reached with nothing converting on the
+    /// way. Only the absence of a mapping sends a <see cref="Guid"/> down Entity Framework Core's
+    /// converter fallback onto VARCHAR, and it does so silently.
+    /// </summary>
+    [Fact]
+    public void Guid_keys_map_to_the_native_uuid_column()
+    {
+        using var connection = GuidKeyDbContext.CreateConnection();
+        using var context = new GuidKeyDbContext(connection);
+
+        var property = context.Model.FindEntityType(typeof(GuidKeyEntity))!.FindProperty(nameof(GuidKeyEntity.Id))!;
+
+        Assert.Equal("UUID", property.GetColumnType());
+        Assert.Null(property.GetValueConverter());
+    }
+
     [Fact]
     public async Task Guid_keys_generate_client_side_on_add()
     {
