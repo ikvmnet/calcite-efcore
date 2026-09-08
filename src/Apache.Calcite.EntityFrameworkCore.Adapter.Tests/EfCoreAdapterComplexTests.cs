@@ -780,8 +780,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
         public void Join_ThreeWay_BuildsNestedResultSelector()
         {
             // Regression: a three way join nests one join's result selector inside the next, which is a ROW, and
-            // ROW was unimplemented, so the plan failed to implement. Every key here is non-nullable, which keeps
-            // the test off the separate nullable-key mismatch that Join_ThreeWay_NullableKey records.
+            // ROW was unimplemented, so the plan failed to implement. Every key here is non-nullable; the same
+            // shape over a nullable key is Join_ThreeWay_NullableKey beside it.
             var rows = Execute($@"
                 SELECT s.""Id"", c.""Name"", s2.""CategoryId""
                 FROM ""{S}"".""Supplier"" s
@@ -792,9 +792,12 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             Assert.Equal("Electronics", rows.Single(r => (int)r["Id"]! == 1)["Name"]);
         }
 
-        [Fact(Skip = "Join key nullability is not reconciled: a nullable outer key against a non-nullable inner key fails to implement")]
+        [Fact]
         public void Join_ThreeWay_NullableKey()
         {
+            // Regression: Product.CategoryId is int? and Category.Id is int, so the two sides of the first join
+            // reach the implementor as different CLR types. The join closes over one of them for both, and took
+            // the left one, which left the right selector unassignable to it.
             var rows = Execute($@"
                 SELECT p.""Name"" AS ""Product"", c.""Name"" AS ""Category"", s.""Name"" AS ""Supplier""
                 FROM ""{S}"".""Product"" p
