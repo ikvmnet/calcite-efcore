@@ -101,7 +101,7 @@ var schema = EfCoreSchema.Create(parentSchema, "mySchema", contextFactory, custo
 	  "type": "custom",
 	  "factory": "Apache.Calcite.EntityFrameworkCore.Adapter.EfCoreSchemaFactory",
 	  "operand": {
-		"contextType": "MyNamespace.MyDbContext, MyAssembly",
+		"dbContextFactory": "MyNamespace.MyDbContextFactory, MyAssembly",
 		"rexTranslatorFactory": "MyNamespace.CustomRexTranslatorFactory, MyAssembly"
 	  }
 	}
@@ -111,10 +111,22 @@ var schema = EfCoreSchema.Create(parentSchema, "mySchema", contextFactory, custo
 
 ### Operand Keys
 
-- **`contextType`** (required): Assembly-qualified name of the `DbContext` subclass
-- **`rexTranslatorFactory`** (optional): Assembly-qualified name of an `IRexToLinqTranslatorFactory` implementation
+Exactly one of the two context keys is required. `dbContextFactory` is read first; `dbContextType`
+is the fallback.
 
-Both types must have a parameterless constructor.
+- **`dbContextFactory`**: Assembly-qualified name of an `IDbContextFactory` implementation. Use this
+  whenever the context needs configuring — a connection string, a provider, a tracking behaviour —
+  because the factory decides how each `DbContext` is built.
+- **`dbContextType`**: Assembly-qualified name of a `DbContext` subclass. The schema constructs it
+  directly, so it suits only a context that configures itself in its own `OnConfiguring`.
+- **`rexTranslatorFactory`** (optional): Assembly-qualified name of an `IRexToLinqTranslatorFactory`
+  implementation.
+
+Every type named here is created with `Activator.CreateInstance`, so each needs a public
+parameterless constructor — the `DbContext` itself included, where `dbContextType` is used.
+
+Naming neither context key, or naming a type that does not implement the interface the key expects,
+raises an `ArgumentException` while the model is loading.
 
 ## How It Works
 
@@ -132,7 +144,7 @@ Both types must have a parameterless constructor.
    - The translator is used for all Rex-to-LINQ translations
 
 4. **SchemaFactory loads from JSON**:
-   - `EfCoreSchemaFactory.create()` reads the `operand` map
+   - `EfCoreSchemaFactory.create()` reads `dbContextFactory` or `dbContextType` from the `operand` map
    - If `rexTranslatorFactory` is specified, it's instantiated and passed to the schema
    - Otherwise, the default factory is used
 
@@ -181,7 +193,7 @@ public class CustomRexTranslatorFactory : IRexToLinqTranslatorFactory
 	  "type": "custom",
 	  "factory": "Apache.Calcite.EntityFrameworkCore.Adapter.EfCoreSchemaFactory",
 	  "operand": {
-		"contextType": "MyApp.MyDbContext, MyApp",
+		"dbContextType": "MyApp.MyDbContext, MyApp",
 		"rexTranslatorFactory": "MyApp.CustomRexTranslatorFactory, MyApp"
 	  }
 	}
