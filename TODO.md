@@ -186,3 +186,22 @@ conformance for `OUTER APPLY` to parse at all.
 projection that aliases two columns of the same name to different ones collapses to one. Aliases
 over computed columns (`"Price" * 2 AS "DoublePrice"`) are kept, which is why the suite never caught
 it. `EfCoreAdapterComplexTests.Projection_AliasOnBareColumn` is skipped on this.
+
+## An ordered comparison of two unsigned values does not plan (upstream Calcite)
+
+`SqlFunctions` carries arithmetic for the jOOU types Calcite uses for the unsigned SQL types —
+`plus`, `minus`, `multiply`, `divide`, the bitwise operators — but no ordering: there is no
+`ge`/`gt`/`le`/`lt` taking a `UByte`, `UShort`, `UInteger` or `ULong`. They are not primitives, so
+the enumerable implementor resolves the comparison by method lookup and the query stops planning
+with `NoSuchMethodException: SqlFunctions.ge(org.joou.UByte, org.joou.UByte)`. Equality escapes it,
+because `eq(Object, Object)` exists and the jOOU types answer `equals` by value.
+
+Nothing hits this while one side widens: a bare number literal is an INTEGER, so Calcite coerces
+both sides to INTEGER and compares as one. A parameter does not widen — `VisitSqlParameter` casts
+every parameter to its own store type, which for a byte is `TINYINT UNSIGNED` — so
+`Where(e => e.Level >= someByteVariable)` is the shape that fails.
+`ByteColumnTests.Byte_column_compares_against_a_parameter` is skipped on this.
+
+The fix is upstream, or a widening cast around the operands of an ordered comparison whose operands
+are unsigned — which has to name the containing signed type per unsigned type, and has no answer for
+`BIGINT UNSIGNED` short of `DECIMAL(20)`.
