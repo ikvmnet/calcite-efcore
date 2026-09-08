@@ -45,6 +45,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
         readonly IDiagnosticsLogger<DbLoggerCategory.Infrastructure> _logger;
         readonly IDiagnosticsLogger<DbLoggerCategory.Database.Transaction> _transactionLogger;
         readonly int? _commandTimeout;
+        readonly CalciteDataSource? _dataSource;
 
         /// <summary>
         /// Initializes a new instance.
@@ -62,6 +63,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
             var optionsExtension = dependencies.ContextOptions.Extensions.OfType<CalciteOptionsExtension>().FirstOrDefault();
             if (optionsExtension != null)
             {
+                _dataSource = optionsExtension.DataSource;
+
                 var relationalOptions = RelationalOptionsExtension.Extract(dependencies.ContextOptions);
                 _commandTimeout = relationalOptions.CommandTimeout;
 
@@ -73,9 +76,16 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
         }
 
         /// <inheritdoc/>
+        /// <remarks>
+        /// A data source hands out connections that share its root schema, which is where a context reaches
+        /// the schemas registered before it. Without one the connection is built from the connection string,
+        /// and gets whatever root that string resolves to.
+        /// </remarks>
         protected override DbConnection CreateDbConnection()
         {
-            return new CalciteConnection(GetValidatedConnectionString());
+            return _dataSource is not null
+                ? _dataSource.CreateConnection()
+                : new CalciteConnection(GetValidatedConnectionString());
         }
 
         /// <inheritdoc/>

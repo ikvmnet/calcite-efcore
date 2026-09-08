@@ -97,7 +97,22 @@ public sealed class BenchmarkStore
         RowCounts = BenchmarkRowCounts.For(scale);
         _path = Path.Combine(Directory, $"{scale.ToString().ToLowerInvariant()}-v{BenchmarkSeed.Version}.db");
         ConnectionString = $"Data Source={_path}";
+
+        // The adapter schema is named on the data source that holds the root, so it is built once for this
+        // store rather than on every connection opened from it.
+        _dataSource = new CalciteDataSourceBuilder(new CalciteConnectionStringBuilder
+        {
+            CaseSensitive = false,
+
+            // EF Core generates SQL Server flavoured SQL, including OUTER APPLY for collection includes, which the
+            // default conformance rejects at parse time.
+            Conformance = "LENIENT",
+        }.ConnectionString)
+            .AddEfCoreSchema(SchemaName, () => new SqliteBenchmarkDbContext(ConnectionString))
+            .Build();
     }
+
+    readonly CalciteDataSource _dataSource;
 
     /// <summary>
     /// Gets the scale of this store.
@@ -134,17 +149,8 @@ public sealed class BenchmarkStore
     /// </remarks>
     public CalciteConnection OpenCalciteConnection()
     {
-        var connection = new CalciteConnection(new CalciteConnectionStringBuilder
-        {
-            CaseSensitive = false,
-
-            // EF Core generates SQL Server flavoured SQL, including OUTER APPLY for collection includes, which the
-            // default conformance rejects at parse time.
-            Conformance = "LENIENT",
-        }.ConnectionString);
-
+        var connection = _dataSource.CreateConnection();
         connection.Open();
-        connection.RootSchema.add(SchemaName, EfCoreSchema.Create(connection.RootSchema, SchemaName, () => new SqliteBenchmarkDbContext(ConnectionString)));
 
         return connection;
     }

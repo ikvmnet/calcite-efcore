@@ -21,12 +21,15 @@ dotnet add package Apache.Calcite.EntityFrameworkCore.Adapter
 using Apache.Calcite.Data;
 using Apache.Calcite.EntityFrameworkCore.Adapter;
 
-using var connection = new CalciteConnection("caseSensitive=false");
-connection.Open();
-
 // Expose the DbSet<T> properties of ProductDbContext as tables in a Calcite schema named "efcore".
-var schema = EfCoreSchema.Create(connection.RootSchema, "efcore", () => new ProductDbContext(connectionString));
-connection.RootSchema.add("efcore", schema);
+// The root schema belongs to the data source, so the context is named once here and every connection
+// the data source opens sees it.
+using var dataSource = new CalciteDataSourceBuilder("caseSensitive=false")
+    .AddEfCoreSchema("efcore", () => new ProductDbContext(connectionString))
+    .Build();
+
+using var connection = dataSource.CreateConnection();
+connection.Open();
 
 using var cmd = connection.CreateCommand();
 cmd.CommandText = @"SELECT ""Id"", ""Name"" FROM ""efcore"".""Product"" WHERE ""InStock"" = TRUE";

@@ -73,6 +73,11 @@ public class ConcurrencyDetectionTests
             str.Schema = Schema;
             str.Model = $"inline:{{\"version\":\"1.0\",\"schemas\":[{{\"name\":\"{Schema}\"}}]}}";
             str.ParserFactory = "org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY";
+
+            // its own root: the default shares one per connection string, and these fixtures all
+            // build the same string
+            str.Pooling = false;
+
             return new CalciteConnection(str.ToString());
         }
 

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 using Apache.Calcite.Data;
 using Apache.Calcite.EntityFrameworkCore.Extensions;
@@ -142,6 +142,11 @@ public class JsonDbContext : DbContext
         str.Model = $"inline:{{\"version\":\"1.0\",\"schemas\":[{{\"name\":\"{schema}\"}}]}}";
         str.ParserFactory = "org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY";
         str.Fun = "all";
+
+        // its own root: the default shares one per connection string, and these fixtures all
+        // build the same string
+        str.Pooling = false;
+
         return new CalciteConnection(str.ToString());
     }
 

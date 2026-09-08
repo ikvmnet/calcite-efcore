@@ -1,4 +1,4 @@
-using Apache.Calcite.Data;
+﻿using Apache.Calcite.Data;
 using Apache.Calcite.EntityFrameworkCore.Extensions;
 
 using Microsoft.EntityFrameworkCore;
@@ -39,6 +39,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.AllTypes
             str.Schema = schema;
             str.Model = $"inline:{{\"version\":\"1.0\",\"schemas\":[{{\"name\":\"{schema}\"}}]}}";
             str.ParserFactory = "org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY";
+
+            // its own root: the default shares one per connection string, and these fixtures all
+            // build the same string
+            str.Pooling = false;
+
             return new CalciteConnection(str.ToString());
         }
 

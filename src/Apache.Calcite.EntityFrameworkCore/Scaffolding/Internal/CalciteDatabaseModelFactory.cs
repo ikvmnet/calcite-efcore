@@ -76,33 +76,40 @@ namespace Apache.Calcite.EntityFrameworkCore.Scaffolding.Internal
             model.DatabaseName = connection.Database;
 
             var typeFactory = connection.TypeFactory;
-            foreach (var schema in GetSchemas(connection.RootSchema))
-                foreach (var table in GetTables(model, schema, typeFactory))
+            foreach (var (schemaName, schema) in GetSchemas("", connection.RootSchema))
+                foreach (var table in GetTables(model, schemaName, schema, typeFactory))
                     model.Tables.Add(table);
 
             return model;
         }
 
         /// <summary>
-        /// Enumerates the root schema and all of its sub-schemas.
+        /// Enumerates a schema and all of its sub-schemas, each with the name it was reached by.
         /// </summary>
-        /// <param name="root"></param>
+        /// <remarks>
+        /// The name travels alongside the schema because <see cref="Schema"/>, which is what a connection
+        /// hands out, does not carry one: only <see cref="SchemaPlus"/> does, and that belongs to whoever
+        /// built the root. Every sub-schema is reached by name here anyway, and the root is nameless, which
+        /// is what Calcite itself reports for it.
+        /// </remarks>
+        /// <param name="name">The name <paramref name="schema"/> was reached by; empty for the root.</param>
+        /// <param name="schema"></param>
         /// <returns></returns>
-        static IEnumerable<SchemaPlus> GetSchemas(SchemaPlus root)
+        static IEnumerable<(string Name, Schema Schema)> GetSchemas(string name, Schema schema)
         {
-            yield return root;
+            yield return (name, schema);
 
-            foreach (var name in root.getSubSchemaNames().AsEnumerable<string>())
+            foreach (var subName in schema.getSubSchemaNames().AsEnumerable<string>())
             {
                 // skip built in metadata schema
-                if (name == "metadata")
+                if (subName == "metadata")
                     continue;
 
-                var sub = root.getSubSchema(name);
+                var sub = schema.getSubSchema(subName);
                 if (sub is null)
                     continue;
 
-                foreach (var nested in GetSchemas(sub))
+                foreach (var nested in GetSchemas(subName, sub))
                     yield return nested;
             }
         }
@@ -111,10 +118,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Scaffolding.Internal
         /// Gets the tables defined within the given schema.
         /// </summary>
         /// <param name="database"></param>
+        /// <param name="schemaName"></param>
         /// <param name="schema"></param>
         /// <param name="typeFactory"></param>
         /// <returns></returns>
-        IEnumerable<DatabaseTable> GetTables(DatabaseModel database, SchemaPlus schema, org.apache.calcite.adapter.java.JavaTypeFactory typeFactory)
+        IEnumerable<DatabaseTable> GetTables(DatabaseModel database, string schemaName, Schema schema, org.apache.calcite.adapter.java.JavaTypeFactory typeFactory)
         {
             foreach (var tableName in schema.getTableNames().AsEnumerable<string>())
             {
@@ -122,7 +130,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Scaffolding.Internal
                 if (table is null)
                     continue;
 
-                yield return GetTable(database, schema, tableName, table, typeFactory);
+                yield return GetTable(database, schemaName, tableName, table, typeFactory);
             }
         }
 
@@ -130,16 +138,16 @@ namespace Apache.Calcite.EntityFrameworkCore.Scaffolding.Internal
         /// Builds a <see cref="DatabaseTable"/> from a Calcite <see cref="Table"/>.
         /// </summary>
         /// <param name="model"></param>
-        /// <param name="schema"></param>
+        /// <param name="schemaName"></param>
         /// <param name="tableName"></param>
         /// <param name="table"></param>
         /// <param name="typeFactory"></param>
         /// <returns></returns>
-        DatabaseTable GetTable(DatabaseModel model, SchemaPlus schema, string tableName, Table table, org.apache.calcite.adapter.java.JavaTypeFactory typeFactory)
+        DatabaseTable GetTable(DatabaseModel model, string schemaName, string tableName, Table table, org.apache.calcite.adapter.java.JavaTypeFactory typeFactory)
         {
             var databaseTable = new DatabaseTable();
             databaseTable.Database = model;
-            databaseTable.Schema = schema.getName();
+            databaseTable.Schema = schemaName;
             databaseTable.Name = tableName;
 
             var rowType = table.getRowType(typeFactory);

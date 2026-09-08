@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -49,6 +49,11 @@ namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities
                 // collections, and Calcite's parser only accepts APPLY when the conformance
                 // allows it (SqlConformanceEnum.LENIENT does; DEFAULT does not).
                 Conformance = "LENIENT",
+
+                // A root of this store's own. The default shares one per connection string, and every store
+                // here builds the same one, so the suite would run against a root carrying whatever the last
+                // test left in it.
+                Pooling = false,
                 Fun = "all",
                 ParserFactory = "org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY",
                 Schema = "adhoc",
