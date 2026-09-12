@@ -58,7 +58,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             {
                 var queryable = TemplateQueryable.Apply(template, i => dataContext.get("?" + i), context);
 
-                await foreach (var current in AsAsync(queryable).WithCancellation(cancellationToken).ConfigureAwait(false))
+                await foreach (var current in AsAsync(queryable, cancellationToken).ConfigureAwait(false))
                 {
                     var row = new object?[properties.Length];
                     for (int i = 0; i < properties.Length; i++)
@@ -98,7 +98,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             {
                 var queryable = TemplateQueryable.Apply(template, i => dataContext.get("?" + i), context);
 
-                await foreach (var current in AsAsync(queryable).WithCancellation(cancellationToken).ConfigureAwait(false))
+                await foreach (var current in AsAsync(queryable, cancellationToken).ConfigureAwait(false))
                     yield return (T)CalciteValueConverter.ToJavaObject(properties[0]?.GetValue(current))!;
             }
         }
@@ -185,17 +185,28 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
         /// covariance), falling back to synchronous enumeration otherwise (e.g. an in-memory
         /// <c>EnumerableQuery</c>).
         /// </summary>
-        static async IAsyncEnumerable<object> AsAsync(IQueryable queryable)
+        /// <param name="queryable">The query to enumerate.</param>
+        /// <param name="cancellationToken">The consumer's token, taken as an argument rather than through
+        /// <see cref="EnumeratorCancellation"/>: the caller is inside its own iterator body, where the token
+        /// it was enumerated with has already been substituted in, so it has the real one to hand over. A
+        /// token reaches an async iterator only through a parameter, so without this one EF Core's own
+        /// enumerator is reached with <see langword="default"/> and the query cannot be cancelled at all.
+        /// </param>
+        static async IAsyncEnumerable<object> AsAsync(IQueryable queryable, CancellationToken cancellationToken)
         {
             if (queryable is IAsyncEnumerable<object> asyncSequence)
             {
-                await foreach (var item in asyncSequence.ConfigureAwait(false))
+                await foreach (var item in asyncSequence.WithCancellation(cancellationToken).ConfigureAwait(false))
                     yield return item;
             }
             else
             {
+                // a pulled provider has nowhere to observe the token, so it is observed between rows
                 foreach (var item in queryable)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
                     yield return item;
+                }
             }
         }
 

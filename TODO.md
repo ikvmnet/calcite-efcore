@@ -158,6 +158,19 @@ mapping through IKVM is plausible. Note: `fun=all` **excludes** spatial; the con
 must name `spatial` in `Fun` explicitly. Investigate before deriving the `Spatial`/`SpatialQuery`
 suites.
 
+## No cancellation coverage
+
+Neither `Adapter.Tests` nor `EntityFrameworkCore.Tests` mentions `CancellationToken` anywhere, which
+is how `EfCoreEnumerable.AsAsync` came to drop the consumer's token entirely: it had no parameter for
+one, so `WithCancellation` at the call site had nowhere to land it and EF Core's own enumerator was
+always reached with `default`. Fixed, but nothing locks it.
+
+A test needs a store that can be made to block mid-stream — the SQLite fixture answers a query faster
+than a cancel can be observed between rows, and a token cancelled before the call is refused up in
+`CalciteSession` without reaching the adapter at all, so it would pass whether or not the token is
+forwarded. The purpose-built C# test backend above is the natural place: a table that waits on a
+signal before yielding its second row makes the assertion deterministic.
+
 ## Distinct aggregate beside a string group key (calcite-dotnet)
 
 `SELECT k, COUNT(DISTINCT a), SUM(b) … GROUP BY k, <string column>` fails with

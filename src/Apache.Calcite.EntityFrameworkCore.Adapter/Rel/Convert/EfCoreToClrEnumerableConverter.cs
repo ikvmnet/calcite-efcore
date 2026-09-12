@@ -81,10 +81,39 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
             var (physType, arguments) = Translate(implementor, pref);
             var method = Execute(physType, ExecuteArrayAsyncMethod, ExecuteScalarAsyncMethod);
 
-            // CancellationToken.None at the call site: the consumer's token still arrives through
-            // IAsyncEnumerable<T>.GetAsyncEnumerator(token) via [EnumeratorCancellation].
-            return implementor.ResultAsync(physType, Expression.Call(method,
-                [.. arguments, Expression.Constant(System.Threading.CancellationToken.None)]));
+            return implementor.ResultAsync(physType, CallAsync(method, arguments));
+        }
+
+        /// <summary>
+        /// Builds the call to an awaiting execution method, supplying the token it ends in.
+        /// </summary>
+        /// <param name="method">The method, with its type arguments already applied.</param>
+        /// <param name="arguments">The arguments, less the cancellation token.</param>
+        /// <returns>The call.</returns>
+        /// <exception cref="InvalidOperationException">The method does not end in a token.</exception>
+        /// <remarks>
+        /// What <c>ClrBuiltInMethod.CallAsync</c> is for the operators, written out because that one is
+        /// internal to Apache.Calcite.Extensions. An expression tree does not apply a default argument —
+        /// <see cref="Expression.Call(MethodInfo, Expression[])"/> wants one expression per parameter — so
+        /// the token is appended here.
+        ///
+        /// <para>The value appended is <see langword="default"/>, and it is not a token being discarded: it
+        /// is the sentinel <see cref="System.Runtime.CompilerServices.EnumeratorCancellationAttribute"/>
+        /// reads. The compiler's iterator substitutes the token given to
+        /// <see cref="System.Collections.Generic.IAsyncEnumerable{T}.GetAsyncEnumerator"/> for a parameter
+        /// that arrived as <see langword="default"/>, so passing it is what lets the consumer's token reach
+        /// <see cref="EfCoreEnumerable"/> — and from there EF Core's own enumerator — without the plan
+        /// carrying one.</para>
+        /// </remarks>
+        static Expression CallAsync(MethodInfo method, Expression[] arguments)
+        {
+            var parameters = method.GetParameters();
+            if (parameters.Length != arguments.Length + 1)
+                throw new InvalidOperationException($"{method.Name} takes {parameters.Length} arguments and was given {arguments.Length} plus a token.");
+            if (parameters[^1].ParameterType != typeof(System.Threading.CancellationToken))
+                throw new InvalidOperationException($"{method.Name} does not end in a {nameof(System.Threading.CancellationToken)}.");
+
+            return Expression.Call(method, [.. arguments, Expression.Default(typeof(System.Threading.CancellationToken))]);
         }
 
         /// <summary>
