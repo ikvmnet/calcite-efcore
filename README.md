@@ -34,7 +34,7 @@ The connection string is a standard Calcite model configuration — see the [Cal
 
 ### [`Apache.Calcite.EntityFrameworkCore.Adapter`](https://www.nuget.org/packages/Apache.Calcite.EntityFrameworkCore.Adapter) · `src/Apache.Calcite.EntityFrameworkCore.Adapter`
 
-`EfCoreConvention` — a Calcite calling convention that translates relational expressions and Rex trees into LINQ `IQueryable` expressions executed by EF Core. Rows leave the convention as `IAsyncEnumerable`, matching EF Core's natively asynchronous pipeline. Register a `DbContext` as a Calcite schema and Calcite federates over it like any other adapter, pushing work into EF Core where the convention can express it.
+`EfCoreConvention` — a Calcite calling convention that translates relational expressions and Rex trees into LINQ `IQueryable` expressions executed by EF Core. Rows leave the convention either pulled or awaited, whichever the plan is read as, because EF Core executes a query both ways. Register a `DbContext` as a Calcite schema and Calcite federates over it like any other adapter, pushing work into EF Core where the convention can express it.
 
 ```sh
 dotnet add package Apache.Calcite.EntityFrameworkCore.Adapter

@@ -162,7 +162,7 @@ suites.
 
 `SELECT k, COUNT(DISTINCT a), SUM(b) … GROUP BY k, <string column>` fails with
 `InvalidCastException: System.String → java.lang.Comparable` in
-`Apache.Calcite.Extensions.Adapter.AsyncEnumerable.ClrAsyncEnumerableDefaults.GroupByMultiple`.
+`Apache.Calcite.Extensions.Adapter.Enumerable.ClrEnumerableDefaults.GroupByMultipleAsync`.
 Expanding the distinct aggregate builds a composite group key whose emitted key builder casts each
 element to `java.lang.Comparable`, which a CLR string is not. A single aggregate, or the same query
 without the string key, both succeed.

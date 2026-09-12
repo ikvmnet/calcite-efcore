@@ -17,9 +17,17 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
 
     /// <summary>
     /// Static helper methods invoked at runtime (from the compiled plan) to execute an EF Core query
-    /// and stream its results as an <see cref="IAsyncEnumerable{T}"/> for the
-    /// <c>ClrAsyncEnumerableConvention</c>.
+    /// and stream its rows.
     /// </summary>
+    /// <remarks>
+    /// Two sets, one per hierarchy of <c>ClrEnumerableConvention</c>, because EF Core answers either way:
+    /// an <see cref="IQueryable"/> enumerates synchronously, and the same query reached through
+    /// <c>IAsyncQueryProvider</c> yields an <see cref="IAsyncEnumerable{T}"/>. So
+    /// <c>EfCoreToClrEnumerableConverter</c> names the unsuffixed pair from its pulled body and the
+    /// <c>Async</c>-suffixed pair from its awaiting one, and neither hierarchy pays to be read as the
+    /// other. The two differ only in how the rows are pulled out of EF Core: binding the parameters,
+    /// resolving the projected properties, and boxing each field the Java way are the same work.
+    /// </remarks>
     public static class EfCoreEnumerable
     {
 
@@ -91,6 +99,82 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
                 var queryable = TemplateQueryable.Apply(template, i => dataContext.get("?" + i), context);
 
                 await foreach (var current in AsAsync(queryable).WithCancellation(cancellationToken).ConfigureAwait(false))
+                    yield return (T)CalciteValueConverter.ToJavaObject(properties[0]?.GetValue(current))!;
+            }
+        }
+
+        /// <summary>
+        /// Executes the query described by <paramref name="queryExpression"/> against a fresh
+        /// <see cref="Microsoft.EntityFrameworkCore.DbContext"/> and streams <c>object?[]</c> rows
+        /// (ARRAY format), each field boxed the Java way via <see cref="CalciteValueConverter.ToJavaObject"/>.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="ExecuteArrayAsync"/> pulled rather than awaited: enumerating the
+        /// <see cref="IQueryable"/> is what EF Core does for <c>ToList</c>, and it is a real path through
+        /// the provider, not the awaiting one blocked a row at a time.
+        /// </remarks>
+        public static IEnumerable<object?[]> ExecuteArray(
+            EfCoreConvention convention,
+            Expression queryExpression,
+            string[] columnNames,
+            DataContext dataContext)
+        {
+            ArgumentNullException.ThrowIfNull(convention);
+            ArgumentNullException.ThrowIfNull(queryExpression);
+            ArgumentNullException.ThrowIfNull(columnNames);
+            ArgumentNullException.ThrowIfNull(dataContext);
+
+            // Bind dynamic parameters first: compiling the template below cannot leave a free parameter in the tree.
+            var bound = TemplateQueryable.BindDynamicParameters(queryExpression, i => dataContext.get("?" + i));
+            var template = ExpressionToQueryable(bound);
+            var properties = ResolveProperties(template, columnNames);
+
+            using (var context = convention.ContextFactory.CreateDbContext())
+            {
+                var queryable = TemplateQueryable.Apply(template, i => dataContext.get("?" + i), context);
+
+                foreach (var current in queryable)
+                {
+                    var row = new object?[properties.Length];
+                    for (int i = 0; i < properties.Length; i++)
+                        row[i] = CalciteValueConverter.ToJavaObject(properties[i]?.GetValue(current));
+
+                    yield return row;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Executes the query described by <paramref name="queryExpression"/> and streams bare
+        /// values (SCALAR format), boxed the Java way. Use this overload when the physical type's
+        /// format resolved to <c>SCALAR</c>; <typeparamref name="T"/> is the physical row type.
+        /// The IQueryable produces typed record objects; the single property is read via reflection
+        /// so the parent receives the bare value it expects for single-field row types.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="ExecuteScalarAsync{T}"/> pulled rather than awaited.
+        /// </remarks>
+        public static IEnumerable<T> ExecuteScalar<T>(
+            EfCoreConvention convention,
+            Expression queryExpression,
+            string[] columnNames,
+            DataContext dataContext)
+        {
+            ArgumentNullException.ThrowIfNull(convention);
+            ArgumentNullException.ThrowIfNull(queryExpression);
+            ArgumentNullException.ThrowIfNull(columnNames);
+            ArgumentNullException.ThrowIfNull(dataContext);
+
+            // Bind dynamic parameters first: compiling the template below cannot leave a free parameter in the tree.
+            var bound = TemplateQueryable.BindDynamicParameters(queryExpression, i => dataContext.get("?" + i));
+            var template = ExpressionToQueryable(bound);
+            var properties = ResolveProperties(template, columnNames);
+
+            using (var context = convention.ContextFactory.CreateDbContext())
+            {
+                var queryable = TemplateQueryable.Apply(template, i => dataContext.get("?" + i), context);
+
+                foreach (var current in queryable)
                     yield return (T)CalciteValueConverter.ToJavaObject(properties[0]?.GetValue(current))!;
             }
         }
