@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using Apache.Calcite.EntityFrameworkCore.Adapter.Query;
 using Apache.Calcite.EntityFrameworkCore.Core;
 
+using java.util.concurrent.atomic;
+
 using org.apache.calcite;
 
 namespace Apache.Calcite.EntityFrameworkCore.Adapter
@@ -129,12 +131,16 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             var template = ExpressionToQueryable(bound);
             var properties = ResolveProperties(template, columnNames);
 
+            var cancelFlag = CancelFlagOf(dataContext);
+
             using (var context = convention.ContextFactory.CreateDbContext())
             {
                 var queryable = TemplateQueryable.Apply(template, i => dataContext.get("?" + i), context);
 
                 foreach (var current in queryable)
                 {
+                    ThrowIfCancelled(cancelFlag);
+
                     var row = new object?[properties.Length];
                     for (int i = 0; i < properties.Length; i++)
                         row[i] = CalciteValueConverter.ToJavaObject(properties[i]?.GetValue(current));
@@ -170,13 +176,57 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
             var template = ExpressionToQueryable(bound);
             var properties = ResolveProperties(template, columnNames);
 
+            var cancelFlag = CancelFlagOf(dataContext);
+
             using (var context = convention.ContextFactory.CreateDbContext())
             {
                 var queryable = TemplateQueryable.Apply(template, i => dataContext.get("?" + i), context);
 
                 foreach (var current in queryable)
+                {
+                    ThrowIfCancelled(cancelFlag);
+
                     yield return (T)CalciteValueConverter.ToJavaObject(properties[0]?.GetValue(current))!;
+                }
             }
+        }
+
+        /// <summary>
+        /// Returns the flag the statement is cancelled on, or <see langword="null"/> where the context
+        /// carries none.
+        /// </summary>
+        /// <param name="dataContext">The plan's context, which is the whole plan's and the same object on
+        /// both sides of a converter.</param>
+        /// <returns>The flag, or <see langword="null"/>.</returns>
+        /// <remarks>
+        /// The channel a pulled plan has, and the only one: an <see cref="IEnumerable{T}"/> is enumerated
+        /// through a <c>GetEnumerator</c> that takes nothing, so there is no token to carry and no
+        /// <see cref="EnumeratorCancellation"/> to read one. Calcite's own tables poll this same flag —
+        /// nothing polls it for them, no operator and no generated block — so a scan that means to be
+        /// cancellable polls it itself.
+        ///
+        /// <para><see langword="null"/> rather than a throw where it is absent: the flag is what the
+        /// statement puts in the context, and a plan run without one is uncancellable rather than
+        /// broken.</para>
+        /// </remarks>
+        static AtomicBoolean? CancelFlagOf(DataContext dataContext)
+        {
+            return dataContext.get(DataContext.Variable.CANCEL_FLAG.camelName) as AtomicBoolean;
+        }
+
+        /// <summary>
+        /// Ends the scan where the statement has been cancelled.
+        /// </summary>
+        /// <param name="cancelFlag">The flag, or <see langword="null"/> where there is none.</param>
+        /// <exception cref="OperationCanceledException">The statement was cancelled.</exception>
+        /// <remarks>
+        /// Between rows and no finer, which is as far as a pulled scan can be interrupted: a
+        /// <c>MoveNext</c> already under way is EF Core's and has nowhere to observe this.
+        /// </remarks>
+        static void ThrowIfCancelled(AtomicBoolean? cancelFlag)
+        {
+            if (cancelFlag is not null && cancelFlag.get())
+                throw new OperationCanceledException();
         }
 
         /// <summary>
