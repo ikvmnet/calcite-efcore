@@ -86,6 +86,36 @@ Full-run trx in flight. Cluster the ~12k failures by exception fingerprint, fix 
 causes first. Reference D:\efcore (11.0 head; 10.0 via `git show v10.0.5:<path>`) and
 D:\efcore.pg for how SQLite/Npgsql derive, override, and skip.
 
+## Calcite logs nowhere: bind slf4j through IKVM.Extensions.Logging.Slf4j
+
+`Apache.Calcite.EntityFrameworkCore.Adapter.Tests` carries an `org.slf4j:slf4j-simple`
+`MavenReference`, but slf4j resolves to `org.slf4j.helpers.NOPLoggerFactory` and every Calcite log
+statement silently does nothing. That is worse than no logging, because the reference makes it look
+configured, and it hides code: Calcite guards diagnostics on the level, so `HepPlanner.dumpGraph` and
+the graph-consistency assertions it runs never execute. A run here therefore exercises strictly less
+of Calcite than a CI runner where a provider does bind, which is how a `HepPlanner` assertion failed
+once on osx-arm64 and could not be reproduced locally.
+
+Measured 2026-09-13, and it is not the obvious causes. `slf4j.provider` is honoured, and
+`ServiceLoader` discovery does work through an IKVM-compiled jar — the service resource is found at
+`jar:file:...slf4j-simple-2.0.18.jar!/META-INF/services/org.slf4j.spi.SLF4JServiceProvider`. What
+fails is loading the provider itself:
+
+```
+Class.forName("org.slf4j.simple.SimpleServiceProvider")
+  -> java.lang.NoClassDefFoundError: org.slf4j.spi.SLF4JServiceProvider
+```
+
+The project references `slf4j-simple` but never `slf4j-api`, so the provider's own supertype is not in
+its closure. A project consuming any slf4j provider has to name `org.slf4j:slf4j-api` itself at the
+matching version rather than leaning on the copy arriving transitively through Calcite.
+
+Rather than fix this with `slf4j-simple`, take `IKVM.Extensions.Logging.Slf4j` from `ikvm-logging`
+once it is released — it forwards Java log records to `Microsoft.Extensions.Logging`, which is what we
+want for the sample and for consumers too, not just for tests. It selects itself with the same
+`slf4j.provider` property (slf4j 2.0.9+) and wants `Slf4jBridge.Register()` from a module initializer
+plus `Slf4jBridge.Install(loggerFactory)` once a container exists.
+
 ## Snapshot staleness
 
 `MAVEN0011: Transfer failed … maven-metadata.xml` on every build: snapshot metadata refresh from
