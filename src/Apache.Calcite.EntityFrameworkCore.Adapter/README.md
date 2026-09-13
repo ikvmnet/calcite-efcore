@@ -65,7 +65,7 @@ optional `rexTranslatorFactory`:
     {
       "name": "efcore",
       "type": "custom",
-      "factory": "Apache.Calcite.EntityFrameworkCore.Adapter.EfCoreSchemaFactory",
+      "factory": "Apache.Calcite.EntityFrameworkCore.Adapter.EfCoreSchemaFactory, Apache.Calcite.EntityFrameworkCore.Adapter",
       "operand": { "dbContextType": "MyApp.ProductDbContext, MyApp" }
     }
   ]

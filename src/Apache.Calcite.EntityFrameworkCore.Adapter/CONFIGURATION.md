@@ -106,7 +106,7 @@ var schema = EfCoreSchema.Create("mySchema", contextFactory, customFactory);
 	{
 	  "name": "EFCORE",
 	  "type": "custom",
-	  "factory": "Apache.Calcite.EntityFrameworkCore.Adapter.EfCoreSchemaFactory",
+	  "factory": "Apache.Calcite.EntityFrameworkCore.Adapter.EfCoreSchemaFactory, Apache.Calcite.EntityFrameworkCore.Adapter",
 	  "operand": {
 		"dbContextFactory": "MyNamespace.MyDbContextFactory, MyAssembly",
 		"rexTranslatorFactory": "MyNamespace.CustomRexTranslatorFactory, MyAssembly"
@@ -115,6 +115,34 @@ var schema = EfCoreSchema.Create("mySchema", contextFactory, customFactory);
   ]
 }
 ```
+
+### The `factory` Key
+
+`factory` names `EfCoreSchemaFactory` itself, and it takes the assembly-qualified type name —
+`Apache.Calcite.EntityFrameworkCore.Adapter.EfCoreSchemaFactory, Apache.Calcite.EntityFrameworkCore.Adapter`.
+The assembly is not optional. Calcite resolves this value through `Class.forName`, and a CLR type is
+not on the class path under its namespace alone; leaving the assembly off fails the model load with
+`ClassNotFoundException`.
+
+### Allowlisting the Factory on Calcite 1.43 and Later
+
+Calcite 1.43 added `ClassNameFilter`, which vets every class a model JSON names — schema and table
+factories, UDFs, JDBC drivers, dialect factories, lattice statistic providers — against a denylist
+and an allowlist. The allowlist is **empty by default, and an empty allowlist rejects everything**,
+so on 1.43 a model naming this factory fails to load until the allowlist names it:
+
+```
+-Dcalcite.model.classes.allowed=Apache.Calcite.EntityFrameworkCore.
+```
+
+A pattern ending in `.` matches that namespace and everything under it; any other pattern must match
+the value in the JSON exactly. The check runs against the raw `factory` string, so a pattern has to
+cover the assembly suffix too — which the namespace-prefix form above does.
+
+This is a Calcite-version condition, not an adapter one. The shipping adapter resolves Calcite
+1.42.0, which has no such filter and needs no allowlist; the property matters once you move to 1.43.
+Note also that the filter strips any `#Field` suffix before checking, so naming the singleton field
+explicitly does not sidestep it.
 
 ### Operand Keys
 
@@ -198,7 +226,7 @@ public class CustomRexTranslatorFactory : IRexToLinqTranslatorFactory
 	{
 	  "name": "EFCORE",
 	  "type": "custom",
-	  "factory": "Apache.Calcite.EntityFrameworkCore.Adapter.EfCoreSchemaFactory",
+	  "factory": "Apache.Calcite.EntityFrameworkCore.Adapter.EfCoreSchemaFactory, Apache.Calcite.EntityFrameworkCore.Adapter",
 	  "operand": {
 		"dbContextType": "MyApp.MyDbContext, MyApp",
 		"rexTranslatorFactory": "MyApp.CustomRexTranslatorFactory, MyApp"
