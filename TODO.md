@@ -54,31 +54,110 @@ schema object of `TableType.SEQUENCE`, which nothing ships), but the runtime is 
 4. Then EF's standard `UseSequence`/HiLo-over-sequence strategies work as on SqlServer, and the
    bespoke HiLo entity-sequence table retires.
 
-## Emit a logical rel tree directly from the EF Core provider (explored 2026-08-11 — viable)
+## Emit a logical rel tree directly from the EF Core provider (reassessed 2026-09-13)
 
-Skip SQL text entirely: EF's `SelectExpression` is already relational algebra; build the
-`RelNode` tree and hand it to the planner. Feasibility findings:
+Skip SQL text: build the `RelNode` tree from EF's `SelectExpression` and hand it to the planner.
+Still open, still worth doing, but two of the claims this entry was opened on are false and the
+headline benefit is stale. Everything below marked *measured* was run against Calcite 1.42.0 in
+Java — `RelBuilder` trees through `RelRunner`, which is the branch `ClrPrepareImpl.PrepareRel`
+ports — because this machine has no .NET SDK. Nothing here was measured through the provider.
 
-- **The hard part already exists upstream**: `ClrPrepareImpl.PrepareRel(context, RelNode,
-  maxRowCount)` in Apache.Calcite.Extensions is the ported `RelRunner`/`query.rel` branch —
-  plans and compiles a built rel. The plan must be built against the caller's cluster.
-- **Gap A (calcite-dotnet, small)**: the ADO surface is SQL-only. Needs
-  `CalciteConnection.CreateRelBuilder()` (FrameworkConfig over the connection's root schema, so
-  the tree lands in the right cluster) and a `CalciteCommand.Plan` property routed to
-  `PrepareRel`. In-process object handoff — no serialization.
-- **Gap B (calcite-efcore, the real work)**: a `SelectExpression → RelBuilder` translator
-  (scan/filter/project/join/aggregate/sort/limit/values/set-ops) plus
-  `SqlExpression → RexNode` (input refs, literals via the type mappings, operator calls,
-  `RexDynamicParam` with types from the store type). EF's own pipeline through
-  SelectExpression — including its nullability processing — is retained. Transport inside EF:
-  our command-builder seam sets `CalciteCommand.Plan` instead of `CommandText`.
-- **What it eliminates structurally**: the entire SQL-dialect failure class — parse errors
-  (3,194 in the 2026-08-11 run), conformance restrictions (APPLY), literal formats, parser
-  quirks around parameters. Also skips parse/validate at prepare time.
-- **Risks**: bypassing validation means bad trees fail as planner assertions (worse
-  diagnostics); RelDataType construction must exactly match the DDL-created tables' types.
-- **Recommended shape**: prototype behind an option (`UseCalcite(o => o.UseRelPlans())`),
-  SELECT pipeline only, SQL fallback for everything else; update pipeline and DDL stay SQL.
+What holds:
+
+- **The seam in EF Core is one method.** `RelationalCommandCache.GetRelationalCommandTemplate`
+  makes exactly one call into the provider, `IQuerySqlGeneratorFactory.Create().GetCommand(...)`,
+  and `QuerySqlGenerator.GetCommand` is `public virtual`. Everything above it (LINQ →
+  SelectExpression, the nullability processing, parameter extraction) and everything below it
+  (the shaper, materialization, the ordinal reads off `DbDataReader`) is untouched, as long as
+  the ADO.NET surface is kept. This is not a large override of EF Core; it is one method and a
+  translator behind it.
+- **The hard Rex shapes work in a hand-built tree** — measured: `RexSubQuery.exists`, `.scalar`,
+  `.in`, a correlated EXISTS, and a `RexOver` with PARTITION BY / ORDER BY all plan and run.
+  `Programs.standard`'s sub-query and decorrelate passes do the work `SqlToRelConverter` would
+  have done, so the translator does not have to reimplement sub-query removal.
+- **Failure classes that do disappear**, each measured as a SQL failure and a rel success:
+  identifier length over 128 (`Length of identifier … must be less than or equal to 128
+  characters` — a validator limit, absent from a built tree, so the truncate-and-uniquify
+  machinery goes); `APPLY operator is not allowed under the current SQL conformance level`, so
+  the LENIENT conformance requirement goes and an OUTER APPLY is just a `LogicalCorrelate`; and
+  the untyped-parameter class, `Cannot apply '+' to arguments of type '<JAVATYPE(INT)> +
+  <UNKNOWN>'`, because a `RexDynamicParam` carries its type — which also retires
+  `VisitSqlParameter`'s `CAST(? AS type)` wrapper and with it the reason
+  `VisitLimitOffsetValue` has to suppress that wrapper in the FETCH position.
+- **Parameters bind, even though the plan reports none.** `PrepareRel` leaves `ParameterRowType`
+  empty, exactly as upstream does, and upstream's JDBC surface therefore refuses
+  `setInt(1, …)` with "parameter ordinal 1 out of range" — measured. `Apache.Calcite.Data` never
+  consults it: `ParameterBinder.Bind` writes values positionally into `StatementDataContext` as
+  `?0`, `?1`, and `ClrEnumerableLimit.Count` reads a `RexDynamicParam` straight out of the
+  `DataContext`. So the thing that blocks the Java stack does not block this one. What is lost is
+  parameter *metadata* — anything describing a prepared statement will report zero parameters.
+- **A built plan is not pinned to the connection it was built against** — measured: a rel built
+  against one connection's root schema returned the other connection's rows when executed there,
+  because the scan resolves its table through the `DataContext`'s root schema at run time. So
+  caching the built rel in EF's `RelationalCommandCache` — which is shared across connection
+  strings, since `RelationalOptionsExtension`'s `GetServiceProviderHashCode()` is 0 — is not the
+  correctness hazard it looks like. The same `RelNode` also prepares twice without complaint.
+- **Prepare gets cheaper** — measured on a join + filter + aggregate + sort: 21.1 ms to build and
+  prepare a rel against 37.4 ms to prepare the equivalent SQL, of which building the tree is
+  1.5 ms. That saving is parse + validate + sql2rel, and `Apache.Calcite.Data` pays it on every
+  execution, because `CalciteSession.Plan` runs inside each Execute and there is no plan cache.
+
+What does not hold:
+
+- **"Eliminates parse errors (3,194 in the 2026-08-11 run)" is stale.** The suite has been green
+  with skips since 2026-09-02; that class was closed by the workarounds in
+  `CalciteQuerySqlGenerator` instead. The 1,818 remaining skip entries cluster in
+  `JsonUpdate` (105), the `GraphUpdates` trio (202), bulk updates (63), store-generated keys,
+  transactions and precompiled queries — update-pipeline, store-capability and
+  not-yet-implemented shaped, not SQL-dialect shaped. Before this is justified on failure
+  elimination again, re-run and cluster: the skip counts are a proxy for the reason, not the
+  reason.
+- **The correlated-subquery-with-parameterized-FETCH item is not fixed by this route.** Measured:
+  a *built* correlate over a `Sort` whose fetch is a `RexDynamicParam` fails identically to the
+  parsed one — `ClassCastException: RexDynamicParam cannot be cast to RexLiteral` at
+  `RelDecorrelator.decorrelateSortAsAggregate(RelDecorrelator.java:1144)`, reached from
+  `Programs$DecorrelateProgram.run(Programs.java:457)`. That program is inside
+  `Programs.standard()`, which is what `ClrPrepare.GetProgram` runs and what `PrepareRel` reaches
+  through `Optimize`. The same shape with a constant fetch runs. The entry below for it should
+  stop naming this route as one of its fixes.
+
+What it costs, which the original entry did not price:
+
+- **The SQL generator does not go away.** `IRelationalCommandTemplate.CommandText` is a non-null
+  `string`, and it is what logging, `ToQueryString()` and `DbCommandInterceptor` see. The
+  specification suite mutates it — `command.CommandText = command.CommandText.Replace(...)`,
+  `newCommand.CommandText = "SELECT 2"` — and asserts the mutation took effect;
+  `CommandInterceptionCalciteTest` carries four skips and none of them is a mutation case, so
+  those run today. A plan-carrying command silently ignores a rewritten `CommandText` unless it
+  falls back to the text when the text changed, which means emitting both. The maintenance
+  argument for the move is therefore weak; the correctness and cost arguments are what it has.
+- **What is free today stops being free.** `QuerySqlGenerator` has about fifty emit points and
+  `CalciteQuerySqlGenerator` overrides roughly fifteen — the other thirty-five are inherited at
+  no cost. A rel translator inherits nothing.
+- **Name-to-ordinal bookkeeping is the actual work.** EF addresses a column as
+  (table alias, column name); Rex addresses it positionally against the current input's flattened
+  row type, re-based by every join, project and aggregate. That is the `Blackboard` half of
+  `SqlToRelConverter`, minus name resolution and type coercion. APPLY needs the same thing again
+  for correlation: compute `requiredColumns` and rewrite outer references as `RexFieldAccess`.
+  `CalciteTypeMapper.ToRelDataType(typeFactory, IProperty)` in `.Core` already covers the type
+  construction.
+- **Two pipelines, not one.** `FromSql`/`SqlFragment` carry raw text and cannot be translated;
+  migrations and DDL, the update pipeline, and `ExecuteUpdate`/`ExecuteDelete` stay on SQL.
+- **Gap A is public API on a shipping package.** `CalciteConnection` exposes no root schema at
+  all today — hooks, commands, batches and `GetSchema` DataTables.
+- **Diagnostics get worse, measured both ways.** The validator says `Cannot apply '+' to
+  arguments of type '<JAVATYPE(INT)> + <UNKNOWN>'`; the rel route's equivalent is a bare
+  `ClassCastException` from inside a planner pass.
+
+Do first, because it is smaller and dominates this on the one axis that was measured: a plan
+cache in `Apache.Calcite.Data`. There is none — `CalciteSession.Plan` runs inside every Execute —
+and a signature is already reusable, since it takes the `DataContext` at `Bind` time. Caching by
+SQL text plus a schema version saves the whole 37 ms on a repeat where this route saves 16, and
+it says how much of the residual is planning rather than translation. The root's
+`ReaderWriterLockSlim`, whose write side DDL already takes, is the natural version source.
+
+Recommended shape, unchanged: prototype behind an option (`UseCalcite(o => o.UseRelPlans())`),
+SELECT pipeline only, SQL fallback for everything else; update pipeline and DDL stay SQL.
 
 ## Functional suite failure clusters
 
@@ -189,9 +268,11 @@ adapter does rather than casting them.
 
 EF Core generates `OUTER APPLY (SELECT … WHERE outer.Id = inner.FK ORDER BY … FETCH FIRST ? ROWS ONLY)`
 for a collection include. `RelDecorrelator` casts the `RexDynamicParam` in the fetch to `RexLiteral`
-and throws. Needs an upstream fix, a rewrite that pre-binds the fetch, or the rel-tree route above,
-which never parses SQL in the first place. Note the connection must also ask for `LENIENT`
-conformance for `OUTER APPLY` to parse at all.
+and throws. Needs an upstream fix or a rewrite that pre-binds the fetch. **Not** the rel-tree route
+above: measured against Calcite 1.42, a built correlate over a `Sort` with a dynamic-param fetch
+throws the same `ClassCastException` at `RelDecorrelator.decorrelateSortAsAggregate`, reached from
+the `DecorrelateProgram` inside `Programs.standard()` — the program that route runs too. Note the
+connection must also ask for `LENIENT` conformance for `OUTER APPLY` to parse at all.
 
 ## An alias over a bare column reference is lost
 
