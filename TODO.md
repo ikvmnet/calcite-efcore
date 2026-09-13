@@ -107,14 +107,31 @@ Class.forName("org.slf4j.simple.SimpleServiceProvider")
 ```
 
 The project references `slf4j-simple` but never `slf4j-api`, so the provider's own supertype is not in
-its closure. A project consuming any slf4j provider has to name `org.slf4j:slf4j-api` itself at the
-matching version rather than leaning on the copy arriving transitively through Calcite.
+its closure — slf4j-api was only arriving transitively through Calcite. That is a hazard of a
+hand-assembled `MavenReference` set, **not** a general rule about slf4j providers: a provider shipped
+as a NuGet package declares `org.slf4j:slf4j-api` in its own pom, and because `IKVM.Maven.Sdk` is not
+`PrivateAssets` its `buildTransitive` assets reach the consumer and the closure resolves without the
+consumer naming anything. Measured in `ikvm-logging` against the built package, including with a
+deliberately mismatched explicit `slf4j-api` — the closures merge.
 
-Rather than fix this with `slf4j-simple`, take `IKVM.Extensions.Logging.Slf4j` from `ikvm-logging`
-once it is released — it forwards Java log records to `Microsoft.Extensions.Logging`, which is what we
-want for the sample and for consumers too, not just for tests. It selects itself with the same
-`slf4j.provider` property (slf4j 2.0.9+) and wants `Slf4jBridge.Register()` from a module initializer
-plus `Slf4jBridge.Install(loggerFactory)` once a container exists.
+So this is a third distinct cause of the same silent NOP symptom, alongside no provider at all and
+ikvm#752's unreadable C#-embedded service file. All three look identical from the outside, because
+slf4j swallows the failure and hands back `NOPLoggerFactory`.
+
+Rather than fix this with `slf4j-simple`, take **`IKVM.Extensions.Logging.Slf4j`** from `ikvm-logging`
+— it forwards Java log records to `Microsoft.Extensions.Logging`, which is what we want for the sample
+and for consumers too, not just for tests. Referencing the package is enough; do not name `slf4j-api`
+ourselves.
+
+`Slf4jBridge.Register()` from a `[ModuleInitializer]`, then `Slf4jBridge.Install(ILoggerFactory)`
+(returns `IDisposable`; `Uninstall()`, `Factory`, `IsBound`, `ProviderClassName`, `ProviderProperty`
+alongside) once a container exists. A logger taken *before* `Install` starts working when `Install`
+happens, which is the property `CalciteTrace.getPlannerTracer()` needs, since Java libraries hold
+loggers in static fields.
+
+Not on nuget.org yet: 0.1.6/0.1.7/0.1.9 from 2023 are still all that is published, and the release is
+unauthorized, so do not plan around a date. The line is **1.0.1** — GitHub Packages carries
+1.0.1-pre.N off main if we want to try it early.
 
 ## Snapshot staleness
 
