@@ -34,10 +34,14 @@ cannot generate or return keys), and the test projects wire HiLo/MAX-seeded stra
 overrides (`CalciteTestStoreFactory.AddProviderServices`, or `ReplaceService` for contexts built
 outside the factory). Do not move those into the provider.
 
-The adapter has exactly **one outgoing converter**: `EfCoreToClrAsyncEnumerableConverter`, into
-`ClrAsyncEnumerableConvention` — EF Core's pipeline is natively asynchronous, so rows leave as an
-`IAsyncEnumerable`. Reaching any other convention (Clr sync, Enumerable, bindable fallback) is the
-job of the guaranteed bridge converters in `Apache.Calcite.Extensions`; do not add EfCore→X
+The adapter has exactly **one outgoing converter**: `EfCoreToClrEnumerableConverter`, into
+`ClrEnumerableConvention`. That convention has two bodies per node rather than a second convention:
+`Implement` is pulled, `ImplementAsync` awaits, and which one runs is decided by the root member the
+implementor is asked for. **Both are written out here, neither is the other read across**, because EF
+Core answers either way — enumerating the `IQueryable` is the path `ToList` takes and
+`IAsyncQueryProvider` is the one behind `ToListAsync` — so `EfCoreEnumerable` carries a pulled and an
+awaiting pair and each body names its own. Reaching any other convention (Enumerable, bindable
+fallback) is the job of the bridge converters in `Apache.Calcite.Extensions`; do not add EfCore→X
 converters for conventions the bridge lattice already reaches.
 
 `TODO.md` holds the outstanding work. Items are **removed entirely when resolved**, never marked

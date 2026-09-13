@@ -88,7 +88,7 @@ Three known failures remain, and none of them is in this repository:
 
 - **A distinct aggregate beside a non-distinct one, grouped by a string key**, fails with
   `InvalidCastException: System.String → java.lang.Comparable` in
-  `ClrAsyncEnumerableDefaults.GroupByMultiple`. The generated key builder casts each group key to
+  `ClrEnumerableDefaults.GroupByMultipleAsync`. The generated key builder casts each group key to
   `java.lang.Comparable`, which a CLR string is not. This takes out the `CustomerValue` and
   `ProductSalesSummary` views. It belongs to `Apache.Calcite.Extensions` in calcite-dotnet; the smallest
   reproduction is in the request book, along with the variant without the string key that succeeds.
