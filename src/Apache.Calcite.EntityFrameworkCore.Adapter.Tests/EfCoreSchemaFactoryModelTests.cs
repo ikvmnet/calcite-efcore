@@ -45,10 +45,6 @@ public sealed class SchemaFactoryModelFixture : IDisposable
         RuntimeHelpers.RunClassConstructor(typeof(EfCoreSchema).TypeHandle);
         ikvm.runtime.Startup.addBootClassPathAssembly(typeof(SqliteConnection).Assembly);
 
-        // Calcite 1.43 filters every class a model names through ClassNameFilter, and its allowlist is empty by
-        // default — deny-by-default, so the adapter's own factory has to be named before a model can load it.
-        java.lang.System.setProperty("calcite.model.classes.allowed", "Apache.Calcite.EntityFrameworkCore.");
-
         _keepAlive = new SqliteConnection(ModelJsonProductDbContext.ConnectionString);
         _keepAlive.Open();
 

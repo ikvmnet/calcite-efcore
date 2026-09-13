@@ -86,22 +86,6 @@ Full-run trx in flight. Cluster the ~12k failures by exception fingerprint, fix 
 causes first. Reference D:\efcore (11.0 head; 10.0 via `git show v10.0.5:<path>`) and
 D:\efcore.pg for how SQLite/Npgsql derive, override, and skip.
 
-## Model JSON factories need an allowlist on Calcite 1.43
-
-Calcite 1.43 added `org.apache.calcite.model.ClassNameFilter`, which vets every class a model JSON
-names against a denylist and an allowlist. The allowlist defaults to empty, and an empty allowlist
-rejects everything — Calcite's own `ClassNameFilterTest.testDefaultProdValuesForDenyAllowList` says
-so outright. So on 1.43 a model naming `EfCoreSchemaFactory` fails to load with a `SecurityException`
-until `calcite.model.classes.allowed` names it; the filter strips any `#Field` suffix before
-checking, so spelling the singleton out does not sidestep it.
-
-The shipping projects still resolve Calcite 1.42, which has no filter, so nothing is broken today.
-`SchemaFactoryModelFixture` sets the property itself, because the test projects are already on
-1.43-SNAPSHOT. Decide before the shipping projects move to 1.43 whether the provider should set a
-default allowlist covering `Apache.Calcite.EntityFrameworkCore.` itself, or whether that stays a
-deployment concern documented in `CONFIGURATION.md` — a default the provider sets is a security
-decision made on the consumer's behalf, so it should be a deliberate one.
-
 ## Snapshot staleness
 
 `MAVEN0011: Transfer failed … maven-metadata.xml` on every build: snapshot metadata refresh from

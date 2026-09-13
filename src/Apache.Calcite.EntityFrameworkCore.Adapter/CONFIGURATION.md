@@ -124,25 +124,45 @@ The assembly is not optional. Calcite resolves this value through `Class.forName
 not on the class path under its namespace alone; leaving the assembly off fails the model load with
 `ClassNotFoundException`.
 
-### Allowlisting the Factory on Calcite 1.43 and Later
+### Calcite 1.43's Model Class Allowlist
 
-Calcite 1.43 added `ClassNameFilter`, which vets every class a model JSON names — schema and table
-factories, UDFs, JDBC drivers, dialect factories, lattice statistic providers — against a denylist
-and an allowlist. The allowlist is **empty by default, and an empty allowlist rejects everything**,
-so on 1.43 a model naming this factory fails to load until the allowlist names it:
+Calcite 1.43 vets every class a model JSON names — schema and table factories, UDFs, JDBC drivers,
+dialect factories, lattice statistic providers — through `ClassNameFilter`. The allowlist comes from
+the `calcite.model.classes.allowed` system property and is **empty by default, and an empty allowlist
+rejects everything**, so on 1.43 a model that names a class fails to load with a `SecurityException`
+until some pattern covers it.
 
+**You do not need to do anything for this factory.** Loading either
+`Apache.Calcite.EntityFrameworkCore` or `Apache.Calcite.EntityFrameworkCore.Adapter` appends
+`Apache.Calcite.EntityFrameworkCore.` to the allowlist from a module initializer, which runs before
+anything can open a Calcite connection. Only this library's own namespace is added, so Calcite's
+protection against the classes that make model files dangerous in the first place — JNDI lookups,
+`Runtime`, script engines — is left exactly as Calcite set it.
+
+The property is one comma-separated string shared by the whole process, so it is **appended to, never
+assigned**. A pattern you or another library already set is preserved.
+
+To name a class of your own — your own `SchemaFactory`, a UDF, a `jdbcDriver` — append it the same way,
+before you open a connection:
+
+```csharp
+using Apache.Calcite.EntityFrameworkCore.Core;
+
+CalciteModelClassAllowlist.Allow("MyApp.Calcite.");   // namespace and everything under it
+CalciteModelClassAllowlist.Allow("MyApp.OneFactory"); // or exactly one class
 ```
--Dcalcite.model.classes.allowed=Apache.Calcite.EntityFrameworkCore.
-```
 
-A pattern ending in `.` matches that namespace and everything under it; any other pattern must match
-the value in the JSON exactly. The check runs against the raw `factory` string, so a pattern has to
-cover the assembly suffix too — which the namespace-prefix form above does.
+A pattern ending in `.` matches that namespace and everything beneath it; any other pattern must match
+the value in the JSON exactly. The check runs against the raw string from the model, so an exact
+pattern has to include the assembly suffix — which the namespace-prefix form avoids having to think
+about. Calcite reads the property once, into a static field, the first time its configuration class
+initializes, so anything you add has to be added before then.
 
-This is a Calcite-version condition, not an adapter one. The shipping adapter resolves Calcite
-1.42.0, which has no such filter and needs no allowlist; the property matters once you move to 1.43.
-Note also that the filter strips any `#Field` suffix before checking, so naming the singleton field
-explicitly does not sidestep it.
+The `operand` keys are not affected. Calcite filters only the keys it resolves itself; `dbContextType`,
+`dbContextFactory` and `rexTranslatorFactory` are loaded by this factory through
+`Activator.CreateInstance` and never reach `ClassNameFilter`.
+
+None of this applies before Calcite 1.43, which has no such filter.
 
 ### Operand Keys
 
