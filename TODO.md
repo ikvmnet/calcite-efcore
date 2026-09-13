@@ -86,6 +86,53 @@ Full-run trx in flight. Cluster the ~12k failures by exception fingerprint, fix 
 causes first. Reference D:\efcore (11.0 head; 10.0 via `git show v10.0.5:<path>`) and
 D:\efcore.pg for how SQLite/Npgsql derive, override, and skip.
 
+## Calcite logs nowhere: bind slf4j through IKVM.Extensions.Logging.Slf4j
+
+`Apache.Calcite.EntityFrameworkCore.Adapter.Tests` carries an `org.slf4j:slf4j-simple`
+`MavenReference`, but slf4j resolves to `org.slf4j.helpers.NOPLoggerFactory` and every Calcite log
+statement silently does nothing. That is worse than no logging, because the reference makes it look
+configured, and it hides code: Calcite guards diagnostics on the level, so `HepPlanner.dumpGraph` and
+the graph-consistency assertions it runs never execute. A run here therefore exercises strictly less
+of Calcite than a CI runner where a provider does bind, which is how a `HepPlanner` assertion failed
+once on osx-arm64 and could not be reproduced locally.
+
+Measured 2026-09-13, and it is not the obvious causes. `slf4j.provider` is honoured, and
+`ServiceLoader` discovery does work through an IKVM-compiled jar — the service resource is found at
+`jar:file:...slf4j-simple-2.0.18.jar!/META-INF/services/org.slf4j.spi.SLF4JServiceProvider`. What
+fails is loading the provider itself:
+
+```
+Class.forName("org.slf4j.simple.SimpleServiceProvider")
+  -> java.lang.NoClassDefFoundError: org.slf4j.spi.SLF4JServiceProvider
+```
+
+The project references `slf4j-simple` but never `slf4j-api`, so the provider's own supertype is not in
+its closure — slf4j-api was only arriving transitively through Calcite. That is a hazard of a
+hand-assembled `MavenReference` set, **not** a general rule about slf4j providers: a provider shipped
+as a NuGet package declares `org.slf4j:slf4j-api` in its own pom, and because `IKVM.Maven.Sdk` is not
+`PrivateAssets` its `buildTransitive` assets reach the consumer and the closure resolves without the
+consumer naming anything. Measured in `ikvm-logging` against the built package, including with a
+deliberately mismatched explicit `slf4j-api` — the closures merge.
+
+So this is a third distinct cause of the same silent NOP symptom, alongside no provider at all and
+ikvm#752's unreadable C#-embedded service file. All three look identical from the outside, because
+slf4j swallows the failure and hands back `NOPLoggerFactory`.
+
+Rather than fix this with `slf4j-simple`, take **`IKVM.Extensions.Logging.Slf4j`** from `ikvm-logging`
+— it forwards Java log records to `Microsoft.Extensions.Logging`, which is what we want for the sample
+and for consumers too, not just for tests. Referencing the package is enough; do not name `slf4j-api`
+ourselves.
+
+`Slf4jBridge.Register()` from a `[ModuleInitializer]`, then `Slf4jBridge.Install(ILoggerFactory)`
+(returns `IDisposable`; `Uninstall()`, `Factory`, `IsBound`, `ProviderClassName`, `ProviderProperty`
+alongside) once a container exists. A logger taken *before* `Install` starts working when `Install`
+happens, which is the property `CalciteTrace.getPlannerTracer()` needs, since Java libraries hold
+loggers in static fields.
+
+Not on nuget.org yet: 0.1.6/0.1.7/0.1.9 from 2023 are still all that is published, and the release is
+unauthorized, so do not plan around a date. The line is **1.0.1** — GitHub Packages carries
+1.0.1-pre.N off main if we want to try it early.
+
 ## Snapshot staleness
 
 `MAVEN0011: Transfer failed … maven-metadata.xml` on every build: snapshot metadata refresh from

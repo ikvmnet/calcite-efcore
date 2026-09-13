@@ -33,4 +33,13 @@
         <None Include="..\..\icon.png" Pack="true" PackagePath="." Visible="false" />
     </ItemGroup>
 
+
+    <ItemGroup>
+        <!-- CalciteModelClassAllowlist is internal: Calcite owns the allowlist, and we expose no API over it.
+             These are the assemblies that name our own namespace on it. -->
+        <InternalsVisibleTo Include="Apache.Calcite.EntityFrameworkCore" />
+        <InternalsVisibleTo Include="Apache.Calcite.EntityFrameworkCore.Adapter" />
+        <InternalsVisibleTo Include="Apache.Calcite.EntityFrameworkCore.Tests" />
+    </ItemGroup>
+
 </Project>

@@ -15,28 +15,45 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter
     /// <see cref="SchemaFactory"/> implementation for <see cref="EfCoreSchema"/>.
     /// </summary>
     /// <remarks>
-    /// This factory is used when registering an EF Core schema via a Calcite model JSON file.
+    /// <para>
+    /// This factory is used when registering an EF Core schema via a Calcite model JSON file. Name it in the
+    /// schema's <c>factory</c> key by its assembly-qualified type name:
+    /// <c>Apache.Calcite.EntityFrameworkCore.Adapter.EfCoreSchemaFactory, Apache.Calcite.EntityFrameworkCore.Adapter</c>.
+    /// The assembly is required, because Calcite resolves the value through <c>Class.forName</c> and a CLR type
+    /// is not on the class path under its namespace alone.
+    /// </para>
+    /// <para>
     /// The <c>operand</c> map must contain either:
+    /// </para>
     /// <list type="bullet">
     ///   <item><c>"dbContextType"</c> - Assembly-qualified name of a <see cref="DbContext"/> subclass with a public parameterless constructor.</item>
     ///   <item><c>"dbContextFactory"</c> - Assembly-qualified name of an <see cref="IDbContextFactory"/> implementation with a parameterless constructor.</item>
     /// </list>
     /// <para>
     /// Optional configuration keys:
+    /// </para>
     /// <list type="bullet">
     ///   <item><c>"rexTranslatorFactory"</c> - Assembly-qualified name of an <see cref="IRexToLinqTranslatorFactory"/> implementation with a parameterless constructor.</item>
     /// </list>
-    /// </para>
     /// </remarks>
     public class EfCoreSchemaFactory : SchemaFactory
     {
 
         /// <summary>
-        /// Singleton instance.
+        /// Shared instance. The factory holds no state, so this exists only to spare callers an allocation.
         /// </summary>
         public static readonly EfCoreSchemaFactory Instance = new();
 
-        private EfCoreSchemaFactory() { }
+        /// <summary>
+        /// Initializes a new instance.
+        /// </summary>
+        /// <remarks>
+        /// Public because Calcite resolves a model JSON <c>factory</c> named by its class alone through
+        /// <c>AvaticaUtils.instantiatePlugin</c>, which reaches a singleton only through a static field named
+        /// exactly <c>INSTANCE</c> and otherwise requires a public parameterless constructor. This type spells
+        /// its field <see cref="Instance"/>, so the constructor is what the bare-class-name form resolves.
+        /// </remarks>
+        public EfCoreSchemaFactory() { }
 
         /// <inheritdoc />
         public Schema create(SchemaPlus parentSchema, string name, Map operand)
