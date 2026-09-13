@@ -144,25 +144,28 @@ There is one case the module initializer cannot reach. A module initializer runs
 loads, and .NET loads an assembly on first use of a type in it — so if you open a `CalciteConnection`
 directly from `Apache.Calcite.Data` against a model naming this factory, with nothing yet having
 touched either assembly, Calcite runs its check *before* resolving the class, which is what would have
-loaded us. Nothing of ours has run at that point. Either set the property yourself, or touch a type
-from this package first:
+loaded us. Nothing of ours has run at that point. Name the namespace yourself before you connect:
 
 ```csharp
-CalciteModelClassAllowlist.Allow("Apache.Calcite.EntityFrameworkCore.");
+java.lang.System.setProperty("calcite.model.classes.allowed", "Apache.Calcite.EntityFrameworkCore.");
 ```
 
 The property is one comma-separated string shared by the whole process, so it is **appended to, never
 assigned**. A pattern you or another library already set is preserved.
 
-To name a class of your own — your own `SchemaFactory`, a UDF, a `jdbcDriver` — append it the same way,
-before you open a connection:
+To name a class of your own — your own `SchemaFactory`, a UDF, a `jdbcDriver` — set the property
+before you open a connection. It is one comma-separated string for the whole process, so **include this
+package's namespace alongside yours**; assigning the property after we have appended to it would drop
+our entry and break loading this factory:
 
 ```csharp
-using Apache.Calcite.EntityFrameworkCore.Core;
-
-CalciteModelClassAllowlist.Allow("MyApp.Calcite.");   // namespace and everything under it
-CalciteModelClassAllowlist.Allow("MyApp.OneFactory"); // or exactly one class
+java.lang.System.setProperty(
+    "calcite.model.classes.allowed",
+    "Apache.Calcite.EntityFrameworkCore.,MyApp.Calcite.,MyApp.OneFactory");
 ```
+
+Setting it *before* anything loads this package is enough on its own — the module initializer appends
+to whatever it finds rather than replacing it, so your patterns survive.
 
 A pattern ending in `.` matches that namespace and everything beneath it; any other pattern must match
 the value in the JSON exactly. The check runs against the raw string from the model, so an exact

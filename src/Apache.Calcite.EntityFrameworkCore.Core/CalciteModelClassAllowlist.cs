@@ -7,6 +7,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Core;
 /// </summary>
 /// <remarks>
 /// <para>
+/// Internal to this package. Calcite owns this security knob, and an application that needs to name
+/// classes of its own sets <c>calcite.model.classes.allowed</c> itself; this exists only so our own
+/// assemblies can name their namespace without discarding what anyone else put there.
+/// </para>
+/// <para>
 /// Calcite 1.43 vets every class a model JSON names — schema and table factories, UDFs, JDBC drivers,
 /// dialect factories, lattice statistic providers — through <c>org.apache.calcite.model.ClassNameFilter</c>.
 /// Its allowlist comes from the <c>calcite.model.classes.allowed</c> system property and is empty by
@@ -31,7 +36,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Core;
 /// overridden once anything appends here; such an application should set the system property instead.
 /// </para>
 /// </remarks>
-public static class CalciteModelClassAllowlist
+static class CalciteModelClassAllowlist
 {
 
     /// <summary>
