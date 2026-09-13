@@ -132,12 +132,24 @@ the `calcite.model.classes.allowed` system property and is **empty by default, a
 rejects everything**, so on 1.43 a model that names a class fails to load with a `SecurityException`
 until some pattern covers it.
 
-**You do not need to do anything for this factory.** Loading either
+**Using the EF Core provider, you do not need to do anything for this factory.** Loading either
 `Apache.Calcite.EntityFrameworkCore` or `Apache.Calcite.EntityFrameworkCore.Adapter` appends
-`Apache.Calcite.EntityFrameworkCore.` to the allowlist from a module initializer, which runs before
-anything can open a Calcite connection. Only this library's own namespace is added, so Calcite's
-protection against the classes that make model files dangerous in the first place — JNDI lookups,
-`Runtime`, script engines — is left exactly as Calcite set it.
+`Apache.Calcite.EntityFrameworkCore.` to the allowlist from a module initializer, and `UseCalcite`
+lives in the provider, so configuring a context loads it well before any connection opens. Only this
+library's own namespace is added, so Calcite's protection against the classes that make model files
+dangerous in the first place — JNDI lookups, `Runtime`, script engines — is left exactly as Calcite
+set it.
+
+There is one case the module initializer cannot reach. A module initializer runs when its assembly
+loads, and .NET loads an assembly on first use of a type in it — so if you open a `CalciteConnection`
+directly from `Apache.Calcite.Data` against a model naming this factory, with nothing yet having
+touched either assembly, Calcite runs its check *before* resolving the class, which is what would have
+loaded us. Nothing of ours has run at that point. Either set the property yourself, or touch a type
+from this package first:
+
+```csharp
+CalciteModelClassAllowlist.Allow("Apache.Calcite.EntityFrameworkCore.");
+```
 
 The property is one comma-separated string shared by the whole process, so it is **appended to, never
 assigned**. A pattern you or another library already set is preserved.

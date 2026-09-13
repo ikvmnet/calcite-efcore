@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 
 using Apache.Calcite.EntityFrameworkCore.Core;
+using Apache.Calcite.EntityFrameworkCore.Extensions;
 
 using Xunit;
 
@@ -48,7 +50,12 @@ public class CalciteModelClassAllowlistTests
     [Fact]
     public void Should_name_our_namespace_from_the_module_initializer()
     {
-        // no arrangement: loading the provider assembly is what appends this
+        // What an application does is load the provider — `UseCalcite` lives in it — and loading it is what
+        // runs the module initializer. Force that here rather than depending on some earlier test in this
+        // assembly having touched a provider type first; the runtime runs a module constructor at most once,
+        // so this observes the real initializer rather than standing in for it.
+        RuntimeHelpers.RunModuleConstructor(typeof(CalciteDbContextOptionsBuilderExtensions).Module.ModuleHandle);
+
         var value = java.lang.System.getProperty(CalciteModelClassAllowlist.PropertyName);
 
         Assert.NotNull(value);
