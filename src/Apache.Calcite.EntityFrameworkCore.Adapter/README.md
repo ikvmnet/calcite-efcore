@@ -85,6 +85,11 @@ prefers pushing it into EF Core — which in turn means EF Core's own provider g
 Work the convention cannot express stays in Calcite's enumerable convention above it and runs there, on rows the
 adapter streams out.
 
+Pushing a predicate down means the store answers it, so the store's collation decides how strings compare, where
+Calcite in-process is always case- and accent-sensitive. `=`, `LIKE` and the ordered comparisons on a
+case-insensitive column therefore match more rows through the adapter than the same SQL would matching in Calcite.
+That is the trade pushdown is: the store is being asked the question, in the store's own terms.
+
 There is exactly one way out: `EfCoreToClrEnumerableConverter` into `ClrEnumerableConvention`. A node of that
 convention has two bodies — `Implement`, which is pulled, and `ImplementAsync`, which awaits — and the caller of the
 root member picks the hierarchy the whole plan is read in. The converter writes both, because EF Core executes a

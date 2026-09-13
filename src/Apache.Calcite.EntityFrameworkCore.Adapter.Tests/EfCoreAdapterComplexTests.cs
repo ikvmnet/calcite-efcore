@@ -41,10 +41,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
 
         // ------------------------------------------------------------------ helpers
 
-        string GetPlan(string sql)
+        string GetPlan(string sql, params object[] values)
         {
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = $"EXPLAIN PLAN FOR {sql}";
+            Bind(cmd, values);
             using var reader = cmd.ExecuteReader();
             var sb = new StringBuilder();
             sb.AppendLine($"Plan for: {sql}");
@@ -65,14 +66,36 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             Assert.DoesNotContain("BindableUnion", plan, StringComparison.OrdinalIgnoreCase);
         }
 
-        List<Dictionary<string, object?>> Execute(string sql, bool assertEfCoreConvention = true)
+        /// <summary>
+        /// Binds <paramref name="values"/> to the <c>?</c> placeholders in the command, in order.
+        /// </summary>
+        static void Bind(System.Data.Common.DbCommand cmd, object[] values)
         {
-            var plan = GetPlan(sql);
+            foreach (var value in values)
+            {
+                var parameter = cmd.CreateParameter();
+                parameter.Value = value;
+                cmd.Parameters.Add(parameter);
+            }
+        }
+
+        /// <summary>
+        /// Runs <paramref name="sql"/> with <c>?</c> placeholders bound to <paramref name="values"/>.
+        /// </summary>
+        List<Dictionary<string, object?>> ExecuteWith(string sql, params object[] values)
+        {
+            return Execute(sql, true, values);
+        }
+
+        List<Dictionary<string, object?>> Execute(string sql, bool assertEfCoreConvention = true, params object[] values)
+        {
+            var plan = GetPlan(sql, values);
             if (assertEfCoreConvention)
                 AssertEfCoreConventionUsed(plan);
 
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = sql;
+            Bind(cmd, values);
             var rows = new List<Dictionary<string, object?>>();
 
             using var reader = cmd.ExecuteReader();
@@ -585,6 +608,144 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             var rows = Execute(sql);
             Assert.Single(rows);
             Assert.Equal("Widget", rows[0]["Rev"]?.ToString());
+        }
+
+        // ------------------------------------------------------------------ LIKE
+
+        /// <summary>
+        /// A <c>LIKE</c> predicate must reach EF Core rather than stay in an in-process calc above the scan.
+        /// The projection rides with it: a <c>Calc</c> fuses project and filter, so a condition the converter
+        /// rule declines takes the column list down with it and the scan hands over every column of every row.
+        /// </summary>
+        [Fact]
+        public void Like_Prefix_PushesDownWithItsProjection()
+        {
+            var sql = $@"SELECT ""Name"" FROM ""{S}"".""Product"" WHERE ""Name"" LIKE 'Wid%'";
+            var plan = GetPlan(sql);
+            Assert.Contains("EfCoreCalc", plan, StringComparison.Ordinal);
+
+            var rows = Execute(sql);
+            Assert.Equal("Widget", Assert.Single(rows)["Name"]);
+        }
+
+        [Fact]
+        public void Like_Suffix_PushesDown()
+        {
+            var rows = Execute($@"SELECT ""Name"" FROM ""{S}"".""Product"" WHERE ""Name"" LIKE '%get' ORDER BY ""Id""");
+            Assert.Equal(["Widget", "Gadget"], rows.Select(r => r["Name"]));
+        }
+
+        [Fact]
+        public void Like_Contains_PushesDown()
+        {
+            var rows = Execute($@"SELECT ""Name"" FROM ""{S}"".""Product"" WHERE ""Name"" LIKE '%ng%'");
+            Assert.Equal("Thingamajig", Assert.Single(rows)["Name"]);
+        }
+
+        /// <summary>
+        /// An interior wildcard has no affix shape to lift out, so the pattern travels whole.
+        /// </summary>
+        [Fact]
+        public void Like_InteriorWildcard_PushesDown()
+        {
+            var rows = Execute($@"SELECT ""Name"" FROM ""{S}"".""Product"" WHERE ""Name"" LIKE 'G_dget'");
+            Assert.Equal("Gadget", Assert.Single(rows)["Name"]);
+        }
+
+        /// <summary>
+        /// Calcite expands <c>NOT LIKE</c> into <c>NOT(LIKE(...))</c>, so the one operator covers both.
+        /// </summary>
+        [Fact]
+        public void Like_Negated_PushesDown()
+        {
+            var rows = Execute($@"SELECT ""Name"" FROM ""{S}"".""Product"" WHERE ""Name"" NOT LIKE 'Wid%' ORDER BY ""Id""");
+            Assert.Equal(["Gadget", "Doohickey", "Thingamajig", "Whatsit", "Gizmo"], rows.Select(r => r["Name"]));
+        }
+
+        /// <summary>
+        /// The <c>ESCAPE</c> character has to survive the trip: with it, the <c>_</c> is a literal underscore
+        /// and matches nothing; without it, it is the single-character wildcard and matches every row.
+        /// </summary>
+        [Fact]
+        public void Like_Escape_PushesDownAndIsHonoured()
+        {
+            var wild = Execute($@"SELECT ""Name"" FROM ""{S}"".""Product"" WHERE ""Name"" LIKE '%_%'");
+            Assert.Equal(6, wild.Count);
+
+            var escaped = Execute($@"SELECT ""Name"" FROM ""{S}"".""Product"" WHERE ""Name"" LIKE '%!_%' ESCAPE '!'");
+            Assert.Empty(escaped);
+        }
+
+        [Fact]
+        public void Like_ParameterizedPattern_PushesDown()
+        {
+            var rows = ExecuteWith($@"SELECT ""Name"" FROM ""{S}"".""Product"" WHERE ""Name"" LIKE ?", "Wid%");
+            Assert.Equal("Widget", Assert.Single(rows)["Name"]);
+        }
+
+        /// <summary>
+        /// The shape our own provider emits for <see cref="string.StartsWith(string)"/>: with a parameter for
+        /// the search term Calcite cannot fold the concatenation into a literal, so the affix has to be read
+        /// out of the <c>||</c> tree for the round trip to arrive back where it started.
+        /// </summary>
+        [Fact]
+        public void Like_ConcatenatedPrefix_PushesDown()
+        {
+            var rows = ExecuteWith($@"SELECT ""Name"" FROM ""{S}"".""Product"" WHERE ""Name"" LIKE (CAST(? AS VARCHAR) || '%')", "Wid");
+            Assert.Equal("Widget", Assert.Single(rows)["Name"]);
+        }
+
+        /// <summary>
+        /// With no projection to fuse, the predicate converts as an <c>EfCoreWhere</c> instead.
+        /// </summary>
+        [Fact]
+        public void Like_WithoutProjection_PushesDownAsWhere()
+        {
+            var sql = $@"SELECT * FROM ""{S}"".""Product"" WHERE ""Name"" LIKE 'Wid%'";
+            var plan = GetPlan(sql);
+            Assert.Contains("EfCoreWhere", plan, StringComparison.Ordinal);
+
+            var rows = Execute(sql);
+            Assert.Equal("Widget", Assert.Single(rows)["Name"]);
+        }
+
+        /// <summary>
+        /// A <c>LIKE</c> is a boolean expression, not only a condition, and the rule that admits it admits the
+        /// projections beside it — so EF Core has to be able to select one, not merely filter on one.
+        /// </summary>
+        [Fact]
+        public void Like_InProjection_PushesDown()
+        {
+            var affix = Execute($@"SELECT ""Name"" LIKE 'Wid%' AS ""P"" FROM ""{S}"".""Product"" ORDER BY ""Id""");
+            Assert.Equal([true, false, false, false, false, false], affix.Select(r => r["P"]));
+
+            var general = Execute($@"SELECT ""Name"" LIKE 'W%t' AS ""P"" FROM ""{S}"".""Product"" ORDER BY ""Id""");
+            Assert.Equal([true, false, false, false, true, false], general.Select(r => r["P"]));
+        }
+
+        /// <summary>
+        /// The value side is whatever expression precedes the operator, not only a bare column.
+        /// </summary>
+        [Fact]
+        public void Like_OverAnExpression_PushesDown()
+        {
+            var rows = Execute($@"SELECT ""Name"" FROM ""{S}"".""Product"" WHERE UPPER(""Name"") LIKE 'WID%'");
+            Assert.Equal("Widget", Assert.Single(rows)["Name"]);
+        }
+
+        /// <summary>
+        /// <c>SIMILAR TO</c> is a distinct <c>SqlKind</c> with no EF Core target; it must keep falling back
+        /// rather than being swept in with <c>LIKE</c>.
+        /// </summary>
+        [Fact]
+        public void SimilarTo_FallsBackAndStillAnswers()
+        {
+            var sql = $@"SELECT ""Name"" FROM ""{S}"".""Product"" WHERE ""Name"" SIMILAR TO 'Wid%'";
+            var plan = GetPlan(sql);
+            Assert.DoesNotContain("EfCoreCalc", plan, StringComparison.Ordinal);
+
+            var rows = Execute(sql, assertEfCoreConvention: false);
+            Assert.Equal("Widget", Assert.Single(rows)["Name"]);
         }
 
         [Fact]
