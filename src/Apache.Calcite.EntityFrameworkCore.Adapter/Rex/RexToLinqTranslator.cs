@@ -12,6 +12,8 @@ using com.google.common.collect;
 
 using java.util;
 
+using Microsoft.EntityFrameworkCore;
+
 using org.apache.calcite.rel.type;
 using org.apache.calcite.rex;
 using org.apache.calcite.sql;
@@ -620,6 +622,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
                 case "CONTAINS_SUBSTR":
                     return CanTranslateOperands(call, inputRowType) && CanTranslateStringOperands(call);
 
+                // LIKE — only the case-sensitive form; ILIKE shares SqlKind.LIKE and has no EF Core target
+                case "LIKE":
+                    return IsCaseSensitiveLike(call) && CanTranslateOperands(call, inputRowType) && CanTranslateStringOperands(call);
+
                 case "OTHER":
                     return call.op.getName() == "||"
                         && CanTranslateOperands(call, inputRowType)
@@ -894,6 +900,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
                     return TranslateStartsWith(call, context);
                 case "CONTAINS_SUBSTR":
                     return TranslateContainsSubstr(call, context);
+                case "LIKE":
+                    return TranslateLike(call, context);
                 // SqlKind.OTHER is used by Calcite for the standard || string-concatenation operator.
                 // Dispatch by operator name; fall through to not-implemented for unknown OTHER operators.
                 case "OTHER":
@@ -1620,6 +1628,191 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rex
             var str = Expression.Convert(Translate((RexNode)call.getOperands().get(0), context), typeof(string));
             var substr = Expression.Convert(Translate((RexNode)call.getOperands().get(1), context), typeof(string));
             return Expression.Call(str, StringMethods.Contains, substr);
+        }
+
+        /// <summary>
+        /// Returns <see langword="true"/> if <paramref name="call"/> is the case-sensitive, non-negated
+        /// <c>LIKE</c> operator.
+        /// </summary>
+        /// <remarks>
+        /// <c>ILIKE</c> shares <see cref="SqlKind"/> <c>LIKE</c>, so the kind alone does not identify the
+        /// operator; translating an <c>ILIKE</c> as a <c>LIKE</c> would silently make a case-insensitive
+        /// match case-sensitive. <c>NOT LIKE</c> never arrives as a call — Calcite's convertlet table
+        /// expands it into <c>NOT(LIKE(...))</c> — but the negated form is rejected here rather than
+        /// assumed away.
+        /// </remarks>
+        static bool IsCaseSensitiveLike(RexCall call)
+        {
+            return call.op is org.apache.calcite.sql.fun.SqlLikeOperator like
+                && like.isCaseSensitive()
+                && like.isNegated() == false;
+        }
+
+        /// <summary>
+        /// Translates <c>value LIKE pattern [ESCAPE escape]</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A pattern whose only wildcards are a leading and/or trailing <c>%</c> becomes
+        /// <see cref="string.StartsWith(string)"/>, <see cref="string.EndsWith(string)"/> or
+        /// <see cref="string.Contains(string)"/>, which EF Core renders in the provider's own preferred
+        /// form — for a prefix that is a form the store can seek on, where a general <c>LIKE</c> may not
+        /// be. Everything else becomes <see cref="DbFunctionsExtensions.Like(DbFunctions, string, string)"/>.
+        /// </para>
+        /// <para>
+        /// Pushing the predicate down hands the store the question, so the store's collation decides case
+        /// and accent sensitivity, where the in-process Calcite implementation is always case-sensitive.
+        /// That is the same trade the adapter already makes for <c>=</c> and the rest of the comparisons,
+        /// and it is the point of pushing down at all. For the same reason a pattern handed to
+        /// <c>EF.Functions.Like</c> is interpreted by the store's own <c>LIKE</c> dialect, which may read
+        /// more metacharacters than Calcite's does — SQL Server treats <c>[</c> as the start of a
+        /// character class, for instance. The affix forms above do not have that exposure: EF Core
+        /// escapes the literal it builds the pattern from.
+        /// </para>
+        /// </remarks>
+        protected virtual Expression TranslateLike(RexCall call, EfCoreTranslationContext context)
+        {
+            var operands = call.getOperands();
+            var value = AsString(Translate((RexNode)operands.get(0), context));
+            var pattern = (RexNode)operands.get(1);
+
+            // An ESCAPE clause redefines what counts as a wildcard, so the affix shapes below no longer hold.
+            if (operands.size() == 3)
+            {
+                var escape = AsString(Translate((RexNode)operands.get(2), context));
+                return Expression.Call(DbFunctionsMethods.LikeWithEscape, DbFunctionsMethods.Functions, value, AsString(Translate(pattern, context)), escape);
+            }
+
+            return TranslateLikeAffix(value, pattern, context)
+                ?? Expression.Call(DbFunctionsMethods.Like, DbFunctionsMethods.Functions, value, AsString(Translate(pattern, context)));
+        }
+
+        /// <summary>
+        /// Recognises a <c>LIKE</c> pattern whose only wildcards are a leading and/or trailing <c>%</c> and
+        /// returns the matching <see cref="string"/> affix call, or <see langword="null"/> when the pattern
+        /// has no such shape.
+        /// </summary>
+        /// <remarks>
+        /// Two shapes carry it. A string literal is the one hand-written SQL produces. A concatenation
+        /// whose outer operands are literal <c>'%'</c> is the one an ORM produces: our own provider renders
+        /// <see cref="string.StartsWith(string)"/> as <c>value LIKE (search || '%')</c>, and when
+        /// <c>search</c> is a parameter Calcite cannot fold that into a literal — so a translator that only
+        /// read literals would miss the round trip it exists to serve.
+        /// </remarks>
+        protected virtual Expression? TranslateLikeAffix(Expression value, RexNode pattern, EfCoreTranslationContext context)
+        {
+            switch (pattern)
+            {
+                case RexLiteral literal:
+                {
+                    if (literal.getValue2() is not string text)
+                        return null;
+
+                    var leading = text.StartsWith('%');
+                    var trailing = text.Length > 1 && text.EndsWith('%');
+                    var core = text[(leading ? 1 : 0)..(text.Length - (trailing ? 1 : 0))];
+                    if (core.Length == 0 || HasLikeWildcard(core))
+                        return null;
+
+                    return MakeAffixCall(value, leading, trailing, Expression.Constant(core, typeof(string)));
+                }
+
+                case RexCall concat when IsConcat(concat):
+                {
+                    var parts = new System.Collections.Generic.List<RexNode>();
+                    FlattenConcat(concat, parts);
+
+                    var leading = IsPercentLiteral(parts[0]);
+                    var trailing = parts.Count > (leading ? 1 : 0) && IsPercentLiteral(parts[^1]);
+                    var first = leading ? 1 : 0;
+                    var count = parts.Count - first - (trailing ? 1 : 0);
+
+                    // Exactly one operand between the affixes is the search term; anything else puts a
+                    // wildcard somewhere other than an end.
+                    if (count != 1)
+                        return null;
+
+                    var needle = parts[first];
+                    if (needle is RexLiteral needleLiteral && (needleLiteral.getValue2() is not string needleText || HasLikeWildcard(needleText)))
+                        return null;
+
+                    return MakeAffixCall(value, leading, trailing, AsString(Translate(needle, context)));
+                }
+
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>
+        /// Builds the <see cref="string"/> affix call the surrounding wildcards select.
+        /// </summary>
+        static Expression? MakeAffixCall(Expression value, bool leading, bool trailing, Expression needle)
+        {
+            var method = (leading, trailing) switch
+            {
+                (true, true) => StringMethods.Contains,
+                (true, false) => StringMethods.EndsWith,
+                (false, true) => StringMethods.StartsWith,
+                // No wildcard at all: LIKE is then plain equality, which is not this method's business.
+                _ => null
+            };
+
+            return method is null ? null : Expression.Call(value, method, needle);
+        }
+
+        /// <summary>
+        /// Types an expression as <see cref="string"/>, adding a conversion only when it is not one already.
+        /// </summary>
+        static Expression AsString(Expression expr)
+        {
+            return expr.Type == typeof(string) ? expr : Expression.Convert(expr, typeof(string));
+        }
+
+        /// <summary>
+        /// Returns <see langword="true"/> if the text carries a <c>LIKE</c> wildcard.
+        /// </summary>
+        static bool HasLikeWildcard(string text)
+        {
+            return text.Contains('%') || text.Contains('_');
+        }
+
+        /// <summary>
+        /// Returns <see langword="true"/> if the node is the literal <c>'%'</c>.
+        /// </summary>
+        static bool IsPercentLiteral(RexNode node)
+        {
+            return node is RexLiteral literal && literal.getValue2() as string == "%";
+        }
+
+        /// <summary>
+        /// Returns <see langword="true"/> if the call is a string concatenation.
+        /// </summary>
+        static bool IsConcat(RexCall call)
+        {
+            return call.getKind().name() switch
+            {
+                "CONCAT2" or "CONCAT_WITH_NULL" => true,
+                "OTHER" => call.op.getName() == "||",
+                _ => false
+            };
+        }
+
+        /// <summary>
+        /// Appends the operands of a concatenation tree to <paramref name="parts"/> in left-to-right order,
+        /// descending through nested concatenations.
+        /// </summary>
+        static void FlattenConcat(RexCall call, System.Collections.Generic.List<RexNode> parts)
+        {
+            var operands = call.getOperands();
+            for (int i = 0, n = operands.size(); i < n; i++)
+            {
+                var operand = (RexNode)operands.get(i);
+                if (operand is RexCall nested && IsConcat(nested))
+                    FlattenConcat(nested, parts);
+                else
+                    parts.Add(operand);
+            }
         }
 
         /// <summary>

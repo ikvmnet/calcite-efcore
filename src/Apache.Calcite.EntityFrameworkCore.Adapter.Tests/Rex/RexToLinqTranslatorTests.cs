@@ -337,6 +337,238 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests.Rex
         }
 
         // -----------------------------------------------------------------------------------------
+        // LIKE
+        // -----------------------------------------------------------------------------------------
+
+        /// <summary>
+        /// Builds <c>Name LIKE pattern</c> over the VARCHAR field.
+        /// </summary>
+        static RexCall Like(RexBuilder rex, RelDataTypeFactory tf, params RexNode[] pattern)
+        {
+            var nameRef = rex.makeInputRef(tf.createSqlType(SqlTypeName.VARCHAR), 1);
+            RexNode[] operands = [nameRef, .. pattern];
+            return (RexCall)rex.makeCall(SqlStdOperatorTable.LIKE, operands);
+        }
+
+        /// <summary>
+        /// Asserts the expression is a call to the named <see cref="string"/> method and returns its argument.
+        /// </summary>
+        static Expression AssertStringCall(Expression expr, string name)
+        {
+            var call = Assert.IsAssignableFrom<MethodCallExpression>(expr);
+            Assert.Equal(typeof(string), call.Method.DeclaringType);
+            Assert.Equal(name, call.Method.Name);
+            return Assert.Single(call.Arguments);
+        }
+
+        /// <summary>
+        /// Asserts the expression is a call to <c>EF.Functions.Like</c> with the given operand count.
+        /// </summary>
+        static MethodCallExpression AssertEfFunctionsLike(Expression expr, int argumentCount)
+        {
+            var call = Assert.IsAssignableFrom<MethodCallExpression>(expr);
+            Assert.Equal("Like", call.Method.Name);
+            Assert.Equal("DbFunctionsExtensions", call.Method.DeclaringType!.Name);
+            Assert.Equal(argumentCount, call.Arguments.Count);
+            return call;
+        }
+
+        [Fact]
+        public void Like_LiteralWithTrailingWildcard_BecomesStartsWith()
+        {
+            var (t, ctx, param, rex, tf) = Build();
+            var call = Like(rex, tf, rex.makeLiteral("Wid%"));
+
+            var expr = t.Translate(call, ctx);
+
+            var needle = AssertStringCall(expr, nameof(string.StartsWith));
+            Assert.Equal("Wid", Assert.IsType<ConstantExpression>(needle).Value);
+            Assert.True(Eval<bool>(expr, param, new Row { Name = "Widget" }));
+            Assert.False(Eval<bool>(expr, param, new Row { Name = "Gadget" }));
+        }
+
+        [Fact]
+        public void Like_LiteralWithLeadingWildcard_BecomesEndsWith()
+        {
+            var (t, ctx, param, rex, tf) = Build();
+            var call = Like(rex, tf, rex.makeLiteral("%get"));
+
+            var expr = t.Translate(call, ctx);
+
+            var needle = AssertStringCall(expr, nameof(string.EndsWith));
+            Assert.Equal("get", Assert.IsType<ConstantExpression>(needle).Value);
+            Assert.True(Eval<bool>(expr, param, new Row { Name = "Widget" }));
+            Assert.False(Eval<bool>(expr, param, new Row { Name = "Gizmo" }));
+        }
+
+        [Fact]
+        public void Like_LiteralWithSurroundingWildcards_BecomesContains()
+        {
+            var (t, ctx, param, rex, tf) = Build();
+            var call = Like(rex, tf, rex.makeLiteral("%dge%"));
+
+            var expr = t.Translate(call, ctx);
+
+            var needle = AssertStringCall(expr, nameof(string.Contains));
+            Assert.Equal("dge", Assert.IsType<ConstantExpression>(needle).Value);
+            Assert.True(Eval<bool>(expr, param, new Row { Name = "Widget" }));
+            Assert.False(Eval<bool>(expr, param, new Row { Name = "Gizmo" }));
+        }
+
+        [Theory]
+        // An interior wildcard is not an affix, so the pattern has to reach the store whole.
+        [InlineData("W%t")]
+        [InlineData("Wid_et")]
+        [InlineData("%Wid_et%")]
+        // No wildcard at all is equality, which is not the affix translator's business.
+        [InlineData("Widget")]
+        // A pattern that is nothing but wildcards has no search term to lift out.
+        [InlineData("%")]
+        [InlineData("%%")]
+        public void Like_LiteralWithoutAffixShape_BecomesEfFunctionsLike(string pattern)
+        {
+            var (t, ctx, _, rex, tf) = Build();
+            var call = Like(rex, tf, rex.makeLiteral(pattern));
+
+            var expr = t.Translate(call, ctx);
+
+            var like = AssertEfFunctionsLike(expr, 3);
+            Assert.Equal(pattern, Assert.IsType<ConstantExpression>(like.Arguments[2]).Value);
+        }
+
+        [Fact]
+        public void Like_ConcatenatedTrailingWildcard_BecomesStartsWith()
+        {
+            // What our own provider emits for string.StartsWith: `value LIKE (search || '%')`. With a
+            // parameter for the search term Calcite cannot fold it to a literal.
+            var (t, ctx, _, rex, tf) = Build();
+            var varchar = tf.createSqlType(SqlTypeName.VARCHAR);
+            var search = rex.makeDynamicParam(varchar, 0);
+            var pattern = rex.makeCall(SqlStdOperatorTable.CONCAT, search, rex.makeLiteral("%"));
+            var call = Like(rex, tf, pattern);
+
+            var expr = t.Translate(call, ctx);
+
+            var needle = AssertStringCall(expr, nameof(string.StartsWith));
+            Assert.Equal("?0", Assert.IsAssignableFrom<ParameterExpression>(needle).Name);
+        }
+
+        [Fact]
+        public void Like_ConcatenatedLeadingWildcard_BecomesEndsWith()
+        {
+            var (t, ctx, _, rex, tf) = Build();
+            var varchar = tf.createSqlType(SqlTypeName.VARCHAR);
+            var search = rex.makeDynamicParam(varchar, 0);
+            var pattern = rex.makeCall(SqlStdOperatorTable.CONCAT, rex.makeLiteral("%"), search);
+            var call = Like(rex, tf, pattern);
+
+            var expr = t.Translate(call, ctx);
+
+            var needle = AssertStringCall(expr, nameof(string.EndsWith));
+            Assert.Equal("?0", Assert.IsAssignableFrom<ParameterExpression>(needle).Name);
+        }
+
+        [Fact]
+        public void Like_ConcatenatedSurroundingWildcards_BecomesContains()
+        {
+            var (t, ctx, _, rex, tf) = Build();
+            var varchar = tf.createSqlType(SqlTypeName.VARCHAR);
+            var search = rex.makeDynamicParam(varchar, 0);
+            var inner = rex.makeCall(SqlStdOperatorTable.CONCAT, rex.makeLiteral("%"), search);
+            var pattern = rex.makeCall(SqlStdOperatorTable.CONCAT, inner, rex.makeLiteral("%"));
+            var call = Like(rex, tf, pattern);
+
+            var expr = t.Translate(call, ctx);
+
+            var needle = AssertStringCall(expr, nameof(string.Contains));
+            Assert.Equal("?0", Assert.IsAssignableFrom<ParameterExpression>(needle).Name);
+        }
+
+        [Fact]
+        public void Like_ConcatenatedInteriorWildcard_BecomesEfFunctionsLike()
+        {
+            var (t, ctx, _, rex, tf) = Build();
+            var varchar = tf.createSqlType(SqlTypeName.VARCHAR);
+            var inner = rex.makeCall(SqlStdOperatorTable.CONCAT, rex.makeDynamicParam(varchar, 0), rex.makeLiteral("%"));
+            var pattern = rex.makeCall(SqlStdOperatorTable.CONCAT, inner, rex.makeDynamicParam(varchar, 1));
+            var call = Like(rex, tf, pattern);
+
+            var expr = t.Translate(call, ctx);
+
+            AssertEfFunctionsLike(expr, 3);
+        }
+
+        [Fact]
+        public void Like_DynamicParameterPattern_BecomesEfFunctionsLike()
+        {
+            var (t, ctx, _, rex, tf) = Build();
+            var call = Like(rex, tf, rex.makeDynamicParam(tf.createSqlType(SqlTypeName.VARCHAR), 0));
+
+            var expr = t.Translate(call, ctx);
+
+            var like = AssertEfFunctionsLike(expr, 3);
+            Assert.Equal("?0", Assert.IsAssignableFrom<ParameterExpression>(like.Arguments[2]).Name);
+        }
+
+        [Fact]
+        public void Like_WithEscape_KeepsTheEscapeAndDoesNotDecompose()
+        {
+            // ESCAPE redefines what counts as a wildcard, so the trailing '%' here is a literal '%'
+            // and the pattern is no longer a prefix test.
+            var (t, ctx, _, rex, tf) = Build();
+            var call = Like(rex, tf, rex.makeLiteral("Wid!%"), rex.makeLiteral("!"));
+
+            var expr = t.Translate(call, ctx);
+
+            var like = AssertEfFunctionsLike(expr, 4);
+            Assert.Equal("Wid!%", Assert.IsType<ConstantExpression>(like.Arguments[2]).Value);
+            Assert.Equal("!", Assert.IsType<ConstantExpression>(like.Arguments[3]).Value);
+        }
+
+        [Fact]
+        public void Like_IsTranslatable()
+        {
+            var (t, _, _, rex, tf) = Build();
+            var rowType = RowType(tf);
+            Assert.True(t.CanTranslate(Like(rex, tf, rex.makeLiteral("Wid%")), rowType));
+            Assert.True(t.CanTranslate(Like(rex, tf, rex.makeLiteral("Wid!%"), rex.makeLiteral("!")), rowType));
+        }
+
+        [Fact]
+        public void ILike_IsNotTranslatable()
+        {
+            // ILIKE shares SqlKind.LIKE but is case-insensitive and has no EF Core target; translating it
+            // as a LIKE would silently change what it matches, so it must decline and fall back.
+            var (t, _, _, rex, tf) = Build();
+            var nameRef = rex.makeInputRef(tf.createSqlType(SqlTypeName.VARCHAR), 1);
+            var call = (RexCall)rex.makeCall(SqlLibraryOperators.ILIKE, nameRef, rex.makeLiteral("wid%"));
+
+            Assert.False(t.CanTranslate(call, RowType(tf)));
+        }
+
+        /// <summary>
+        /// Strips any <see cref="ExpressionType.Convert"/> wrapper the translator added.
+        /// </summary>
+        static Expression StripConvert(Expression expr)
+        {
+            return expr is UnaryExpression { NodeType: ExpressionType.Convert } convert ? convert.Operand : expr;
+        }
+
+        /// <summary>
+        /// Rebuilds the row type <see cref="Build"/> wires up, for the <c>CanTranslate</c> probes.
+        /// </summary>
+        static RelDataType RowType(RelDataTypeFactory tf)
+        {
+            var builder = tf.builder();
+            builder.add("Id", SqlTypeName.INTEGER);
+            builder.add("Name", SqlTypeName.VARCHAR);
+            builder.add("Price", SqlTypeName.DECIMAL);
+            builder.add("InStock", SqlTypeName.BOOLEAN);
+            builder.add("Score", SqlTypeName.DOUBLE);
+            return builder.build();
+        }
+
+        // -----------------------------------------------------------------------------------------
         // String functions
         // -----------------------------------------------------------------------------------------
 
