@@ -72,12 +72,18 @@ Sibling checkouts this project depends on:
   Calcite jars on first build; expect minutes, not seconds.
 - Tests are plain xunit on VSTest: `dotnet test src\Apache.Calcite.EntityFrameworkCore.Adapter.Tests`
   works and **`--filter` is honored** (unlike calcite-dotnet, which is on Microsoft.Testing.Platform).
-- Calcite comes in via `MavenReference` with versions inline in each project file: the shipping
-  projects (provider, Core, Adapter, sample) reference released **1.42.0**; the test projects
-  reference **1.43.0-SNAPSHOT**, which they need for calcite-server DML (the
-  `EnumerableTableModify` rewrite behind the mutable test stores). A test project's own 1.43
-  request wins over the 1.42 arriving transitively from the provider — each project resolves one
-  closure. IKVM.Maven.Sdk resolves from the repositories in `$(MavenAdditionalRepositories)`.
+- Calcite comes in via `MavenReference` with versions inline in each project file, and every
+  project — shipping, benchmark and test alike — is on **1.43.0-SNAPSHOT**. The test projects need
+  it for calcite-server DML (the `EnumerableTableModify` rewrite behind the mutable test stores);
+  the rest are on it because `Apache.Calcite.Data` is, and a closure merges to the higher version.
+  A declaration of 1.42 there would be advisory only: measured 2026-09-13, the shipping projects
+  declared 1.42.0 and every one of them still compiled against `calcite-core-1.43.0-SNAPSHOT.jar`,
+  which the `IkvmReferenceItemPrepare.cache` shows. They now say what they resolve.
+- **1.43 is where model-class filtering starts**, so it applies to shipped consumers rather than
+  only to tests: `ClassNameFilter` rejects every class a model JSON names unless
+  `calcite.model.classes.allowed` covers it, which is what the module initializers in the provider
+  and adapter are for. IKVM.Maven.Sdk resolves from the repositories in
+  `$(MavenAdditionalRepositories)`.
 - `FunctionalTests` is the EF Core relational **specification suite** (~25,000 tests, ~40 minutes).
   It runs **green with skips**: 23,117 pass / 0 fail / 2,092 skipped as of 2026-09-02 on Calcite
   1.43.0-SNAPSHOT + Apache.Calcite.Data 2.0.1-pre.11. Known-failing tests carry generated

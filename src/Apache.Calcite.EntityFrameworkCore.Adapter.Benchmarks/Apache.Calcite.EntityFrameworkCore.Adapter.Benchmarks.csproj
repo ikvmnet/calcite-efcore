@@ -27,8 +27,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <MavenReference Include="org.apache.calcite:calcite-linq4j" Version="1.42.0" />
-        <MavenReference Include="org.apache.calcite:calcite-core" Version="1.42.0" />
+        <MavenReference Include="org.apache.calcite:calcite-linq4j" Version="1.43.0-SNAPSHOT" />
+        <MavenReference Include="org.apache.calcite:calcite-core" Version="1.43.0-SNAPSHOT" />
     </ItemGroup>
 
     <ItemGroup>
