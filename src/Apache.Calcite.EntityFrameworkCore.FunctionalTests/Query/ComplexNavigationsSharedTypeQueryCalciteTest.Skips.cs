@@ -10,12 +10,6 @@ partial class ComplexNavigationsSharedTypeQueryCalciteTest
 {
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Contains_over_optional_navigation_with_null_column(bool async)
-    {
-        return base.Contains_over_optional_navigation_with_null_column(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task GroupBy_aggregate_where_required_relationship(bool async)
     {
         return base.GroupBy_aggregate_where_required_relationship(async);
@@ -31,12 +25,6 @@ partial class ComplexNavigationsSharedTypeQueryCalciteTest
     public override global::System.Threading.Tasks.Task GroupJoin_client_method_in_OrderBy(bool async)
     {
         return base.GroupJoin_client_method_in_OrderBy(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupJoin_in_subquery_with_client_projection_nested1(bool async)
-    {
-        return base.GroupJoin_in_subquery_with_client_projection_nested1(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]

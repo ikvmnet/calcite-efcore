@@ -10,18 +10,6 @@ partial class FromSqlQueryCalciteTest
 {
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Bad_data_error_handling_invalid_cast(bool async)
-    {
-        return base.Bad_data_error_handling_invalid_cast(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Bad_data_error_handling_invalid_cast_projection(bool async)
-    {
-        return base.Bad_data_error_handling_invalid_cast_projection(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Bad_data_error_handling_null(bool async)
     {
         return base.Bad_data_error_handling_null(async);

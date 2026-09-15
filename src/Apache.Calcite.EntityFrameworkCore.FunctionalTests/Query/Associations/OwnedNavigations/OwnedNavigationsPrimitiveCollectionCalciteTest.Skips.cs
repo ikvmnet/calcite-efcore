@@ -39,10 +39,4 @@ partial class OwnedNavigationsPrimitiveCollectionCalciteTest
         return base.Nested_Count();
     }
 
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_Sum()
-    {
-        return base.Select_Sum();
-    }
-
 }

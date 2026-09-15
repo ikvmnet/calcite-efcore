@@ -15,10 +15,4 @@ partial class AdHocPrecompiledQueryCalciteTest
         return base.Index_no_evaluatability();
     }
 
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Index_with_captured_variable()
-    {
-        return base.Index_with_captured_variable();
-    }
-
 }

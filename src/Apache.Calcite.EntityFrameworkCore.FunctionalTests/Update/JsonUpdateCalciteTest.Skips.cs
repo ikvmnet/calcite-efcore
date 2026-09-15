@@ -418,21 +418,9 @@ partial class JsonUpdateCalciteTest
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_dateonly()
-    {
-        return base.Edit_single_property_dateonly();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Edit_single_property_datetime()
     {
         return base.Edit_single_property_datetime();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_datetimeoffset()
-    {
-        return base.Edit_single_property_datetimeoffset();
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
@@ -589,12 +577,6 @@ partial class JsonUpdateCalciteTest
     public override global::System.Threading.Tasks.Task Edit_single_property_single()
     {
         return base.Edit_single_property_single();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_timeonly()
-    {
-        return base.Edit_single_property_timeonly();
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
