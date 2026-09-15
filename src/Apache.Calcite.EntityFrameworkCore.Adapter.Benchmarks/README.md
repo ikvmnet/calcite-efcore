@@ -48,9 +48,10 @@ artifact. It never times anything: a shared runner cannot produce a number worth
 both reports — so a shape that starts falling back shows up as a diff in that artifact rather than
 as a surprise in a table months later. Timings are a local exercise, on a machine you control.
 
-The stage is **report-only**: neither switch fails the job. `calcite-core` is a snapshot that moves
-under us, so a `--verify` failure is as likely to be that as a regression, and it is worth reading
-before it is worth blocking on. As of the first run, `Function_Trim` is the one failure here —
+The stage is **report-only**: neither switch fails the job. The layers below this one move on a
+`1.43.0-SNAPSHOT`, so a `--verify` failure is as likely to be breakage from below as a regression
+here, and it is worth reading before it is worth blocking on. As of the first run, `Function_Trim`
+is the one failure here —
 `RexToLinqTranslator` has no case for the `SYMBOL` literal (`FLAG(BOTH)`) Calcite's `TRIM` carries
 its side in, so a function the operator table below claims fails at implement time.
 

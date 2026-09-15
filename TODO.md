@@ -301,9 +301,48 @@ Alongside `String_Trim` above, `--verify` on `Apache.Calcite.EntityFrameworkCore
 | `Execute_Literal` | `InvalidOperationException: Sequence contains no elements` |
 | `Execute_Parameterized` | `InvalidOperationException: Sequence contains no elements` |
 
-These have not been separated into provider gaps and upstream drift. `Aggregate_LongCount` failing
-on an INTEGER that will not narrow to `Int64` has the same shape as the `java.util.UUID` ->
-`org.apache.calcite.util.UuidValue` cast now breaking `GuidKeyGenerationTests` and
-`AllTypesCrudTests`, which is a `calcite-core:1.43.0-SNAPSHOT` that moved under us rather than
-anything here. The four `Sequence contains no elements` failures are a scalar terminal coming back
-empty and could be either. Telling them apart wants a run against a pinned Calcite.
+These have not been separated into provider gaps and breakage from below. `Aggregate_LongCount`
+failing on an INTEGER that will not narrow to `Int64` has the same shape as the UUID break below —
+a 1.43 runtime representation the layers beneath this repo have not caught up with — and the four
+`Sequence contains no elements` failures are a scalar terminal coming back empty and could be
+either. Telling them apart wants a run against a Calcite carrying neither.
+
+## Calcite holds a UUID as UuidValue now, and calcite-dotnet still passes java.util.UUID (calcite-dotnet)
+
+Every write of a Guid fails:
+
+```
+System.InvalidCastException: Unable to cast object of type 'java.util.UUID'
+                             to type 'org.apache.calcite.util.UuidValue'.
+```
+
+[CALCITE-7716] added `org.apache.calcite.util.UuidValue`, whose own javadoc calls it "the value of a
+UUID `RexLiteral` and the runtime representation of a UUID". It wraps `java.util.UUID` because
+`UUID.compareTo` compares the two 64-bit halves as signed longs while SQL orders UUIDs as unsigned
+128-bit values. `RexBuilder`, `RexLiteral`, `SqlFunctions`, `JavaTypeFactoryImpl` and `BuiltInMethod`
+are all on the wrapper, so generated code casts to it.
+
+calcite-dotnet is still on the old representation throughout, several places saying so in comments:
+
+| file | what it assumes |
+|---|---|
+| `Apache.Calcite.Extensions/Interop/JavaUuids.cs` | converts `Guid` to and from `java.util.UUID` |
+| `Apache.Calcite.Data/Internal/CalciteValues.cs` | reads `java.util.UUID u => JavaUuids.ToGuid(u)` |
+| `Apache.Calcite.Data/Internal/CalciteResultValue.cs` | `GetGuid` reads a `java.util.UUID` and nothing else |
+| `Apache.Calcite.Data/Internal/CalciteResultColumns.cs` | "Calcite's runtime representation of a UUID is a java.util.UUID" |
+| `Apache.Calcite.Adapter.AdoNet/AdoReaderUtil.cs`, `AdoEnumerable.cs` | the same assumption on the ADO side |
+
+The fix is calcite-dotnet's, not this repo's: `JavaUuids` and those read paths go through
+`UuidValue`. Nothing here can work around it — this repo never names either type. It maps `Guid` to
+the SQL type `UUID` and lets the layers below carry the value.
+
+What it costs here while it stands: `FunctionalTests` 7,870 failed / 15,634 passed / 2,119 skipped
+against a baseline of 0 failed, because the spec fixtures seed through `SaveChanges`; the five
+Guid-touching tests in `EntityFrameworkCore.Tests` (`AllTypesCrudTests` x3, `GuidKeyGenerationTests`
+x2); and nothing in `Adapter.Tests`, which does not write.
+
+Not established: why `main` at `0c2c7f0` was green at 2026-09-14 22:12Z and the same tree plus a
+CI-only diff was red at 02:46Z. Calcite's source has not moved since 2026-08-30 and
+`Apache.Calcite.Data` is pinned at `2.0.1-pre.129`, so what differs has to be the resolved
+`1.43.0-SNAPSHOT` artifact. `repository.apache.org` was unreachable from where this was diagnosed,
+so the snapshot timestamps were never compared.
