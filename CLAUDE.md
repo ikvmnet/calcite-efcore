@@ -103,10 +103,16 @@ Sibling checkouts this project depends on:
   Neither project is packaged, but both are published by `src/dist-benchmarks` into `dist/benchmarks`
   alongside the test assemblies, so a benchmark that stops compiling is a red build. CI then runs
   them in a **`benchmark` stage beside `test`**, split by platform the same way: no timings — a
-  shared runner cannot produce a number worth keeping — but `--verify` on both suites, which is a
-  gate, and `--plans` on the adapter suite, whose report is uploaded either way. A shape that starts
-  falling back, or a benchmark this build can no longer answer, is therefore a red CI run on the
-  platform where it happened.
+  shared runner cannot produce a number worth keeping — but `--verify` on both suites and `--plans`
+  on the adapter suite. The stage is **report-only**: counts and failing names land in the job
+  summary, the whole report in a per-leg artifact, and neither switch fails the job or holds up
+  `release`. That is deliberate rather than provisional — the provider has real gaps and
+  `calcite-core` is a snapshot that moves under it, so a `--verify` failure is as likely to be
+  upstream drift as a regression. Measured 2026-09-15 on the first run of the stage: Adapter 153 ran
+  / 1 failed (`Function_Trim` — `RexToLinqTranslator` has no case for the `SYMBOL` literal Calcite's
+  `TRIM` takes its side as), provider 207 ran / 7 failed, identically on all four platforms. To make
+  it a gate: drop `continue-on-error` from **Verify Benchmarks** and put `benchmark` back in
+  `release`'s `needs`.
 - **Cluster a functional run before fixing anything**: run with
   `--logger "trx;LogFileName=run.trx" --results-directory TestResults\functional`, then
   `tools\cluster-trx.ps1 -Path <trx>` tallies failures by error fingerprint (unwrapping the

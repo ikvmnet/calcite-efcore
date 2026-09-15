@@ -265,3 +265,45 @@ every parameter to its own store type, which for a byte is `TINYINT UNSIGNED` �
 The fix is upstream, or a widening cast around the operands of an ordered comparison whose operands
 are unsigned — which has to name the containing signed type per unsigned type, and has no answer for
 `BIGINT UNSIGNED` short of `DECIMAL(20)`.
+
+## TRIM does not translate: no case for a SYMBOL literal
+
+Calcite gives `TRIM` its side as a symbol operand, so the rex reads
+`TRIM(FLAG(BOTH), ' ', $t3)`, and `RexToLinqTranslator` has no case for a symbol literal. The whole
+call fails to implement:
+
+```
+NotSupportedException: RexToLinqTranslator: unsupported literal value type 'Flag' (SQL type=SYMBOL)
+```
+
+surfaced as the usual `Unable to implement EfCoreToClrEnumerableConverter`. `TRIM` is in the
+adapter's operator table, so this is a function the table claims and the translator cannot do.
+
+`FLAG(BOTH)` is a `SqlTrimFunction.Flag`, one of `BOTH`, `LEADING`, `TRAILING`; the three map onto
+`string.Trim`, `TrimStart` and `TrimEnd`. A symbol is not a value to translate on its own — it
+selects which method the enclosing call becomes — so the fix belongs in the `TRIM` case, reading the
+flag off operand 0 rather than translating it, not in a general symbol-literal case.
+
+Found by the benchmark stage's `--verify`: `FunctionBenchmarks.Function_Trim` in the adapter suite
+and `StringFunctionBenchmarks.String_Trim` in the provider suite, on all four platforms.
+
+## Six more benchmarks the provider suite cannot answer
+
+Alongside `String_Trim` above, `--verify` on `Apache.Calcite.EntityFrameworkCore.Benchmarks` reports
+207 ran / 7 failed, identically on every platform (measured 2026-09-15):
+
+| benchmark | failure |
+|---|---|
+| `String_Length` | `The LINQ expression 'DbSet<Product>() …' could not be translated` |
+| `Aggregate_LongCount` | `InvalidCastException: Cannot convert value of type 'Integer' with value '1000' (SQL type: INTEGER) to 'Int64'` |
+| `Aggregate_CountWithPredicate` | `InvalidOperationException: Sequence contains no elements` |
+| `Execute_Compiled` | `InvalidOperationException: Sequence contains no elements` |
+| `Execute_Literal` | `InvalidOperationException: Sequence contains no elements` |
+| `Execute_Parameterized` | `InvalidOperationException: Sequence contains no elements` |
+
+These have not been separated into provider gaps and upstream drift. `Aggregate_LongCount` failing
+on an INTEGER that will not narrow to `Int64` has the same shape as the `java.util.UUID` ->
+`org.apache.calcite.util.UuidValue` cast now breaking `GuidKeyGenerationTests` and
+`AllTypesCrudTests`, which is a `calcite-core:1.43.0-SNAPSHOT` that moved under us rather than
+anything here. The four `Sequence contains no elements` failures are a scalar terminal coming back
+empty and could be either. Telling them apart wants a run against a pinned Calcite.

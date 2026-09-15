@@ -196,13 +196,19 @@ jobs:
       with:
         name: ${{ env.RET }}
         path: TestResults.tar.gz
-  # A timing from a shared runner is not a number worth keeping, so this stage runs the two switches that are
-  # worth gating on instead: `--verify` executes every benchmark once and exits non-zero naming the ones this
-  # build cannot answer, and `--plans` says which shapes reached the EfCore convention and which fell back. Both
-  # run in-process, so neither needs BenchmarkDotNet's toolchain to rebuild anything on the runner. Split by
-  # platform because that is where the answers differ: IKVM, the JVM and SQLite are all per-RID underneath, and a
-  # shape that plans on linux-x64 is not thereby known to plan on osx-arm64. Full timings stay local, per the
-  # suites' own READMEs.
+  # A timing from a shared runner is not a number worth keeping, so this stage runs the two switches that say
+  # something durable instead: `--verify` executes every benchmark once and names the ones this build cannot
+  # answer, and `--plans` says which shapes reached the EfCore convention and which fell back. Both run
+  # in-process, so neither needs BenchmarkDotNet's toolchain to rebuild anything on the runner. Split by platform
+  # because that is where the answers differ: IKVM, the JVM and SQLite are all per-RID underneath, and a shape
+  # that plans on linux-x64 is not thereby known to plan on osx-arm64. Full timings stay local, per the suites'
+  # own READMEs.
+  #
+  # Report-only, deliberately. The provider has real gaps and calcite-core is pinned to a snapshot that moves
+  # under it, so a --verify failure today is as likely to be upstream drift as a regression, and neither is
+  # something to block a merge on before anyone has read it. Every run leaves the counts and the failing names in
+  # the job summary and the whole report in an artifact. Turning this into a gate is dropping one
+  # `continue-on-error` and putting `benchmark` back in the release job's `needs`.
   benchmark:
     strategy:
       fail-fast: false
@@ -233,6 +239,8 @@ jobs:
     - name: Restore Benchmarks
       run: tar xzvf benchmarks.tar.gz
     - name: Verify Benchmarks
+      # A benchmark this build cannot answer marks the step, not the job: see the note on the job above.
+      continue-on-error: true
       timeout-minutes: 120
       shell: pwsh
       run: |
@@ -251,6 +259,7 @@ jobs:
       # The plan report is most wanted exactly when the verify above went red, so it is not skipped by it. Only
       # the adapter suite has plans to explain; the provider suite reaches Calcite through EF Core.
       if: always() && matrix.run == 'Apache.Calcite.EntityFrameworkCore.Adapter.Benchmarks'
+      continue-on-error: true
       timeout-minutes: 60
       shell: pwsh
       run: |
@@ -260,6 +269,39 @@ jobs:
         New-Item -ItemType Directory -Force -Path BenchmarkResults | Out-Null
         $dll = $(gi (Join-Path "benchmarks" $run $tfm "$run.dll"))
         dotnet $dll.FullName --plans | Tee-Object -FilePath (Join-Path "BenchmarkResults" "plans.txt")
+    # Without a gate the counts have to be readable without downloading anything, or a report nobody opens is the
+    # same as not running the benchmarks at all.
+    - name: Summarise Benchmark Results
+      if: always() && startsWith(env.BER, 'BenchmarkResults--')
+      shell: pwsh
+      run: |
+        $verify = Join-Path "BenchmarkResults" "verify.txt"
+        if ((Test-Path $verify) -eq $false) {
+            return
+        }
+
+        $lines = Get-Content $verify
+        $tally = $lines | Where-Object { $_ -match '^\d+ ran, \d+ failed\.$' }
+        $failed = $lines | Where-Object { $_ -match 'FAILED' } | ForEach-Object { $_.Trim() }
+
+        $summary = @("### ${{ matrix.run }} on ${{ matrix.sys }}", "")
+
+        if ($tally) {
+            $summary += $tally
+        } else {
+            $summary += "verify produced no tally"
+        }
+
+        if ($failed) {
+            # One exception can run to hundreds of characters; the artifact has them whole.
+            $short = $failed | ForEach-Object { if ($_.Length -gt 240) { $_.Substring(0, 240) + " ..." } else { $_ } }
+            $summary += @("", '```')
+            $summary += $short
+            $summary += '```'
+        }
+
+        $summary += ""
+        Add-Content $env:GITHUB_STEP_SUMMARY ($summary -join "`n")
     - name: Archive Benchmark Results
       if: always() && startsWith(env.BER, 'BenchmarkResults--')
       run: tar czvf BenchmarkResults.tar.gz BenchmarkResults
@@ -274,7 +316,6 @@ jobs:
     if: github.event_name != 'pull_request'
     needs:
     - test
-    - benchmark
     runs-on: ubuntu-22.04
     env:
       # One switch for the GitHub release and the nuget.org push together, so neither happens without the

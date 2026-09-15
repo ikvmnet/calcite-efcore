@@ -44,10 +44,15 @@ across runs.
 
 The `benchmark` stage runs beside `test`, on the same four platforms, over the same published
 artifact. It never times anything: a shared runner cannot produce a number worth keeping. It runs
-`--verify`, which is a gate — a benchmark this build cannot answer fails the job — and then
-`--plans`, whose report is uploaded whether the verify passed or not, so a shape that starts falling
-back shows up as a diff in that artifact rather than as a surprise in a table months later. Timings
-are a local exercise, on a machine you control.
+`--verify` and then `--plans`, puts the counts and any failing names in the job summary, and uploads
+both reports — so a shape that starts falling back shows up as a diff in that artifact rather than
+as a surprise in a table months later. Timings are a local exercise, on a machine you control.
+
+The stage is **report-only**: neither switch fails the job. `calcite-core` is a snapshot that moves
+under us, so a `--verify` failure is as likely to be that as a regression, and it is worth reading
+before it is worth blocking on. As of the first run, `Function_Trim` is the one failure here —
+`RexToLinqTranslator` has no case for the `SYMBOL` literal (`FLAG(BOTH)`) Calcite's `TRIM` carries
+its side in, so a function the operator table below claims fails at implement time.
 
 ## The store
 
