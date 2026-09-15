@@ -26,6 +26,23 @@ Calcite's `IllegalStateException` to the suppressed exception that says why. The
 translate everything EF Core can express and the gaps move as it improves, so this is worth a minute
 before committing to a run that takes an hour. `--clean` deletes the seeded databases.
 
+## In CI
+
+The `benchmark` stage runs beside `test`, on the same four platforms, over the same published
+artifact. It never times anything — a shared runner cannot produce a number worth keeping — it runs
+`--verify`, puts the counts and any failing names in the job summary, and uploads the report. Every
+feature in the table above is therefore exercised on every platform, every run, and you can see from
+the summary which ones this build answers without opening anything.
+
+The stage is **report-only**: a failure marks the step, not the job. The layers below this one move
+on a `1.43.0-SNAPSHOT`, so a `--verify` failure is as likely to be breakage from below as a
+regression here. As of the first run it is 207 ran / 7 failed — `String_Trim` (the `SYMBOL` gap the
+adapter suite's README describes), `String_Length`, `Aggregate_LongCount`,
+`Aggregate_CountWithPredicate` and the three
+`Execute_*`. What is *not* in the table above is not covered at all: the section below is still a
+list kept by hand, because a query that throws has no benchmark here to throw from. Timings are a
+local exercise, on a machine you control.
+
 ## What the Calcite column includes
 
 The store under Calcite is the same SQLite database the baseline reads directly, reached through

@@ -34,6 +34,7 @@
     <Project Path="src/Apache.Calcite.EntityFrameworkCore.Benchmarks/Apache.Calcite.EntityFrameworkCore.Benchmarks.csproj" />
   </Folder>
   <Folder Name="/src/dist/">
+    <Project Path="src/dist-benchmarks/dist-benchmarks.csproj" />
     <Project Path="src/dist-nuget/dist-nuget.csproj" />
     <Project Path="src/dist-tests/dist-tests.csproj" />
   </Folder>

@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.Build.NoTargets">
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <!-- The benchmark consoles are laid out exactly as dist-tests lays the test assemblies out, and for the
+         same reason: one build job publishes them RID-agnostic, and every platform in the matrix downloads
+         that one artifact rather than restoring and compiling Calcite through IKVM again for itself. -->
+    <ItemGroup>
+        <BenchmarkTarget Include="Apache.Calcite.EntityFrameworkCore.Adapter.Benchmarks|net10.0" ProjectName="Apache.Calcite.EntityFrameworkCore.Adapter.Benchmarks" TargetFramework="net10.0" />
+        <BenchmarkTarget Include="Apache.Calcite.EntityFrameworkCore.Benchmarks|net10.0" ProjectName="Apache.Calcite.EntityFrameworkCore.Benchmarks" TargetFramework="net10.0" />
+    </ItemGroup>
+
+    <!-- Runs once per TFM/RID combination to generate individual output. -->
+    <Target Name="GetCopyToOutputDirectoryItemsByBenchmarkTarget" BeforeTargets="BeforeBuild" Inputs="@(BenchmarkTarget)" Outputs="%(Identity)\null">
+
+        <!-- batch values to properties -->
+        <PropertyGroup>
+            <_ProjectName>%(BenchmarkTarget.ProjectName)</_ProjectName>
+            <_ProjectFile>%(BenchmarkTarget.ProjectFile)</_ProjectFile>
+            <_ProjectFile Condition=" '$(_ProjectFile)' == '' And Exists('..\$(_ProjectName)\$(_ProjectName).csproj') ">..\$(_ProjectName)\$(_ProjectName).csproj</_ProjectFile>
+            <_ProjectFile Condition=" '$(_ProjectFile)' == '' And Exists('..\$(_ProjectName)\$(_ProjectName).msbuildproj') ">..\$(_ProjectName)\$(_ProjectName).msbuildproj</_ProjectFile>
+            <_TargetFramework>%(BenchmarkTarget.TargetFramework)</_TargetFramework>
+        </PropertyGroup>
+
+        <!-- output for the TFM/RID -->
+        <ItemGroup>
+            <PublishProjectReference Include="$(_ProjectFile)">
+                <SetTargetFramework>TargetFramework=$(_TargetFramework)</SetTargetFramework>
+                <PublishTargetPath>$(_ProjectName)\$(_TargetFramework)</PublishTargetPath>
+                <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+                <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+            </PublishProjectReference>
+        </ItemGroup>
+    </Target>
+
+</Project>

@@ -66,10 +66,6 @@ jobs:
           /p:BuildInParallel=true \
           /p:ContinuousIntegrationBuild=true \
           Apache.Calcite.EntityFrameworkCore.dist.msbuildproj
-    - name: Build Benchmarks
-      run: |
-        dotnet build -c Release src/Apache.Calcite.EntityFrameworkCore.Adapter.Benchmarks/Apache.Calcite.EntityFrameworkCore.Adapter.Benchmarks.csproj
-        dotnet build -c Release src/Apache.Calcite.EntityFrameworkCore.Benchmarks/Apache.Calcite.EntityFrameworkCore.Benchmarks.csproj
     - name: Upload MSBuild Log
       if: ${{ always() }}
       uses: actions/upload-artifact@v4
@@ -89,8 +85,19 @@ jobs:
       with:
         name: tests
         path: dist/tests.tar.gz
+    - name: Package Benchmarks
+      run: tar czvf benchmarks.tar.gz benchmarks
+      working-directory: dist
+    - name: Upload Benchmarks
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmarks
+        path: dist/benchmarks.tar.gz
   test:
     strategy:
+      # One leg failing used to cancel the other eleven, which threw away the signal on exactly the run where it
+      # was wanted: a Guid failure on osx-arm64 says something quite different from the same failure everywhere.
+      fail-fast: false
       matrix:
         run:
         - Apache.Calcite.EntityFrameworkCore.Adapter.Tests
@@ -189,6 +196,121 @@ jobs:
       with:
         name: ${{ env.RET }}
         path: TestResults.tar.gz
+  # A timing from a shared runner is not a number worth keeping, so this stage runs the two switches that say
+  # something durable instead: `--verify` executes every benchmark once and names the ones this build cannot
+  # answer, and `--plans` says which shapes reached the EfCore convention and which fell back. Both run
+  # in-process, so neither needs BenchmarkDotNet's toolchain to rebuild anything on the runner. Split by platform
+  # because that is where the answers differ: IKVM, the JVM and SQLite are all per-RID underneath, and a shape
+  # that plans on linux-x64 is not thereby known to plan on osx-arm64. Full timings stay local, per the suites'
+  # own READMEs.
+  #
+  # Report-only, deliberately. The provider has real gaps and calcite-core is pinned to a snapshot that moves
+  # under it, so a --verify failure today is as likely to be upstream drift as a regression, and neither is
+  # something to block a merge on before anyone has read it. Every run leaves the counts and the failing names in
+  # the job summary and the whole report in an artifact. Turning this into a gate is dropping one
+  # `continue-on-error` and putting `benchmark` back in the release job's `needs`.
+  benchmark:
+    strategy:
+      fail-fast: false
+      matrix:
+        run:
+        - Apache.Calcite.EntityFrameworkCore.Adapter.Benchmarks
+        - Apache.Calcite.EntityFrameworkCore.Benchmarks
+        sys:
+        - win-x64
+        - linux-x64
+        - linux-arm64
+        - osx-arm64
+        tfm:
+        - net10.0
+    name: Benchmark (${{ matrix.run }}:${{ matrix.tfm }}:${{ matrix.sys }})
+    needs:
+    - build
+    runs-on: ${{ fromJSON('{"win-x64":["windows-2022"],"linux-x64":["ubuntu-22.04"],"linux-arm64":["ubuntu-22.04-arm"],"osx-x64":["macos-13"],"osx-arm64":["macos-14"]}')[matrix.sys] }}
+    steps:
+    - name: Setup .NET 9.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+    - name: Download Benchmarks
+      uses: actions/download-artifact@v4
+      with:
+        name: benchmarks
+    - name: Restore Benchmarks
+      run: tar xzvf benchmarks.tar.gz
+    - name: Verify Benchmarks
+      # A benchmark this build cannot answer marks the step, not the job: see the note on the job above.
+      continue-on-error: true
+      timeout-minutes: 120
+      shell: pwsh
+      run: |
+        $run = "${{ matrix.run }}"
+        $tfm = "${{ matrix.tfm }}"
+        $sys = "${{ matrix.sys }}"
+
+        New-Item -ItemType Directory -Force -Path BenchmarkResults | Out-Null
+        Add-Content $env:GITHUB_ENV "`nBER=BenchmarkResults--$run--$tfm--$sys"
+
+        # Resolve through the provider so the path separators are this platform's: the artifact is laid out by
+        # dist-benchmarks, and the string is handed to a native process that will not normalise it.
+        $dll = $(gi (Join-Path "benchmarks" $run $tfm "$run.dll"))
+        dotnet $dll.FullName --verify | Tee-Object -FilePath (Join-Path "BenchmarkResults" "verify.txt")
+    - name: Explain Plans
+      # The plan report is most wanted exactly when the verify above went red, so it is not skipped by it. Only
+      # the adapter suite has plans to explain; the provider suite reaches Calcite through EF Core.
+      if: always() && matrix.run == 'Apache.Calcite.EntityFrameworkCore.Adapter.Benchmarks'
+      continue-on-error: true
+      timeout-minutes: 60
+      shell: pwsh
+      run: |
+        $run = "${{ matrix.run }}"
+        $tfm = "${{ matrix.tfm }}"
+
+        New-Item -ItemType Directory -Force -Path BenchmarkResults | Out-Null
+        $dll = $(gi (Join-Path "benchmarks" $run $tfm "$run.dll"))
+        dotnet $dll.FullName --plans | Tee-Object -FilePath (Join-Path "BenchmarkResults" "plans.txt")
+    # Without a gate the counts have to be readable without downloading anything, or a report nobody opens is the
+    # same as not running the benchmarks at all.
+    - name: Summarise Benchmark Results
+      if: always() && startsWith(env.BER, 'BenchmarkResults--')
+      shell: pwsh
+      run: |
+        $verify = Join-Path "BenchmarkResults" "verify.txt"
+        if ((Test-Path $verify) -eq $false) {
+            return
+        }
+
+        $lines = Get-Content $verify
+        $tally = $lines | Where-Object { $_ -match '^\d+ ran, \d+ failed\.$' }
+        $failed = $lines | Where-Object { $_ -match 'FAILED' } | ForEach-Object { $_.Trim() }
+
+        $summary = @("### ${{ matrix.run }} on ${{ matrix.sys }}", "")
+
+        if ($tally) {
+            $summary += $tally
+        } else {
+            $summary += "verify produced no tally"
+        }
+
+        if ($failed) {
+            # One exception can run to hundreds of characters; the artifact has them whole.
+            $short = $failed | ForEach-Object { if ($_.Length -gt 240) { $_.Substring(0, 240) + " ..." } else { $_ } }
+            $summary += @("", '```')
+            $summary += $short
+            $summary += '```'
+        }
+
+        $summary += ""
+        Add-Content $env:GITHUB_STEP_SUMMARY ($summary -join "`n")
+    - name: Archive Benchmark Results
+      if: always() && startsWith(env.BER, 'BenchmarkResults--')
+      run: tar czvf BenchmarkResults.tar.gz BenchmarkResults
+    - name: Upload Benchmark Results
+      if: always() && startsWith(env.BER, 'BenchmarkResults--')
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.BER }}
+        path: BenchmarkResults.tar.gz
   release:
     name: Release
     if: github.event_name != 'pull_request'

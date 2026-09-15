@@ -100,8 +100,20 @@ Sibling checkouts this project depends on:
   cannot answer, and the adapter suite's `-- --plans` says which shapes reached the EfCore
   convention and which fell back — a shape that falls back is not slow, it is not being done.
   The seeded stores live under the temp directory and are reused; `-- --clean` discards them.
-  Neither project is packaged or in the CI test matrix, but the build job compiles both, so a
-  benchmark that stops compiling is a red build.
+  Neither project is packaged, but both are published by `src/dist-benchmarks` into `dist/benchmarks`
+  alongside the test assemblies, so a benchmark that stops compiling is a red build. CI then runs
+  them in a **`benchmark` stage beside `test`**, split by platform the same way: no timings — a
+  shared runner cannot produce a number worth keeping — but `--verify` on both suites and `--plans`
+  on the adapter suite. The stage is **report-only**: counts and failing names land in the job
+  summary, the whole report in a per-leg artifact, and neither switch fails the job or holds up
+  `release`. That is deliberate rather than provisional — the provider has real gaps, and the layers
+  below it move on a `1.43.0-SNAPSHOT` whose runtime representations have changed under us before
+  (see the `UuidValue` item in `TODO.md`), so a `--verify` failure is as likely to be breakage from
+  below as a regression here. Measured 2026-09-15 on the first run of the stage: Adapter 153 ran
+  / 1 failed (`Function_Trim` — `RexToLinqTranslator` has no case for the `SYMBOL` literal Calcite's
+  `TRIM` takes its side as), provider 207 ran / 7 failed, identically on all four platforms. To make
+  it a gate: drop `continue-on-error` from **Verify Benchmarks** and put `benchmark` back in
+  `release`'s `needs`.
 - **Cluster a functional run before fixing anything**: run with
   `--logger "trx;LogFileName=run.trx" --results-directory TestResults\functional`, then
   `tools\cluster-trx.ps1 -Path <trx>` tallies failures by error fingerprint (unwrapping the

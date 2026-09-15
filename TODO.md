@@ -265,3 +265,84 @@ every parameter to its own store type, which for a byte is `TINYINT UNSIGNED` �
 The fix is upstream, or a widening cast around the operands of an ordered comparison whose operands
 are unsigned — which has to name the containing signed type per unsigned type, and has no answer for
 `BIGINT UNSIGNED` short of `DECIMAL(20)`.
+
+## TRIM does not translate: no case for a SYMBOL literal
+
+Calcite gives `TRIM` its side as a symbol operand, so the rex reads
+`TRIM(FLAG(BOTH), ' ', $t3)`, and `RexToLinqTranslator` has no case for a symbol literal. The whole
+call fails to implement:
+
+```
+NotSupportedException: RexToLinqTranslator: unsupported literal value type 'Flag' (SQL type=SYMBOL)
+```
+
+surfaced as the usual `Unable to implement EfCoreToClrEnumerableConverter`. `TRIM` is in the
+adapter's operator table, so this is a function the table claims and the translator cannot do.
+
+`FLAG(BOTH)` is a `SqlTrimFunction.Flag`, one of `BOTH`, `LEADING`, `TRAILING`; the three map onto
+`string.Trim`, `TrimStart` and `TrimEnd`. A symbol is not a value to translate on its own — it
+selects which method the enclosing call becomes — so the fix belongs in the `TRIM` case, reading the
+flag off operand 0 rather than translating it, not in a general symbol-literal case.
+
+Found by the benchmark stage's `--verify`: `FunctionBenchmarks.Function_Trim` in the adapter suite
+and `StringFunctionBenchmarks.String_Trim` in the provider suite, on all four platforms.
+
+## Six more benchmarks the provider suite cannot answer
+
+Alongside `String_Trim` above, `--verify` on `Apache.Calcite.EntityFrameworkCore.Benchmarks` reports
+207 ran / 7 failed, identically on every platform (measured 2026-09-15):
+
+| benchmark | failure |
+|---|---|
+| `String_Length` | `The LINQ expression 'DbSet<Product>() …' could not be translated` |
+| `Aggregate_LongCount` | `InvalidCastException: Cannot convert value of type 'Integer' with value '1000' (SQL type: INTEGER) to 'Int64'` |
+| `Aggregate_CountWithPredicate` | `InvalidOperationException: Sequence contains no elements` |
+| `Execute_Compiled` | `InvalidOperationException: Sequence contains no elements` |
+| `Execute_Literal` | `InvalidOperationException: Sequence contains no elements` |
+| `Execute_Parameterized` | `InvalidOperationException: Sequence contains no elements` |
+
+These have not been separated into provider gaps and breakage from below. `Aggregate_LongCount`
+failing on an INTEGER that will not narrow to `Int64` has the same shape as the UUID break below —
+a 1.43 runtime representation the layers beneath this repo have not caught up with — and the four
+`Sequence contains no elements` failures are a scalar terminal coming back empty and could be
+either. Telling them apart wants a run against a Calcite carrying neither.
+
+## Calcite holds a UUID as UuidValue now, and calcite-dotnet still passes java.util.UUID (calcite-dotnet)
+
+Every write of a Guid fails:
+
+```
+System.InvalidCastException: Unable to cast object of type 'java.util.UUID'
+                             to type 'org.apache.calcite.util.UuidValue'.
+```
+
+[CALCITE-7716] added `org.apache.calcite.util.UuidValue`, whose own javadoc calls it "the value of a
+UUID `RexLiteral` and the runtime representation of a UUID". It wraps `java.util.UUID` because
+`UUID.compareTo` compares the two 64-bit halves as signed longs while SQL orders UUIDs as unsigned
+128-bit values. `RexBuilder`, `RexLiteral`, `SqlFunctions`, `JavaTypeFactoryImpl` and `BuiltInMethod`
+are all on the wrapper, so generated code casts to it.
+
+calcite-dotnet is still on the old representation throughout, several places saying so in comments:
+
+| file | what it assumes |
+|---|---|
+| `Apache.Calcite.Extensions/Interop/JavaUuids.cs` | converts `Guid` to and from `java.util.UUID` |
+| `Apache.Calcite.Data/Internal/CalciteValues.cs` | reads `java.util.UUID u => JavaUuids.ToGuid(u)` |
+| `Apache.Calcite.Data/Internal/CalciteResultValue.cs` | `GetGuid` reads a `java.util.UUID` and nothing else |
+| `Apache.Calcite.Data/Internal/CalciteResultColumns.cs` | "Calcite's runtime representation of a UUID is a java.util.UUID" |
+| `Apache.Calcite.Adapter.AdoNet/AdoReaderUtil.cs`, `AdoEnumerable.cs` | the same assumption on the ADO side |
+
+The fix is calcite-dotnet's, not this repo's: `JavaUuids` and those read paths go through
+`UuidValue`. Nothing here can work around it — this repo never names either type. It maps `Guid` to
+the SQL type `UUID` and lets the layers below carry the value.
+
+What it costs here while it stands: `FunctionalTests` 7,870 failed / 15,634 passed / 2,119 skipped
+against a baseline of 0 failed, because the spec fixtures seed through `SaveChanges`; the five
+Guid-touching tests in `EntityFrameworkCore.Tests` (`AllTypesCrudTests` x3, `GuidKeyGenerationTests`
+x2); and nothing in `Adapter.Tests`, which does not write.
+
+Not established: why `main` at `0c2c7f0` was green at 2026-09-14 22:12Z and the same tree plus a
+CI-only diff was red at 02:46Z. Calcite's source has not moved since 2026-08-30 and
+`Apache.Calcite.Data` is pinned at `2.0.1-pre.129`, so what differs has to be the resolved
+`1.43.0-SNAPSHOT` artifact. `repository.apache.org` was unreachable from where this was diagnosed,
+so the snapshot timestamps were never compared.

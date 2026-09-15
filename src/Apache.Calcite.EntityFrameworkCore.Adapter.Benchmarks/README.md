@@ -40,6 +40,21 @@ run that takes an hour.
 `--clean` deletes the seeded databases, which live under the temporary directory and are reused
 across runs.
 
+## In CI
+
+The `benchmark` stage runs beside `test`, on the same four platforms, over the same published
+artifact. It never times anything: a shared runner cannot produce a number worth keeping. It runs
+`--verify` and then `--plans`, puts the counts and any failing names in the job summary, and uploads
+both reports — so a shape that starts falling back shows up as a diff in that artifact rather than
+as a surprise in a table months later. Timings are a local exercise, on a machine you control.
+
+The stage is **report-only**: neither switch fails the job. The layers below this one move on a
+`1.43.0-SNAPSHOT`, so a `--verify` failure is as likely to be breakage from below as a regression
+here, and it is worth reading before it is worth blocking on. As of the first run, `Function_Trim`
+is the one failure here —
+`RexToLinqTranslator` has no case for the `SYMBOL` literal (`FLAG(BOTH)`) Calcite's `TRIM` carries
+its side in, so a function the operator table below claims fails at implement time.
+
 ## The store
 
 One SQLite database, seeded deterministically by `BenchmarkUtilities`, registered on the Calcite
