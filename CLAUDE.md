@@ -100,8 +100,13 @@ Sibling checkouts this project depends on:
   cannot answer, and the adapter suite's `-- --plans` says which shapes reached the EfCore
   convention and which fell back — a shape that falls back is not slow, it is not being done.
   The seeded stores live under the temp directory and are reused; `-- --clean` discards them.
-  Neither project is packaged or in the CI test matrix, but the build job compiles both, so a
-  benchmark that stops compiling is a red build.
+  Neither project is packaged, but both are published by `src/dist-benchmarks` into `dist/benchmarks`
+  alongside the test assemblies, so a benchmark that stops compiling is a red build. CI then runs
+  them in a **`benchmark` stage beside `test`**, split by platform the same way: no timings — a
+  shared runner cannot produce a number worth keeping — but `--verify` on both suites, which is a
+  gate, and `--plans` on the adapter suite, whose report is uploaded either way. A shape that starts
+  falling back, or a benchmark this build can no longer answer, is therefore a red CI run on the
+  platform where it happened.
 - **Cluster a functional run before fixing anything**: run with
   `--logger "trx;LogFileName=run.trx" --results-directory TestResults\functional`, then
   `tools\cluster-trx.ps1 -Path <trx>` tallies failures by error fingerprint (unwrapping the

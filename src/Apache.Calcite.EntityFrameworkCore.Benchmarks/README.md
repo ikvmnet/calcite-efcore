@@ -26,6 +26,16 @@ Calcite's `IllegalStateException` to the suppressed exception that says why. The
 translate everything EF Core can express and the gaps move as it improves, so this is worth a minute
 before committing to a run that takes an hour. `--clean` deletes the seeded databases.
 
+## In CI
+
+The `benchmark` stage runs beside `test`, on the same four platforms, over the same published
+artifact. It never times anything — a shared runner cannot produce a number worth keeping — it runs
+`--verify` and fails the job on any benchmark this build cannot answer, uploading the report either
+way. Every feature in the table above is therefore held to still working, on every platform, and on
+the one where it stopped. What is *not* in that table is not covered: the section below is still a
+list kept by hand, because a query that throws has no benchmark here to throw from. Timings are a
+local exercise, on a machine you control.
+
 ## What the Calcite column includes
 
 The store under Calcite is the same SQLite database the baseline reads directly, reached through
