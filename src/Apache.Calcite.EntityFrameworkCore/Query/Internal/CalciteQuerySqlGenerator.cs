@@ -85,7 +85,79 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
             if (node is CalciteBinaryExpression calciteBinary)
                 return VisitCalciteBinary(calciteBinary);
 
+            if (node is CalciteUnnestExpression unnest)
+                return VisitUnnest(unnest);
+
             return base.Visit(node);
+        }
+
+        /// <summary>
+        /// Generates a <c>CROSS APPLY</c> over an <c>UNNEST</c> as a <c>CROSS JOIN</c>.
+        /// </summary>
+        /// <remarks>
+        /// Calcite rejects <c>APPLY</c> outright at its default conformance level, and does not need
+        /// it here: an <c>UNNEST</c> over a column of a preceding table is already lateral to it, so
+        /// a plain join expresses exactly what the apply asked for. Only <c>UNNEST</c> is rewritten —
+        /// a correlated subquery still generates an apply, and still needs whatever answer that gap
+        /// eventually gets.
+        /// </remarks>
+        /// <param name="crossApplyExpression"></param>
+        /// <returns></returns>
+        protected override Expression VisitCrossApply(CrossApplyExpression crossApplyExpression)
+        {
+            if (crossApplyExpression.Table is not CalciteUnnestExpression)
+                return base.VisitCrossApply(crossApplyExpression);
+
+            Sql.Append("CROSS JOIN ");
+            Visit(crossApplyExpression.Table);
+
+            return crossApplyExpression;
+        }
+
+        /// <summary>
+        /// Generates an <c>OUTER APPLY</c> over an <c>UNNEST</c> as a <c>LEFT JOIN … ON TRUE</c>,
+        /// which keeps the rows whose array is null or empty.
+        /// </summary>
+        /// <param name="outerApplyExpression"></param>
+        /// <returns></returns>
+        protected override Expression VisitOuterApply(OuterApplyExpression outerApplyExpression)
+        {
+            if (outerApplyExpression.Table is not CalciteUnnestExpression)
+                return base.VisitOuterApply(outerApplyExpression);
+
+            Sql.Append("LEFT JOIN ");
+            Visit(outerApplyExpression.Table);
+            Sql.Append(" ON TRUE");
+
+            return outerApplyExpression;
+        }
+
+        /// <summary>
+        /// Generates <c>UNNEST(&lt;array&gt;) WITH ORDINALITY AS alias(value, ord)</c> for a
+        /// <see cref="CalciteUnnestExpression"/>.
+        /// </summary>
+        /// <remarks>
+        /// The column names must be given: <c>UNNEST</c> names its output columns positionally and
+        /// the generated SQL refers to them by the names the translation chose. No <c>LATERAL</c> is
+        /// written — Calcite reads an <c>UNNEST</c> over a column of a preceding table as lateral
+        /// already, and the keyword is not accepted in every position the base places this in.
+        /// </remarks>
+        /// <param name="node"></param>
+        /// <returns></returns>
+        protected virtual Expression VisitUnnest(CalciteUnnestExpression node)
+        {
+            Sql.Append("UNNEST(");
+            Visit(node.Array);
+            Sql.Append(") WITH ORDINALITY")
+                .Append(AliasSeparator)
+                .Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(node.Alias))
+                .Append("(")
+                .Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(CalciteUnnestExpression.ValueColumnName))
+                .Append(", ")
+                .Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(CalciteUnnestExpression.OrdinalityColumnName))
+                .Append(")");
+
+            return node;
         }
 
         /// <summary>

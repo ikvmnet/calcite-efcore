@@ -34,6 +34,29 @@ cannot generate or return keys), and the test projects wire HiLo/MAX-seeded stra
 overrides (`CalciteTestStoreFactory.AddProviderServices`, or `ReplaceService` for contexts built
 outside the factory). Do not move those into the provider.
 
+**A primitive collection is an `ARRAY`, not a JSON string.** Calcite has a native array type, so
+`CalciteTypeMappingSource.FindCollectionMapping` maps a `List<T>`/`T[]` property to
+`<element> ARRAY` — the postfix form Calcite's DDL parser accepts, since `ARRAY<VARCHAR>` is
+rejected — rather than composing the `CollectionToJsonStringConverter` over a `VARCHAR` that the
+relational base falls back to. This is a deliberate divergence from every other provider: the
+column holds what a reader hands back, what `UNNEST` takes, and what someone writing the SQL by
+hand would expect. Declaring a non-collection store type (`TypeName = "VARCHAR"`) still reaches the
+JSON fallback, which is the escape hatch. Query-side, `TranslatePrimitiveCollection` expands the
+column with `UNNEST(x) WITH ORDINALITY AS a(value, ord)`; the ordinality is always requested,
+because it is what makes indexing and the ordered operators well defined.
+
+**A `byte[]` is binary, not an array of bytes**, and stays `VARBINARY` even where the model declares
+it a primitive collection: it resolves by CLR type in `_clrTypeMappings` before the collection path
+is reached. Nothing else built out of bytes has that reading to keep, so a `List<byte>` is
+`TINYINT UNSIGNED ARRAY` and an `sbyte[]` is `TINYINT ARRAY`. `ArrayColumnTests` locks all three.
+
+**`ARRAY` is used only where the driver round-trips it**, which two allowlists in that same class
+decide: one of element types, one of collection types. A property outside either keeps the JSON
+storage, so the fallback is not dead code — `char`, `DateOnly` and `TimeOnly` elements and the
+`ReadOnlyCollection`/`ObservableCollection` families all still take it. `ArrayElementMatrixTests`
+is the measurement those lists are drawn from; widen it before widening them, and see the
+calcite-dotnet items in `TODO.md` for what has to move first.
+
 The adapter has exactly **one outgoing converter**: `EfCoreToClrEnumerableConverter`, into
 `ClrEnumerableConvention`. That convention has two bodies per node rather than a second convention:
 `Implement` is pulled, `ImplementAsync` awaits, and which one runs is decided by the root member the

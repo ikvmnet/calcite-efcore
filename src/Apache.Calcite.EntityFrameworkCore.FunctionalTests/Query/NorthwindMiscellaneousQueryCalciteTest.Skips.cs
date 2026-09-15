@@ -22,12 +22,6 @@ partial class NorthwindMiscellaneousQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Anonymous_subquery_orderby(bool async)
-    {
-        return base.Anonymous_subquery_orderby(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task AsQueryable_in_query_server_evals(bool async)
     {
         return base.AsQueryable_in_query_server_evals(async);
@@ -58,21 +52,9 @@ partial class NorthwindMiscellaneousQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Complex_query_with_repeated_nested_query_model_compiles_correctly(bool async)
-    {
-        return base.Complex_query_with_repeated_nested_query_model_compiles_correctly(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Contains_with_DateTime_Date(bool async)
     {
         return base.Contains_with_DateTime_Date(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task DTO_subquery_orderby(bool async)
-    {
-        return base.DTO_subquery_orderby(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
@@ -88,21 +70,9 @@ partial class NorthwindMiscellaneousQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Handle_materialization_properly_when_more_than_two_query_sources_are_involved(bool async)
-    {
-        return base.Handle_materialization_properly_when_more_than_two_query_sources_are_involved(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Max_on_empty_sequence_throws(bool async)
     {
         return base.Max_on_empty_sequence_throws(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task OrderBy_correlated_subquery2(bool async)
-    {
-        return base.OrderBy_correlated_subquery2(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]

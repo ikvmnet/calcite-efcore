@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 
 using Apache.Calcite.EntityFrameworkCore.Storage.Internal.Mapping;
+using Apache.Calcite.EntityFrameworkCore.Utilities;
 
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -60,6 +61,71 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
         };
 
         /// <summary>
+        /// The element types a primitive collection is stored as an <c>ARRAY</c> of.
+        /// </summary>
+        /// <remarks>
+        /// An allowlist rather than a denylist, because the cost of being wrong runs one way: an
+        /// element type the driver cannot read back out of a collection fails at materialization,
+        /// where the JSON storage it would otherwise have had works. The types left out are the ones
+        /// whose CLR form differs from what Calcite's runtime holds, which the driver converts for a
+        /// scalar but not for an element — <c>char</c> arrives as a string, a <c>DATE</c> as a
+        /// <see cref="DateTime"/> rather than a <see cref="DateOnly"/>, an enum as its integer. See
+        /// the ARRAY element item in <c>TODO.md</c>; each one moves here once the driver coerces it.
+        /// </remarks>
+        static readonly HashSet<Type> _arrayElementTypes =
+        [
+            typeof(bool),
+            typeof(byte),
+            typeof(sbyte),
+            typeof(short),
+            typeof(ushort),
+            typeof(int),
+            typeof(uint),
+            typeof(long),
+            typeof(ulong),
+            typeof(float),
+            typeof(double),
+            typeof(decimal),
+            typeof(string),
+            typeof(Guid),
+            typeof(DateTime),
+            typeof(DateTimeOffset),
+        ];
+
+        /// <summary>
+        /// The collection types a primitive collection is stored as an <c>ARRAY</c> of.
+        /// </summary>
+        /// <remarks>
+        /// The reader builds the collection the property asks for, and it knows how to build these.
+        /// A type it does not know — <see cref="System.Collections.ObjectModel.ReadOnlyCollection{T}"/>
+        /// and <see cref="System.Collections.ObjectModel.ObservableCollection{T}"/> among them —
+        /// fails at materialization, so those keep the JSON storage, which builds the collection in
+        /// EF rather than in the driver. An array is handled separately: it is not a generic type.
+        /// </remarks>
+        static readonly HashSet<Type> _arrayCollectionTypes =
+        [
+            typeof(List<>),
+            typeof(IList<>),
+            typeof(ICollection<>),
+            typeof(IEnumerable<>),
+            typeof(IReadOnlyList<>),
+            typeof(IReadOnlyCollection<>),
+            typeof(HashSet<>),
+            typeof(ISet<>),
+        ];
+
+        /// <summary>
+        /// Returns whether a CLR collection type is one the reader can build.
+        /// </summary>
+        /// <param name="collectionType"></param>
+        /// <returns></returns>
+        static bool IsSupportedArrayCollection(Type collectionType)
+        {
+            return collectionType.IsArray
+                || (collectionType.IsGenericType && _arrayCollectionTypes.Contains(collectionType.GetGenericTypeDefinition()));
+        }
+
+        /// <summary>
         /// Store type names that resolve to the decimal mapping, which is built from the parsed
         /// precision and scale rather than looked up.
         /// </summary>
@@ -88,6 +154,63 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
                 return _jsonTypeMapping;
 
             return base.FindMapping(mappingInfo) ?? FindRawMapping(mappingInfo);
+        }
+
+        /// <summary>
+        /// Maps a CLR collection onto a Calcite <c>ARRAY</c> column rather than onto the JSON string
+        /// the relational base falls back to.
+        /// </summary>
+        /// <remarks>
+        /// This is the hook the base calls once nothing has mapped the collection type itself, which
+        /// is where <see cref="RelationalTypeMappingSource"/> would compose a
+        /// <c>CollectionToJsonStringConverter</c> over a <c>VARCHAR</c>. Calcite has a native array
+        /// type, so a primitive collection belongs in one: it is what a reader hands back, what
+        /// <c>UNNEST</c> takes, and what someone writing the SQL by hand would expect to find in the
+        /// column. A store type the model declares is honored whether or not it names a collection,
+        /// so a property can still be pinned to JSON text by asking for <c>VARCHAR</c>.
+        ///
+        /// <para>The structural comparer and the JSON reader/writer come from the base's own
+        /// <see cref="TypeMappingSourceBase.TryFindJsonCollectionMapping"/>: only the storage
+        /// strategy changes here, and a collection nested inside a JSON document still reads and
+        /// writes through the same machinery every other provider uses.</para>
+        /// </remarks>
+        /// <param name="info"></param>
+        /// <param name="modelType"></param>
+        /// <param name="providerType"></param>
+        /// <param name="elementMapping"></param>
+        /// <returns></returns>
+        protected override RelationalTypeMapping? FindCollectionMapping(RelationalTypeMappingInfo info, Type modelType, Type? providerType, CoreTypeMapping? elementMapping)
+        {
+            // a declared store type that is not a collection is a deliberate choice of storage, and
+            // JSON text in a VARCHAR remains reachable that way
+            var storeTypeName = info.StoreTypeName;
+            if (storeTypeName != null && CalciteArrayTypeMapping.GetElementStoreTypeName(storeTypeName) is null)
+                return base.FindCollectionMapping(info, modelType, providerType, elementMapping);
+
+            if (!TryFindJsonCollectionMapping(info.CoreTypeMappingInfo, modelType, providerType, ref elementMapping, out var collectionComparer, out var collectionReaderWriter))
+                return null;
+
+            if (elementMapping is not RelationalTypeMapping relationalElementMapping)
+                return base.FindCollectionMapping(info, modelType, providerType, elementMapping);
+
+            // a collection the reader cannot build, or an element it cannot read back, keeps the
+            // JSON storage — where neither passes through the driver's own conversion at all
+            if (!IsSupportedArrayCollection(modelType) || !_arrayElementTypes.Contains(relationalElementMapping.ClrType.UnwrapNullableType()))
+                return base.FindCollectionMapping(info, modelType, providerType, elementMapping);
+
+            // the element's own store type is what the column's name is built from, and a declared
+            // one wins over whatever the element's CLR type resolved to
+            if (CalciteArrayTypeMapping.GetElementStoreTypeName(storeTypeName) is { } declaredElementStoreType &&
+                !string.Equals(declaredElementStoreType, relationalElementMapping.StoreType, StringComparison.OrdinalIgnoreCase) &&
+                FindMapping(relationalElementMapping.ClrType, declaredElementStoreType) is { } redeclared)
+                relationalElementMapping = redeclared;
+
+            return new CalciteArrayTypeMapping(
+                storeTypeName ?? CalciteArrayTypeMapping.GetCollectionStoreTypeName(relationalElementMapping.StoreType),
+                modelType,
+                relationalElementMapping,
+                collectionComparer,
+                collectionReaderWriter);
         }
 
         /// <summary>

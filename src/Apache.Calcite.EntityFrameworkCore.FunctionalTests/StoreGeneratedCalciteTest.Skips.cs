@@ -226,18 +226,6 @@ partial class StoreGeneratedCalciteTest
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Insert_update_and_delete_with_StringAsGuid_key()
-    {
-        return base.Insert_update_and_delete_with_StringAsGuid_key();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Insert_update_and_delete_with_wrapped_Guid_key()
-    {
-        return base.Insert_update_and_delete_with_wrapped_Guid_key();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Nullable_fields_get_defaults_when_not_set()
     {
         return base.Nullable_fields_get_defaults_when_not_set();

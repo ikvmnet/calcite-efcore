@@ -182,6 +182,89 @@ collection, so the model never builds. Providers that carry the suite map those 
 JSON columns, which takes the property off the primitive-collection path entirely. Deriving the
 class today buys 219 skips and no coverage — do it once JSON column mapping exists.
 
+## A parameter collection cannot be unnested
+
+`TranslatePrimitiveCollection` declines a `SqlParameterExpression` and lets the relational base
+expand the parameter instead, because Calcite gives a bare `?` the type `UNKNOWN` and rejects
+`UNNEST(?)` at validation: *Cannot apply 'UNNEST' to arguments of type 'UNNEST(&lt;UNKNOWN&gt;)'*.
+Measured 2026-09-15 on 1.43.0-SNAPSHOT, a cast fixes the validation — `UNNEST(CAST(? AS VARCHAR
+ARRAY))` plans and runs — so the translation is within reach; the mapping knows the store type to
+cast to. What is not within reach the same way is ordinality: `UNNEST(CAST(? AS VARCHAR ARRAY))
+WITH ORDINALITY` plans and then dies at runtime with `InvalidCastException: Unable to cast object
+of type 'Flat2List' to type 'System.Object[]'`, and so does a non-correlated `UNNEST(ARRAY[...])
+WITH ORDINALITY` over a literal. The same ordinality over a **correlated** array — a column of a
+preceding table — is fine, which is why column collections work and these do not. Diagnose that
+runtime failure in Calcite's enumerable `UNNEST` before translating parameters, or translate them
+without ordinality and give up the ordered operators for that case.
+
+## Widen what an ARRAY column can hold (calcite-dotnet)
+
+`ARRAY` storage is restricted to what the driver measurably round-trips, and the two allowlists in
+`CalciteTypeMappingSource` are where that restriction lives. Everything outside them keeps the JSON
+text storage, which is correct but is not what the column should be. `ArrayElementMatrixTests` is
+the measurement both lists are drawn from — extend it first, move the type second.
+
+**Element types left out**, each because the driver hands back what Calcite's runtime holds rather
+than what the element asked for. Measured 2026-09-15 on 1.43.0-SNAPSHOT with
+`GetFieldValue<List<T>>` over a column of that type:
+
+| element | failure |
+|---|---|
+| `char` | *Cannot convert value of type 'String' to 'Char'* |
+| `DateOnly` | *Cannot convert value of type 'DateTime' to 'DateOnly'* |
+| `TimeOnly` | *Cannot convert value of type 'TimeSpan' to 'TimeOnly'* |
+
+The scalar accessors for all three work — `GetChar`, `GetDateOnly`, `GetTimeOnly` each take the
+right path — so the gap is that `CalciteValues.Coerce` does not take those paths for an element
+**inside** a collection. Fix it there rather than by unpacking and re-packing collections in the
+provider. Note the write direction is already handled here: `CalciteArrayTypeMapping.ConfigureParameter`
+converts elements through the element mapping's converter, which is what makes an enum collection
+writable.
+
+**Collection types left out**: the driver builds `List<>`, `IList<>`, `ICollection<>`,
+`IEnumerable<>`, `IReadOnlyList<>`, `IReadOnlyCollection<>`, `ISet<>`, `HashSet<>` and arrays, and
+nothing else — so `ReadOnlyCollection<T>`, `ObservableCollection<T>` and `Collection<T>` fall back
+to JSON. Adding them to `CalciteValues.TryConvertCollection` is a few lines each.
+
+## DISTINCT over a row holding an ARRAY fails in the CLR runtime (calcite-dotnet)
+
+Six `ComplexTypeQuery` spec tests regressed when primitive collections became `ARRAY` columns, and
+they are the one accepted cost of that change. `Address.Tags` is a `List<string>` inside a complex
+type, so it is now an `ARRAY` column, and the three shapes that push the whole complex type through
+a `DISTINCT` over an ordered subquery — `Filter_on_property_inside_complex_type_after_subquery`,
+its `nested` variant, and `Project_same_nested_complex_type_twice_with_double_pushdown`, each
+async and sync — fail with *Unable to cast object of type 'java.util.ArrayList' to type
+'System.IComparable'*.
+
+`System.IComparable` places this in **Apache.Calcite.Extensions**' CLR enumerable runtime, where a
+sort-based comparison casts each value to `IComparable` and a Java list is not one. It is not a
+Calcite limitation: measured 2026-09-15, `DISTINCT`, `ORDER BY`, `GROUP BY`, `UNION` and a
+`DISTINCT` over an `ORDER BY … OFFSET` subquery all plan and run over an `ARRAY` column through
+the ADO layer. The same LINQ shape against a locally seeded store passes too, so which list
+implementation the value carries decides it. Fix the comparer to order or reject a collection value
+explicitly rather than casting.
+
+## APPLY is not allowed at Calcite's conformance level
+
+Calcite's parser rejects `CROSS APPLY` / `OUTER APPLY` outright — *APPLY operator is not allowed
+under the current SQL conformance level* — so any correlated table EF joins that way fails.
+`CalciteQuerySqlGenerator` rewrites the two applies to `CROSS JOIN` and `LEFT JOIN … ON TRUE`
+**only** when the applied table is a `CalciteUnnestExpression`, which is sound because Calcite
+reads an `UNNEST` over a preceding table's column as lateral already. Every other correlated
+apply — a subquery EF lifts into `OUTER APPLY` — still generates `APPLY` and still fails. The
+general answer is either `LATERAL`, which Calcite does accept (`CROSS JOIN LATERAL UNNEST(…)`
+plans), or raising the connection's conformance; both change how every correlated subquery is
+emitted, so measure the spec suite before and after rather than switching blind.
+
+## An empty ARRAY has no literal form
+
+Calcite's parser requires at least one element in an array constructor: `ARRAY[]` is rejected with
+*Require at least 1 argument*, and so is `CAST(ARRAY[] AS VARCHAR ARRAY)`. `CalciteArrayTypeMapping`
+writes an empty collection as `CAST(MULTISET(SELECT 1 FROM (VALUES (1)) AS t(c) WHERE 1 = 0) AS
+&lt;type&gt;)`, which is the only spelling measured to work. It is correct but it is a mouthful, and
+it only shows up where a literal is required rather than a parameter — `EF.Constant`, a migration
+default. If Calcite grows a typed empty-array literal, replace it.
+
 ## DateTimeOffset offset fidelity
 
 Calcite's `TIMESTAMP WITH TIME ZONE` normalizes values, losing the original offset;

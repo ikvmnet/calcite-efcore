@@ -220,12 +220,6 @@ partial class NorthwindBulkUpdatesCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Update_Where_GroupBy_First_set_constant(bool async)
-    {
-        return base.Update_Where_GroupBy_First_set_constant(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Update_Where_Join_set_property_from_joined_single_result_scalar(bool async)
     {
         return base.Update_Where_Join_set_property_from_joined_single_result_scalar(async);

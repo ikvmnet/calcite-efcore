@@ -16,18 +16,6 @@ partial class NorthwindNavigationsQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Navigation_in_subquery_referencing_outer_query(bool async)
-    {
-        return base.Navigation_in_subquery_referencing_outer_query(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Navigation_in_subquery_referencing_outer_query_with_client_side_result_operator_and_count(bool async)
-    {
-        return base.Navigation_in_subquery_referencing_outer_query_with_client_side_result_operator_and_count(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Select_count_plus_sum(bool async)
     {
         return base.Select_count_plus_sum(async);
