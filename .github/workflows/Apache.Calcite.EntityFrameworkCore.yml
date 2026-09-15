@@ -95,6 +95,9 @@ jobs:
         path: dist/benchmarks.tar.gz
   test:
     strategy:
+      # One leg failing used to cancel the other eleven, which threw away the signal on exactly the run where it
+      # was wanted: a Guid failure on osx-arm64 says something quite different from the same failure everywhere.
+      fail-fast: false
       matrix:
         run:
         - Apache.Calcite.EntityFrameworkCore.Adapter.Tests
