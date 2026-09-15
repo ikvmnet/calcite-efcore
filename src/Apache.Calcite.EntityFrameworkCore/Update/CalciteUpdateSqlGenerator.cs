@@ -27,10 +27,11 @@ namespace Apache.Calcite.EntityFrameworkCore.Update
         /// <remarks>
         /// A modification below the document root is rendered with Calcite's <c>JSON_SET</c>,
         /// from the MySQL operator library, so the connection must enable it (<c>fun=all</c>).
-        /// The runtime inserts the value argument as the JSON equivalent of its runtime type, so
-        /// scalars land correctly typed; a serialized sub-document would be inserted as a JSON
-        /// string rather than parsed, so structural changes below the root are refused rather
-        /// than silently double-encoded.
+        /// The runtime inserts the value argument as the JSON rendering of its runtime type, so
+        /// the cast around the parameter has to name the type the document holds the value in
+        /// rather than the property's relational store type; a serialized sub-document would be
+        /// inserted as a JSON string rather than parsed, so structural changes below the root are
+        /// refused rather than silently double-encoded.
         /// </remarks>
         protected override void AppendUpdateColumnValue(
             Microsoft.EntityFrameworkCore.Storage.ISqlGenerationHelper updateSqlGeneratorHelper,
@@ -46,32 +47,24 @@ namespace Apache.Calcite.EntityFrameworkCore.Update
                         "Calcite cannot apply a partial update of a JSON sub-document or collection: JSON_SET inserts a string value as a JSON string, not as a parsed document. The change must replace the whole column value.");
 
                 // the validator rejects a bare dynamic parameter inside JSON_SET ("Illegal use of
-                // dynamic parameter"), so the value is CAST to the property's store type
-                var storeType = columnModification.Property.GetRelationalTypeMapping().StoreType;
-                var valueStoreType = columnModification.TypeMapping?.StoreType;
+                // dynamic parameter"), so the value is CAST. The cast names the type the value is
+                // bound as, which is the type the document holds it in, and not the property's
+                // relational store type: JSON_SET writes the value argument as the JSON rendering
+                // of its runtime type, and a store type whose runtime class has no rendering of
+                // its own lands as that class's fields rather than as a scalar. A UUID is the
+                // case in point -- CALCITE-7716 made org.apache.calcite.util.UuidValue the
+                // runtime representation, which has no JSON rendering, so casting to UUID here
+                // wrote {"mostSignificantBits":..,"leastSignificantBits":..} where the document
+                // wants the string EF's JsonGuidReaderWriter reads back.
+                var storeType = columnModification.TypeMapping?.StoreType
+                    ?? columnModification.Property.GetRelationalTypeMapping().StoreType;
 
                 stringBuilder.Append("JSON_SET(");
                 updateSqlGeneratorHelper.DelimitIdentifier(stringBuilder, columnModification.ColumnName);
                 stringBuilder.Append(", '");
                 stringBuilder.Append(columnModification.JsonPath);
                 stringBuilder.Append("', CAST(");
-
-                // a bare parameter takes the type of the cast around it rather than converting to
-                // it, so where the value is bound as something other than the property's store
-                // type it is named first and converted second
-                var reinterprets = valueStoreType is not null && valueStoreType != storeType;
-                if (reinterprets)
-                    stringBuilder.Append("CAST(");
-
                 base.AppendUpdateColumnValue(updateSqlGeneratorHelper, columnModification, stringBuilder, name, schema);
-
-                if (reinterprets)
-                {
-                    stringBuilder.Append(" AS ");
-                    stringBuilder.Append(valueStoreType);
-                    stringBuilder.Append(')');
-                }
-
                 stringBuilder.Append(" AS ");
                 stringBuilder.Append(storeType);
                 stringBuilder.Append("))");
