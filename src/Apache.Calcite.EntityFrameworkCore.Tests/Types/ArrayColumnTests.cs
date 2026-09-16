@@ -211,6 +211,30 @@ public class ArrayColumnTests
     }
 
     [Fact]
+    public async Task An_array_column_materializes_under_no_tracking_and_through_a_projection()
+    {
+        // issue 55 reports null under QueryTrackingBehavior.NoTracking; a projection of the column
+        // on its own is a third shaper path again, and neither was covered before
+        using var connection = ArrayDbContext.CreateConnection();
+        await using var context = await CreateStoreAsync(connection);
+
+        context.Add(CreateEntity(1));
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        var tracked = await context.Entities.FirstAsync();
+        Assert.Equal(["Gatlinburg", "Cherokee"], tracked.Cities);
+
+        context.ChangeTracker.Clear();
+        var untracked = await context.Entities.AsNoTracking().FirstAsync();
+        Assert.Equal(["Gatlinburg", "Cherokee"], untracked.Cities);
+        Assert.Equal(["park", "smoky"], untracked.Tags);
+
+        Assert.Equal(["Gatlinburg", "Cherokee"], await context.Entities.AsNoTracking().Select(e => e.Cities).FirstAsync());
+        Assert.Equal(["Gatlinburg", "Cherokee"], await context.Entities.Select(e => e.Cities).FirstAsync());
+    }
+
+    [Fact]
     public async Task Contains_over_an_array_column_translates()
     {
         using var connection = ArrayDbContext.CreateConnection();
