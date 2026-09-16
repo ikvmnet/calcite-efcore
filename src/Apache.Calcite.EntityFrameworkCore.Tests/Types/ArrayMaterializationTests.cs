@@ -14,18 +14,15 @@ using Xunit;
 namespace Apache.Calcite.EntityFrameworkCore.Tests.Types;
 
 /// <summary>
-/// Covers how an <c>ARRAY</c> column's value becomes the collection the model asked for.
+/// Covers how the array the driver reads becomes the collection the model asked for.
 /// </summary>
 /// <remarks>
-/// This is the reading the provider does itself rather than asking the driver for, so it is tested
-/// against the value directly: what arrives depends on who produced the row — a .NET array from the
-/// driver's own conversion of a <c>java.util.List</c>, or whatever an adapter written in .NET put
-/// there — and the column has to read the same either way.
-///
-/// <para>An element converts as its own type mapping says and no further. A conversion no mapping
-/// defines does not happen here merely because the value sits inside a collection, and the element
-/// mapping is the same extension point it is anywhere else: giving an element type a mapping is
-/// what makes it readable, rather than anything special about being in a list.</para>
+/// The driver answers an <c>ARRAY</c> column with an array of its elements or with nothing, and it
+/// is the one that decides what an element reads as — naming the element type there selects a
+/// mapping rather than casting a result. What is left to the provider is the container, and the
+/// conversions EF rather than the driver defines, and that is what these cover. They drive the
+/// mapping's real reader expression, compiled, so they exercise what the shaper runs rather than a
+/// second path that could drift from it.
 /// </remarks>
 public class ArrayMaterializationTests
 {
@@ -42,31 +39,17 @@ public class ArrayMaterializationTests
     }
 
     /// <summary>
-    /// Reads a value through the mapping's real reader expression, compiled, so the test exercises
-    /// exactly what the shaper runs rather than a second path that could drift from it.
+    /// Reads an array through the mapping's reader expression, as the shaper would.
     /// </summary>
-    static object? Read(Type collectionType, object? value, RelationalTypeMapping? elementMapping = null)
+    static object? Read(Type collectionType, Array? values, RelationalTypeMapping? elementMapping = null)
     {
-        return Read(Mapping(collectionType, elementMapping), value);
-    }
-
-    static object? Read(CalciteArrayTypeMapping mapping, object? value)
-    {
-        var parameter = Expression.Parameter(typeof(object), "value");
-        var reader = Expression.Lambda<Func<object?, object?>>(
+        var mapping = Mapping(collectionType, elementMapping);
+        var parameter = Expression.Parameter(mapping.ReaderElementType.MakeArrayType(), "values");
+        var reader = Expression.Lambda(
             Expression.Convert(mapping.CustomizeDataReaderExpression(parameter), typeof(object)),
             parameter);
 
-        return reader.Compile()(value);
-    }
-
-    [Fact]
-    public void Reads_a_dotnet_array_and_a_java_backed_list_the_same()
-    {
-        // the two producers, as the reader hands them over
-        Assert.Equal(["a", "b"], (List<string>)Read(typeof(List<string>), new[] { "a", "b" })!);
-        Assert.Equal(["a", "b"], (List<string>)Read(typeof(List<string>), new List<string> { "a", "b" })!);
-        Assert.Equal(["a", "b"], (List<string>)Read(typeof(List<string>), new object[] { "a", "b" })!);
+        return reader.Compile().DynamicInvoke([values]);
     }
 
     [Fact]
@@ -82,18 +65,17 @@ public class ArrayMaterializationTests
     }
 
     [Fact]
-    public void Reads_into_a_concrete_collection_the_driver_has_no_case_for()
+    public void Reads_into_a_concrete_collection_the_driver_has_no_reason_to_know_about()
     {
-        // these are the types the driver cannot build, and the reason the collection allowlist is
-        // narrow is the write half rather than this one
         Assert.Equal(["a", "b"], ((ReadOnlyCollection<string>)Read(typeof(ReadOnlyCollection<string>), new[] { "a", "b" })!).ToList());
         Assert.Equal(["a", "b"], ((ObservableCollection<string>)Read(typeof(ObservableCollection<string>), new[] { "a", "b" })!).ToList());
         Assert.Equal(["a", "b"], ((Collection<string>)Read(typeof(Collection<string>), new[] { "a", "b" })!).ToList());
     }
 
     [Fact]
-    public void Reads_into_an_array_and_a_set()
+    public void Reads_into_a_list_an_array_and_a_set()
     {
+        Assert.Equal(["a", "b"], (List<string>)Read(typeof(List<string>), new[] { "a", "b" })!);
         Assert.Equal(["a", "b"], (string[])Read(typeof(string[]), new[] { "a", "b" })!);
         Assert.Equal([1, 2], (int[])Read(typeof(int[]), new[] { 1, 2 }, CalciteIntTypeMapping.Default)!);
 
@@ -102,58 +84,27 @@ public class ArrayMaterializationTests
     }
 
     [Fact]
-    public void Does_not_invent_a_conversion_the_element_mapping_does_not_define()
+    public void Asks_the_driver_for_an_element_type_the_model_can_hold()
     {
-        // a string is not a Guid and nothing in the type mapping says how it would become one, so
-        // reading a collection of them is a mapping that does not hold rather than a value to repair
-        var ex = Assert.Throws<InvalidCastException>(() => Read(typeof(List<Guid>), new[] { Guid.NewGuid().ToString() }, CalciteGuidTypeMapping.Default));
-        Assert.Contains("own type mapping", ex.Message);
+        // only the collection says whether an element may be absent, and the driver holds the caller
+        // to it: an int[] has nowhere to put a null, so the ask says int?[] where one is allowed
+        Assert.Equal(typeof(int), Mapping(typeof(List<int>), CalciteIntTypeMapping.Default).ReaderElementType);
+        Assert.Equal(typeof(int?), Mapping(typeof(List<int?>), CalciteIntTypeMapping.Default).ReaderElementType);
+        Assert.Equal(typeof(string), Mapping(typeof(List<string>)).ReaderElementType);
 
-        // the same rule the other way: a collection of Guids is not read as a collection of strings
-        Assert.Throws<InvalidCastException>(() => Read(typeof(List<string>), new object[] { Guid.NewGuid() }));
+        // where EF defines the conversion, the ask is for what the store holds rather than the model
+        Assert.Equal(typeof(string), Mapping(typeof(List<char>), CalciteCharTypeMapping.Default).ReaderElementType);
     }
 
     [Fact]
-    public void An_element_converts_where_its_own_mapping_says_how()
+    public void Applies_a_conversion_EF_defines_rather_than_the_driver()
     {
-        // a char is stored as a string and CalciteCharTypeMapping carries the converter that says
-        // so, so the element arrives as a char -- through the mapping, not through a rule invented
-        // for collections
+        // a char is stored as a string, and CalciteCharTypeMapping carries the converter saying so
         Assert.Equal(['a', 'b'], (List<char>)Read(typeof(List<char>), new[] { "a", "b" }, CalciteCharTypeMapping.Default)!);
-    }
 
-    [Fact]
-    public void An_element_whose_mapping_defines_no_conversion_is_refused()
-    {
-        // neither mapping carries a converter, and what Calcite's runtime holds is not the type the
-        // element asked for. Giving those mappings a converter is what would make them readable
-        Assert.Throws<InvalidCastException>(() => Read(typeof(List<DateOnly>), new[] { new DateTime(2020, 1, 2) }, CalciteDateOnlyTypeMapping.Default));
-        Assert.Throws<InvalidCastException>(() => Read(typeof(List<TimeOnly>), new[] { new TimeSpan(3, 4, 5) }, CalciteTimeOnlyTypeMapping.Default));
-    }
-
-    [Fact]
-    public void A_nested_collection_is_read_by_its_own_mapping()
-    {
-        // an element that is itself a collection recurses rather than being handed over whole, so
-        // the inner elements go through their own mapping too
-        var inner = new CalciteArrayTypeMapping("VARCHAR ARRAY", typeof(List<string>), CalciteStringTypeMapping.Default);
-        var outer = new CalciteArrayTypeMapping("VARCHAR ARRAY ARRAY", typeof(List<List<string>>), inner);
-
-        var read = (List<List<string>>)Read(outer, new object[] { new[] { "a", "b" }, new[] { "c" } })!;
-
-        Assert.Equal(2, read.Count);
-        Assert.Equal(["a", "b"], read[0]);
-        Assert.Equal(["c"], read[1]);
-    }
-
-    [Fact]
-    public void Applies_the_element_converter()
-    {
-        // an enum element is stored as its integer, and the element mapping's own converter is what
-        // brings it back
-        var elementMapping = (RelationalTypeMapping)CalciteIntTypeMapping.Default.WithComposedConverter(new EnumToNumberConverter<Sample, int>());
-
-        Assert.Equal([Sample.One, Sample.Two], (List<Sample>)Read(typeof(List<Sample>), new[] { 1, 2 }, elementMapping)!);
+        // an enum is stored as its integer, and the element mapping's converter brings it back
+        var enumMapping = (RelationalTypeMapping)CalciteIntTypeMapping.Default.WithComposedConverter(new EnumToNumberConverter<Sample, int>());
+        Assert.Equal([Sample.One, Sample.Two], (List<Sample>)Read(typeof(List<Sample>), new[] { 1, 2 }, enumMapping)!);
     }
 
     [Fact]
@@ -167,21 +118,9 @@ public class ArrayMaterializationTests
     [Fact]
     public void An_absent_collection_is_null_and_an_empty_one_is_empty()
     {
+        // the driver answers with an array or with nothing, and nothing is a null column
         Assert.Null(Read(typeof(List<string>), null));
-        Assert.Null(Read(typeof(List<string>), DBNull.Value));
         Assert.Empty((List<string>)Read(typeof(List<string>), Array.Empty<string>())!);
-    }
-
-    [Fact]
-    public void A_value_that_is_not_a_sequence_is_refused()
-    {
-        // a scalar in a column the model calls a collection is a mapping mistake, and saying so
-        // beats handing back a collection of one or a null
-        var ex = Assert.Throws<InvalidCastException>(() => Read(typeof(List<string>), 42));
-        Assert.Contains("ARRAY", ex.Message);
-
-        // a string is enumerable and is not a collection of characters here
-        Assert.Throws<InvalidCastException>(() => Read(typeof(List<string>), "ab"));
     }
 
 }

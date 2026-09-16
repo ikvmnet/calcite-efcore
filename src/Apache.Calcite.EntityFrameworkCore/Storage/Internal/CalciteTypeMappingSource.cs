@@ -90,6 +90,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
             typeof(Guid),
             typeof(DateTime),
             typeof(DateTimeOffset),
+            typeof(DateOnly),
+            typeof(TimeOnly),
+            typeof(char),
         ];
 
         /// <summary>

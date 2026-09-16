@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -232,6 +233,44 @@ public class ArrayColumnTests
 
         Assert.Equal(["Gatlinburg", "Cherokee"], await context.Entities.AsNoTracking().Select(e => e.Cities).FirstAsync());
         Assert.Equal(["Gatlinburg", "Cherokee"], await context.Entities.Select(e => e.Cities).FirstAsync());
+    }
+
+    [Fact]
+    public async Task Temporal_and_character_elements_round_trip()
+    {
+        // these read back as themselves only because the element type is named to the driver, which
+        // selects the mapping that fills it rather than casting the column's default reading
+        using var connection = ArrayDbContext.CreateConnection();
+        await using var context = await CreateStoreAsync(connection);
+
+        context.Add(new ArrayEntity
+        {
+            Id = 1,
+            Seasons = [new DateOnly(2026, 3, 1), new DateOnly(2026, 11, 30)],
+            Openings = [new TimeOnly(8, 30), new TimeOnly(17, 0)],
+            Grades = ['a', 'b'],
+        });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        var entity = await context.Entities.AsNoTracking().SingleAsync(e => e.Id == 1);
+
+        Assert.Equal([new DateOnly(2026, 3, 1), new DateOnly(2026, 11, 30)], entity.Seasons);
+        Assert.Equal([new TimeOnly(8, 30), new TimeOnly(17, 0)], entity.Openings);
+        Assert.Equal(['a', 'b'], entity.Grades);
+    }
+
+    [Fact]
+    public void Temporal_and_character_collections_are_arrays_now()
+    {
+        using var connection = ArrayDbContext.CreateConnection();
+        using var context = new ArrayDbContext(connection);
+
+        var entityType = context.Model.FindEntityType(typeof(ArrayEntity))!;
+
+        Assert.Equal("DATE ARRAY", entityType.FindProperty(nameof(ArrayEntity.Seasons))!.GetRelationalTypeMapping().StoreType);
+        Assert.Equal("TIME ARRAY", entityType.FindProperty(nameof(ArrayEntity.Openings))!.GetRelationalTypeMapping().StoreType);
+        Assert.Equal("CHAR(1) ARRAY", entityType.FindProperty(nameof(ArrayEntity.Grades))!.GetRelationalTypeMapping().StoreType);
     }
 
     [Fact]
