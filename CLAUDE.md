@@ -22,9 +22,6 @@ commit message says what changed and why.
 | `Apache.Calcite.EntityFrameworkCore.Tests` | our own one-off provider tests |
 | `Apache.Calcite.EntityFrameworkCore.FunctionalTests` | the standard EF Core spec suite |
 | `Apache.Calcite.Sample` | a Northwind federation over three SQLite stores and a CSV directory, exposed as both JSON:API and GraphQL; the auto-mapping layers generate the queries, so it is the broadest provider exercise outside the spec suite. Has its own README and a request book. |
-| `Apache.Calcite.EntityFrameworkCore.BenchmarkUtilities` | **benchmark-only**: the seeded SQLite store, the model both suites share, the BenchmarkDotNet jobs, and the `--verify` runner |
-| `Apache.Calcite.EntityFrameworkCore.Adapter.Benchmarks` | times the adapter: SQL through Calcite into EF Core, against the same query written as plain LINQ |
-| `Apache.Calcite.EntityFrameworkCore.Benchmarks` | times the provider: EF Core feature by EF Core feature, against the same LINQ on `Microsoft.EntityFrameworkCore.Sqlite` |
 
 Key generation splits by type. **Guid keys are provider surface**: `CalciteValueGeneratorSelector`
 gives `OnAdd` Guid properties a client-side `SequentialGuidValueGenerator`, the same default SQL
@@ -96,7 +93,7 @@ Sibling checkouts this project depends on:
 - Tests are plain xunit on VSTest: `dotnet test src\Apache.Calcite.EntityFrameworkCore.Adapter.Tests`
   works and **`--filter` is honored** (unlike calcite-dotnet, which is on Microsoft.Testing.Platform).
 - Calcite comes in via `MavenReference` with versions inline in each project file, and every
-  project — shipping, benchmark and test alike — is on **1.43.0-SNAPSHOT**. The test projects need
+  project — shipping and test alike — is on **1.43.0-SNAPSHOT**. The test projects need
   it for calcite-server DML (the `EnumerableTableModify` rewrite behind the mutable test stores);
   the rest are on it because `Apache.Calcite.Data` is, and a closure merges to the higher version.
   A declaration of 1.42 there would be advisory only: measured 2026-09-13, the shipping projects
@@ -117,26 +114,6 @@ Sibling checkouts this project depends on:
   (`dotnet run --project tools/GenerateSkips -- <trx> <FunctionalTests.dll> <FunctionalTests source root>`).
 - Parallel builds sometimes fail with an IOException on a `.deps.json` from IKVM.Core.MSBuild's
   `GenerateDepsFileExtensions` racing itself. It is transient — rebuild, or build with `-m:1`.
-- Benchmarks are two BenchmarkDotNet consoles, each with its own README. Run them in **Release**
-  (`dotnet run -c Release --project src\Apache.Calcite.EntityFrameworkCore.Benchmarks`). Before
-  trusting a table: `-- --verify` runs every benchmark once and names the ones the current build
-  cannot answer, and the adapter suite's `-- --plans` says which shapes reached the EfCore
-  convention and which fell back — a shape that falls back is not slow, it is not being done.
-  The seeded stores live under the temp directory and are reused; `-- --clean` discards them.
-  Neither project is packaged, but both are published by `src/dist-benchmarks` into `dist/benchmarks`
-  alongside the test assemblies, so a benchmark that stops compiling is a red build. CI then runs
-  them in a **`benchmark` stage beside `test`**, split by platform the same way: no timings — a
-  shared runner cannot produce a number worth keeping — but `--verify` on both suites and `--plans`
-  on the adapter suite. The stage is **report-only**: counts and failing names land in the job
-  summary, the whole report in a per-leg artifact, and neither switch fails the job or holds up
-  `release`. That is deliberate rather than provisional — the provider has real gaps, and the layers
-  below it move on a `1.43.0-SNAPSHOT` whose runtime representations have changed under us before
-  (see the `UuidValue` item in `TODO.md`), so a `--verify` failure is as likely to be breakage from
-  below as a regression here. Measured 2026-09-15 on the first run of the stage: Adapter 153 ran
-  / 1 failed (`Function_Trim` — `RexToLinqTranslator` has no case for the `SYMBOL` literal Calcite's
-  `TRIM` takes its side as), provider 207 ran / 7 failed, identically on all four platforms. To make
-  it a gate: drop `continue-on-error` from **Verify Benchmarks** and put `benchmark` back in
-  `release`'s `needs`.
 - **Cluster a functional run before fixing anything**: run with
   `--logger "trx;LogFileName=run.trx" --results-directory TestResults\functional`, then
   `tools\cluster-trx.ps1 -Path <trx>` tallies failures by error fingerprint (unwrapping the
