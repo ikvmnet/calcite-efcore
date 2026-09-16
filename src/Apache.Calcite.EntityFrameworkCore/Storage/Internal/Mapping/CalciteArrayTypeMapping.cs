@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 
 using Apache.Calcite.EntityFrameworkCore.Utilities;
@@ -23,12 +25,14 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal.Mapping;
 /// store type with <c>ARRAY</c> appended, which is the postfix form Calcite's DDL parser accepts
 /// (<c>VARCHAR ARRAY</c>; <c>ARRAY&lt;VARCHAR&gt;</c> is rejected).
 ///
-/// <para>The collection itself does not convert. <c>Apache.Calcite.Data</c> reads an <c>ARRAY</c>
-/// column through <see cref="DbDataReader.GetFieldValue{T}"/> into whatever collection the caller
-/// names, and accepts a CLR array or list as a parameter value, so the mapping names the model's
-/// own collection type and lets the reader and the parameter binder do the work. Its
-/// <em>elements</em> can convert, where the element's own mapping says so, and that conversion is
-/// applied here because nothing upstream walks into a collection to apply it.</para>
+/// <para>Reading is done here rather than asked of the driver. The driver returns .NET objects
+/// throughout, so the column arrives as a .NET sequence whichever side produced it — Calcite's own
+/// runtime holds an array as a <c>java.util.List</c> and the driver converts it, while an adapter
+/// written in .NET puts a .NET array there to begin with — and building the model's collection from
+/// that sequence is the one reading that works for both. Asking the driver for the collection type
+/// instead only works for the first, because the conversion it would run is keyed on the Java type.
+/// Writing is the driver's: it types a parameter from the column and binds a sequence as the array
+/// the column is.</para>
 /// </remarks>
 public class CalciteArrayTypeMapping : RelationalTypeMapping, ICalciteTypeMapping
 {
@@ -200,6 +204,153 @@ public class CalciteArrayTypeMapping : RelationalTypeMapping, ICalciteTypeMappin
         return count == 0
             ? $"CAST(MULTISET(SELECT 1 FROM (VALUES (1)) AS t(c) WHERE 1 = 0) AS {StoreType})"
             : builder.ToString();
+    }
+
+    static readonly MethodInfo GetValueMethod =
+        typeof(DbDataReader).GetRuntimeMethod(nameof(DbDataReader.GetValue), [typeof(int)])!;
+
+    static readonly MethodInfo MaterializeMethod =
+        typeof(CalciteArrayTypeMapping).GetMethod(nameof(Materialize), BindingFlags.Public | BindingFlags.Static)!;
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// The column is read as the value the driver hands back rather than as the model's collection
+    /// type, and turned into that collection here. The driver returns .NET objects throughout, so an
+    /// <c>ARRAY</c> arrives as a .NET array whichever side produced it — Calcite's own runtime holds
+    /// one as a <c>java.util.List</c> and the driver converts it, while an adapter written in .NET
+    /// puts a .NET array there to begin with. Asking the driver for the model's collection type
+    /// instead only works for the first of those, because the conversion it would run is keyed on
+    /// the Java type; asking for the value and building the collection here works for both.
+    /// </remarks>
+    public override MethodInfo GetDataReaderMethod()
+    {
+        return GetValueMethod;
+    }
+
+    /// <inheritdoc/>
+    public override Expression CustomizeDataReaderExpression(Expression expression)
+    {
+        return Expression.Convert(
+            Expression.Call(MaterializeMethod, expression, Expression.Constant(this)),
+            ClrType);
+    }
+
+    /// <summary>
+    /// Returns the value of an <c>ARRAY</c> column as the collection the model asked for.
+    /// </summary>
+    /// <remarks>
+    /// Anything enumerable is accepted, because what arrives depends on who produced the row rather
+    /// than on the column: a .NET array from the driver's own conversion, or whatever collection an
+    /// adapter written in .NET put there. The elements are converted one at a time — through the
+    /// element mapping's converter where it has one, and then to the element's own CLR type — which
+    /// is what lets an element type the driver would not convert inside a collection still arrive
+    /// as itself.
+    /// </remarks>
+    /// <param name="value"></param>
+    /// <param name="mapping"></param>
+    /// <returns></returns>
+    public static object? Materialize(object? value, CalciteArrayTypeMapping mapping)
+    {
+        if (value is null or DBNull)
+            return null;
+
+        if (value is not IEnumerable elements || value is string)
+            throw new InvalidCastException($"Cannot read a value of type '{value.GetType()}' as the collection '{mapping.ClrType}'; an ARRAY column reads as a sequence.");
+
+        var elementType = mapping.ElementMapping.ClrType;
+        var converter = mapping.ElementMapping.Converter;
+
+        var items = new List<object?>();
+        foreach (var element in elements)
+            items.Add(CoerceElement(element is null or DBNull ? null : converter is null ? element : converter.ConvertFromProvider(element), elementType));
+
+        return Fill(mapping.ClrType, elementType, items);
+    }
+
+    /// <summary>
+    /// Returns one element as the type it is declared to be, where what arrived is the type Calcite's
+    /// runtime holds it as instead.
+    /// </summary>
+    /// <param name="value"></param>
+    /// <param name="elementType"></param>
+    /// <returns></returns>
+    static object? CoerceElement(object? value, Type elementType)
+    {
+        if (value is null)
+            return null;
+
+        var target = elementType.UnwrapNullableType();
+        if (target.IsInstanceOfType(value))
+            return value;
+
+        if (target.IsEnum)
+            return Enum.ToObject(target, value);
+
+        return value switch
+        {
+            string text when target == typeof(char) && text.Length > 0 => text[0],
+            DateTime date when target == typeof(DateOnly) => DateOnly.FromDateTime(date),
+            DateTime date when target == typeof(TimeOnly) => TimeOnly.FromDateTime(date),
+            TimeSpan time when target == typeof(TimeOnly) => TimeOnly.FromTimeSpan(time),
+            DateTimeOffset offset when target == typeof(DateTime) => offset.DateTime,
+            IConvertible when target.IsPrimitive || target == typeof(decimal) => Convert.ChangeType(value, target),
+            _ => value,
+        };
+    }
+
+    /// <summary>
+    /// Returns a collection of <paramref name="collectionType"/> holding <paramref name="items"/>.
+    /// </summary>
+    /// <remarks>
+    /// An interface names what the collection has to satisfy rather than what to build, so it is
+    /// built as the concrete type EF itself would pick. A concrete type is built as itself, either
+    /// from the items or by adding them one at a time, which is what carries the collection types
+    /// the driver has no case for.
+    /// </remarks>
+    /// <param name="collectionType"></param>
+    /// <param name="elementType"></param>
+    /// <param name="items"></param>
+    /// <returns></returns>
+    static object Fill(Type collectionType, Type elementType, List<object?> items)
+    {
+        if (collectionType.IsArray)
+        {
+            var array = Array.CreateInstance(collectionType.GetElementType()!, items.Count);
+            for (var i = 0; i < items.Count; i++)
+                array.SetValue(items[i], i);
+
+            return array;
+        }
+
+        var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType), items.Count)!;
+        foreach (var item in items)
+            list.Add(item);
+
+        if (collectionType.IsInstanceOfType(list))
+            return list;
+
+        // a concrete collection that wraps or copies a list is built from it, which covers
+        // ReadOnlyCollection, ObservableCollection and Collection in one
+        if (collectionType.GetConstructor([typeof(IList<>).MakeGenericType(elementType)]) is { } fromList)
+            return fromList.Invoke([list]);
+
+        if (collectionType.GetConstructor([typeof(IEnumerable<>).MakeGenericType(elementType)]) is { } fromSequence)
+            return fromSequence.Invoke([list]);
+
+        if (collectionType.GetConstructor(Type.EmptyTypes) is { } empty)
+        {
+            var built = empty.Invoke(null);
+            var add = collectionType.GetMethod(nameof(IList.Add), [elementType]);
+            if (add is not null && built is not null)
+            {
+                foreach (var item in items)
+                    add.Invoke(built, [item]);
+
+                return built;
+            }
+        }
+
+        throw new InvalidCastException($"Cannot build the collection '{collectionType}' from an ARRAY column: it is neither a list nor constructible from one.");
     }
 
     /// <inheritdoc/>

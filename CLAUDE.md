@@ -47,12 +47,19 @@ it a primitive collection: it resolves by CLR type in `_clrTypeMappings` before 
 is reached. Nothing else built out of bytes has that reading to keep, so a `List<byte>` is
 `TINYINT UNSIGNED ARRAY` and an `sbyte[]` is `TINYINT ARRAY`. `ArrayColumnTests` locks all three.
 
-**`ARRAY` is used only where the driver round-trips it**, which two allowlists in that same class
-decide: one of element types, one of collection types. A property outside either keeps the JSON
-storage, so the fallback is not dead code — `char`, `DateOnly` and `TimeOnly` elements and the
-`ReadOnlyCollection`/`ObservableCollection` families all still take it. `ArrayElementMatrixTests`
-is the measurement those lists are drawn from; widen it before widening them, and see the
-calcite-dotnet items in `TODO.md` for what has to move first.
+**Reading an `ARRAY` is the mapping's own job, not the driver's.** The driver returns .NET objects
+throughout, so the column arrives as a .NET sequence whichever side produced the row — Calcite's
+runtime holds an array as a `java.util.List` and the driver converts it, while an adapter written
+in .NET (the Cosmos one) puts a .NET array there to begin with. `CalciteArrayTypeMapping` therefore
+reads the value and builds the collection itself, coercing each element, because asking the driver
+for the model's collection type only works for the first of those: the conversion it would run is
+keyed on the Java type and silently misses a .NET array.
+
+**`ARRAY` is used only where a round trip is known to work**, which two allowlists in that same
+class decide: one of element types, one of collection types. A property outside either keeps the
+JSON storage, so the fallback is not dead code. Both lists are now **conservative rather than
+accurate** — the read half would carry more than they allow, and it is the unmeasured write half
+that keeps them narrow. See the ARRAY items in `TODO.md` before widening either.
 
 The adapter has exactly **one outgoing converter**: `EfCoreToClrEnumerableConverter`, into
 `ClrEnumerableConvention`. That convention has two bodies per node rather than a second convention:
