@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -62,6 +63,22 @@ public class ArrayEntity
     /// in an ARRAY column is told apart from an empty array.
     /// </summary>
     public List<string>? Aliases { get; set; }
+
+    /// <summary>
+    /// Gets or sets dates, whose element reads back as itself only because the element type is
+    /// named to the driver rather than taken from the column.
+    /// </summary>
+    public List<DateOnly> Seasons { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets times, for the same reason.
+    /// </summary>
+    public List<TimeOnly> Openings { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets characters, which the store holds as strings.
+    /// </summary>
+    public List<char> Grades { get; set; } = [];
 
 }
 

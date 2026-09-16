@@ -197,80 +197,23 @@ preceding table — is fine, which is why column collections work and these do n
 runtime failure in Calcite's enumerable `UNNEST` before translating parameters, or translate them
 without ordinality and give up the ordered operators for that case.
 
-## Widen what an ARRAY column can hold (calcite-dotnet)
+## Collection types an ARRAY column cannot hold
 
-`ARRAY` storage is restricted to what the driver measurably round-trips, and the two allowlists in
-`CalciteTypeMappingSource` are where that restriction lives. Everything outside them keeps the JSON
-text storage, which is correct but is not what the column should be. `ArrayElementMatrixTests` is
-the measurement both lists are drawn from — extend it first, move the type second.
+`ARRAY` storage is restricted to what round-trips, and the collection allowlist in
+`CalciteTypeMappingSource` is where that restriction lives; everything outside it keeps the JSON
+text storage. The element list is no longer the constraint it was — naming the element type to
+`GetArray<T>` selects the mapping that fills the array, which reaches `char`, `DateOnly` and
+`TimeOnly` — so what is left is the container and one type that has no name to give.
 
-**Name the element type, not the collection type**, when asking the driver what a column holds.
-`Apache.Calcite.Data` 2.0.1-pre.159 narrowed `GetFieldValue<T>` to `GetValue` plus the two things a
-type argument can say that `GetValue` cannot — choose a reading, and name element types — and a
-collection type is neither. Measured 2026-09-16 on an `ARRAY` column: `GetValue`,
-`GetFieldValue<object>`, `GetFieldValue<string[]>` and `GetFieldValue<IEnumerable<string>>` all
-answer, while `GetFieldValue<List<string>>` throws *Cannot convert value of type
-'TransformingList' … to 'List`1'*. The provider is unaffected — it has read through `GetValue` and
-built the collection itself since the precompiled-query fix — and this only reached the tests that
-probe the driver directly, which now name `T[]`.
+**An enum element** cannot be in the allowlist, which holds CLR types, so an enum collection takes
+the JSON path and the driver is never asked to read one. Reaching it would mean matching on
+`Type.IsEnum` and asking for the underlying integer, then letting the element mapping's converter
+bring it back; the converter half already works and `ArrayMaterializationTests` covers it.
 
-Two conversions the narrowing did **not** bring with it, both still absent: `GetFieldValue<long[]>`
-over an `INTEGER ARRAY` throws on `Int32` to `Int64`, and `GetFieldValue<DateOnly[]>` over a
-`DATE ARRAY` throws on `DateTime` to `DateOnly`. The second is the one that keeps `DateOnly` and
-`TimeOnly` out of the element allowlist.
-
-**Element types left out**, each because the driver hands back what Calcite's runtime holds rather
-than what the element asked for. Re-measured 2026-09-16 against `Apache.Calcite.Data` 2.0.1-pre.152,
-the first build with the CLR type mapping, using `GetFieldValue<List<T>>` over a column of that
-type:
-
-| element | failure |
-|---|---|
-| `char` | *Cannot convert value of type 'String' to 'Char'* |
-| `DateOnly` | *Cannot convert value of type 'DateTime' to 'DateOnly'* |
-| `TimeOnly` | *Cannot convert value of type 'TimeSpan' to 'TimeOnly'* |
-| an enum | *Cannot convert value of type 'Int32' to 'Sample'* |
-
-The scalar accessors for all three of the first three work — `GetChar`, `GetDateOnly`,
-`GetTimeOnly` each take the right path — so the gap is that the element conversion inside a
-collection does not take those paths. The enum row is a **narrowing** the CLR type mapping brought
-with it: an integer coerced to an enum element before 2.0.1-pre.152 and does not now.
-
-**The read half of this is no longer the driver's**, which splits the four rows apart.
-`CalciteArrayTypeMapping` reads the column as the value the driver returns and builds the collection
-itself, putting every element through **its own type mapping and nothing else** — a conversion no
-mapping defines is not one the provider may invent because the value happens to sit in a list, and
-the element mapping is the same extension point it is anywhere else. That leaves three cases:
-
-- **`char` and an enum already read**, because `CalciteCharTypeMapping` carries a
-  `CharToStringConverter` and an enum property's element mapping carries an `EnumToNumberConverter`.
-  The conversion is declared, so it applies to an element exactly as it would to a scalar.
-- **`DateOnly` and `TimeOnly` do not**, because their mappings declare no converter at all. A scalar
-  of either works only because the driver's own `GetDateOnly`/`GetTimeOnly` accessors take a path
-  that the element conversion does not. Two ways to close it, and they are not equivalent: give
-  those mappings a converter here, which makes an element and a scalar agree by construction, or
-  have the driver convert an element the way its scalar accessors do. The first is this repo's to
-  make and is the smaller change; the second is the one that keeps the rule in one place.
-- **The collection types are readable now** — `ReadOnlyCollection`, `ObservableCollection` and
-  `Collection` are all constructed by the mapping, and `ArrayMaterializationTests` covers them.
-
-What keeps any of this out of the allowlists is the **write** half, which is still the driver's and
-has not been measured for these types. Measuring it is the next step: add each to `ArrayDbContext`
-with a round trip through `SaveChanges`, and move whatever survives into the allowlists. Until then
-the lists are conservative rather than accurate.
-
-**Collection types left out**: the driver builds `List<>`, `IList<>`, `ICollection<>`,
-`IEnumerable<>`, `IReadOnlyList<>`, `IReadOnlyCollection<>`, `ISet<>`, `HashSet<>` and arrays, and
-nothing else — so `ReadOnlyCollection<T>`, `ObservableCollection<T>` and `Collection<T>` fall back
-to JSON, each failing on *Cannot convert value of type 'ArrayList' … to '&lt;that type&gt;'*.
-Confirmed still the case on 2.0.1-pre.152. A few lines each where the driver builds the collection.
-
-**What the CLR type mapping did fix**, so it does not get re-litigated: a parameter is now typed
-from the **column** rather than from the value, so a `byte[]` or `sbyte[]` bound against a
-`TINYINT ARRAY` column arrives as the array the column is instead of as a `ByteString`. The
-provider used to normalize every collection parameter to a `List<T>` to force that, and no longer
-does — `ConfigureParameter` now only applies the element converter, and `ArrayColumnTests` covers
-both byte shapes end to end.
+**The collection types** `ReadOnlyCollection<T>`, `ObservableCollection<T>` and `Collection<T>` are
+built correctly by the mapping — `ArrayMaterializationTests` covers all three — and are held out
+only because the write half has not been measured for them. Measuring it is the same shape as the
+element work: add each to `ArrayDbContext`, round-trip through `SaveChanges`, move what survives.
 
 ## DISTINCT over a row holding an ARRAY fails in the CLR runtime (calcite-dotnet)
 

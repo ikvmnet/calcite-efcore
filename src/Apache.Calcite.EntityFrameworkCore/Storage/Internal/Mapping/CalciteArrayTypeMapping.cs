@@ -7,6 +7,8 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 
+using Apache.Calcite.Data;
+
 using Apache.Calcite.EntityFrameworkCore.Utilities;
 
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -207,113 +209,104 @@ public class CalciteArrayTypeMapping : RelationalTypeMapping, ICalciteTypeMappin
             : builder.ToString();
     }
 
-    static readonly MethodInfo GetValueMethod =
-        typeof(DbDataReader).GetRuntimeMethod(nameof(DbDataReader.GetValue), [typeof(int)])!;
+    static readonly MethodInfo GetArrayMethod =
+        typeof(CalciteDataReader).GetMethod(nameof(CalciteDataReader.GetArray), 1, [typeof(int)])!;
 
-    static readonly MethodInfo MaterializeMethod =
-        typeof(CalciteArrayTypeMapping).GetMethod(nameof(Materialize), BindingFlags.Public | BindingFlags.Static)!;
+    static readonly MethodInfo BuildMethod =
+        typeof(CalciteArrayTypeMapping).GetMethod(nameof(Build), BindingFlags.Public | BindingFlags.Static)!;
+
+    /// <summary>
+    /// Gets the element type the column is read as, which is the element's provider type and is
+    /// nullable exactly where the model says an element may be absent.
+    /// </summary>
+    /// <remarks>
+    /// Only the collection says whether an element may be absent — a <c>List&lt;int&gt;</c> and a
+    /// <c>List&lt;int?&gt;</c> share an element mapping — and the driver holds the caller to it: an
+    /// <c>int[]</c> has nowhere to put a null, so asking for one over a column that has them is
+    /// refused rather than quietly widened. Asking for <c>int?[]</c> is how the model says it
+    /// expects them.
+    /// </remarks>
+    public virtual Type ReaderElementType
+    {
+        get
+        {
+            var provider = ElementMapping.Converter?.ProviderClrType ?? ElementMapping.ClrType;
+            var model = ClrType.TryGetSequenceType() ?? ElementMapping.ClrType;
+
+            return provider.IsValueType && model.IsNullableType() ? provider.MakeNullable() : provider;
+        }
+    }
 
     /// <inheritdoc/>
     /// <remarks>
-    /// The column is read as the value the driver hands back rather than as the model's collection
-    /// type, and turned into that collection here. The driver returns .NET objects throughout, so an
-    /// <c>ARRAY</c> arrives as a .NET array whichever side produced it — Calcite's own runtime holds
-    /// one as a <c>java.util.List</c> and the driver converts it, while an adapter written in .NET
-    /// puts a .NET array there to begin with. Asking the driver for the model's collection type
-    /// instead only works for the first of those, because the conversion it would run is keyed on
-    /// the Java type; asking for the value and building the collection here works for both.
+    /// The column is read as an array of its elements, which is the driver's own accessor for a
+    /// collection: ADO.NET has none, and naming the element type there selects the mapping that
+    /// fills it rather than casting whatever the column's default reading produced. That is the only
+    /// way to reach a reading that is not the default — a <c>DateOnly</c> over a <c>DATE</c> — and it
+    /// is why the elements need no further conversion here.
     /// </remarks>
     public override MethodInfo GetDataReaderMethod()
     {
-        return GetValueMethod;
+        return GetArrayMethod.MakeGenericMethod(ReaderElementType);
     }
 
     /// <inheritdoc/>
     /// <remarks>
     /// Everything this needs is written into the expression rather than carried by it. A precompiled
     /// query turns the shaper into C# source, which can emit a type argument and a lambda but not a
-    /// constant holding a type mapping, so the collection and element types arrive as type arguments
-    /// and the element's own conversion arrives as the converter's own expression, inlined.
+    /// constant holding a type mapping, so the types arrive as type arguments and the element's own
+    /// conversion — where EF rather than the driver defines one, as for an enum — arrives as the
+    /// converter's own expression, inlined.
     /// </remarks>
     /// <param name="expression"></param>
     /// <returns></returns>
     public override Expression CustomizeDataReaderExpression(Expression expression)
     {
-        var elementType = ClrType.TryGetSequenceType() ?? ElementMapping.ClrType;
-        var element = Expression.Parameter(typeof(object), "element");
+        var readerElementType = ReaderElementType;
+        var modelElementType = ClrType.TryGetSequenceType() ?? ElementMapping.ClrType;
+        var element = Expression.Parameter(readerElementType, "element");
 
-        // the element converts by its own mapping and by nothing else, so what is inlined here is
-        // that mapping's own reading rather than a rule of this one's — including where the element
-        // is itself a collection, which reads by recursing into the same method one level down
-        Expression read = ElementMapping switch
-        {
-            CalciteArrayTypeMapping nested => nested.CustomizeDataReaderExpression(element),
-            { Converter: { } converter } => ReplacingExpressionVisitor.Replace(
+        Expression read = ElementMapping.Converter is { } converter
+            ? ReplacingExpressionVisitor.Replace(
                 converter.ConvertFromProviderExpression.Parameters[0],
-                Expression.Convert(element, converter.ProviderClrType),
-                converter.ConvertFromProviderExpression.Body),
-            _ => element,
-        };
+                readerElementType == converter.ProviderClrType ? element : Expression.Convert(element, converter.ProviderClrType),
+                converter.ConvertFromProviderExpression.Body)
+            : element;
 
         return Expression.Call(
-            MaterializeMethod.MakeGenericMethod(ClrType, elementType),
+            BuildMethod.MakeGenericMethod(ClrType, readerElementType, modelElementType),
             expression,
             Expression.Lambda(
-                typeof(Func<,>).MakeGenericType(typeof(object), elementType),
-                Expression.Convert(read, elementType),
+                typeof(Func<,>).MakeGenericType(readerElementType, modelElementType),
+                read.Type == modelElementType ? read : Expression.Convert(read, modelElementType),
                 element));
     }
 
     /// <summary>
-    /// Returns the value of an <c>ARRAY</c> column as the collection the model asked for.
+    /// Returns the array the driver read as the collection the model asked for.
     /// </summary>
     /// <remarks>
-    /// Anything enumerable is accepted, because what arrives depends on who produced the row rather
-    /// than on the column: a .NET array from the driver's own conversion, or whatever collection an
-    /// adapter written in .NET put there. What is <em>not</em> open-ended is the elements:
-    /// <paramref name="readElement"/> is the element mapping's own conversion and the only one
-    /// applied, so an element converts exactly as the same value would on its own.
+    /// The driver answers an <c>ARRAY</c> column with an array of its elements or with nothing, and
+    /// nothing is a null column, so there is no third case to take apart here. What is left is the
+    /// container: the model may want a list, a set or a collection type the driver has no reason to
+    /// know about, and that is built here.
     /// </remarks>
     /// <typeparam name="TCollection"></typeparam>
+    /// <typeparam name="TSource"></typeparam>
     /// <typeparam name="TElement"></typeparam>
-    /// <param name="value"></param>
+    /// <param name="values"></param>
     /// <param name="readElement"></param>
     /// <returns></returns>
-    public static TCollection? Materialize<TCollection, TElement>(object? value, Func<object, TElement> readElement)
+    public static TCollection? Build<TCollection, TSource, TElement>(TSource[]? values, Func<TSource, TElement> readElement)
     {
-        if (value is null or DBNull)
+        if (values is null)
             return default;
 
-        if (value is not IEnumerable elements || value is string)
-            throw new InvalidCastException($"Cannot read a value of type '{value.GetType()}' as the collection '{typeof(TCollection)}'; an ARRAY column reads as a sequence.");
-
-        var items = new List<TElement>();
-        foreach (var item in elements)
-            items.Add(item is null or DBNull ? default! : Read(item, readElement, typeof(TElement)));
+        var items = new List<TElement>(values.Length);
+        foreach (var value in values)
+            items.Add(readElement(value));
 
         return (TCollection)Fill(typeof(TCollection), typeof(TElement), items);
-    }
-
-    /// <summary>
-    /// Returns one element as its own mapping reads it, saying what went wrong where it cannot.
-    /// </summary>
-    /// <remarks>
-    /// A conversion the element's mapping does not define is not one this provider may invent
-    /// because the value sits inside a collection, so an element that arrives as something else is
-    /// a mapping that does not hold rather than a value to repair.
-    /// </remarks>
-    static TElement Read<TElement>(object item, Func<object, TElement> readElement, Type elementType)
-    {
-        try
-        {
-            return readElement(item);
-        }
-        catch (Exception e) when (e is InvalidCastException or ArgumentException or FormatException)
-        {
-            throw new InvalidCastException(
-                $"An element of an ARRAY column read as '{item.GetType()}' where the collection holds '{elementType}'. " +
-                "An element converts as its own type mapping says and no further; give the element type a mapping that reads it, rather than expecting one to be inferred.", e);
-        }
     }
 
     /// <summary>

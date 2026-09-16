@@ -47,28 +47,23 @@ it a primitive collection: it resolves by CLR type in `_clrTypeMappings` before 
 is reached. Nothing else built out of bytes has that reading to keep, so a `List<byte>` is
 `TINYINT UNSIGNED ARRAY` and an `sbyte[]` is `TINYINT ARRAY`. `ArrayColumnTests` locks all three.
 
-**Reading an `ARRAY` is the mapping's own job, not the driver's.** The driver returns .NET objects
-throughout, so the column arrives as a .NET sequence whichever side produced the row — Calcite's
-runtime holds an array as a `java.util.List` and the driver converts it, while an adapter written
-in .NET (the Cosmos one) puts a .NET array there to begin with. `CalciteArrayTypeMapping` therefore
-reads the value and builds the collection itself, because asking the driver for the model's
-collection type only works for the first of those: the conversion it would run is keyed on the Java
-type and silently misses a .NET array.
+**An `ARRAY` is read by naming its element type to the driver.** `CalciteArrayTypeMapping.GetDataReaderMethod`
+returns `CalciteDataReader.GetArray<T>`, which has no ADO.NET equivalent: naming the element there
+*selects the mapping that fills the array* rather than casting whatever the column's default reading
+produced, and that is the only way to reach a reading that is not the default — a `DateOnly` over a
+`DATE`, a `char` over a `CHAR(1)`. The driver answers with an array or with nothing, and nothing is
+a null column, so the mapping has no third case to take apart. What it does add is the container,
+since the model may want a list, a set, or a collection type the driver has no reason to know about,
+and any conversion **EF** rather than the driver defines, as for an enum element.
 
-**An element converts through its own type mapping and nothing else.** A conversion no mapping
-declares is not one the provider may invent because the value sits inside a collection — a string
-does not become a `Guid` here any more than it would as a scalar — and an element that arrives as
-something else is refused with a message saying so. This is why a `char` element reads (its mapping
-carries a `CharToStringConverter`) and a `DateOnly` element does not (its mapping carries nothing).
-It also means the element mapping is the extension point for elements: a user widens what a list can
-hold the same way they widen anything else, by giving the element type a mapping. An element that is
-itself a collection recurses into its own mapping.
+`ReaderElementType` is what gets named, and it is nullable exactly where the model says an element
+may be absent: a `List<int>` and a `List<int?>` share an element mapping, and the driver refuses to
+put a null in an `int[]` rather than quietly widening it.
 
-**`ARRAY` is used only where a round trip is known to work**, which two allowlists in that same
-class decide: one of element types, one of collection types. A property outside either keeps the
-JSON storage, so the fallback is not dead code. Both lists are now **conservative rather than
-accurate** — the read half would carry more than they allow, and it is the unmeasured write half
-that keeps them narrow. See the ARRAY items in `TODO.md` before widening either.
+**`ARRAY` is used only where a round trip is known to work**, which the two allowlists in
+`CalciteTypeMappingSource` decide. A property outside either keeps the JSON storage, so the fallback
+is not dead code — an enum element and the `ReadOnlyCollection` family still take it. See the ARRAY
+item in `TODO.md` before widening either.
 
 The adapter has exactly **one outgoing converter**: `EfCoreToClrEnumerableConverter`, into
 `ClrEnumerableConvention`. That convention has two bodies per node rather than a second convention:

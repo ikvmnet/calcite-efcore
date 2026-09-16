@@ -18,8 +18,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Types;
 /// the driver round-trips, and onto JSON text for the rest, so this is the measurement that list is
 /// drawn from: an element type that starts round-tripping belongs in
 /// <c>CalciteTypeMappingSource</c>'s allowlist, and one that stops belongs out of it. The element
-/// type is named to the reader rather than the collection type, which is the form the driver
-/// supports for reaching a shape its own conversion did not produce. The types
+/// element type is named to the driver's own array accessor, which is what the provider's reader
+/// does: naming it selects the mapping that fills the array rather than casting whatever the
+/// column's default reading produced. The types
 /// deliberately absent are <see cref="char"/>, <see cref="DateOnly"/> and <see cref="TimeOnly"/>,
 /// each of which the driver hands back as the type Calcite's runtime holds rather than the one the
 /// element asked for; see the ARRAY element item in <c>TODO.md</c>.
@@ -65,14 +66,14 @@ public class ArrayElementMatrixTests(ITestOutputHelper output)
 
             using var command = connection.CreateCommand();
             command.CommandText = $"SELECT \"V\" FROM \"{table}\"";
-            using var reader = await command.ExecuteReaderAsync();
+            using var reader = (CalciteDataReader)await command.ExecuteReaderAsync();
             if (await reader.ReadAsync() == false)
             {
                 output.WriteLine($"FAIL {typeof(T).Name,-16} {storeType,-24} no row");
                 return false;
             }
 
-            var read = reader.GetFieldValue<T[]>(0);
+            var read = reader.GetArray<T>(0);
             var ok = read.SequenceEqual(values);
             output.WriteLine($"{(ok ? "OK  " : "DIFF")} {typeof(T).Name,-16} {storeType,-24} [{string.Join("|", read)}]");
             return ok;
@@ -119,6 +120,12 @@ public class ArrayElementMatrixTests(ITestOutputHelper output)
         Assert.True(await RoundTripAsync(connection, id++, "UUID", new List<Guid> { Guid.NewGuid() }));
         Assert.True(await RoundTripAsync(connection, id++, "TIMESTAMP", new List<DateTime> { new(2020, 1, 2, 3, 4, 5) }));
         Assert.True(await RoundTripAsync(connection, id++, "TIMESTAMP WITH TIME ZONE", new List<DateTimeOffset> { new(2020, 1, 2, 3, 4, 5, TimeSpan.Zero) }));
+        // these three read back as themselves only because the element type is named, which is the
+        // whole reason the allowlist can hold them
+        Assert.True(await RoundTripAsync(connection, id++, "CHAR(1)", new List<char> { 'a', 'b' }));
+        Assert.True(await RoundTripAsync(connection, id++, "DATE", new List<DateOnly> { new(2020, 1, 2) }));
+        Assert.True(await RoundTripAsync(connection, id++, "TIME", new List<TimeOnly> { new(3, 4, 5) }));
+
         // a null among the elements survives, in both a reference and a value element
         Assert.True(await RoundTripAsync(connection, id++, "VARCHAR", new List<string?> { "a", null }));
         Assert.True(await RoundTripAsync(connection, id++, "INTEGER", new List<int?> { 1, null }));
@@ -135,9 +142,8 @@ public class ArrayElementMatrixTests(ITestOutputHelper output)
         // each of these is read back as the type Calcite's runtime holds rather than the one the
         // element asked for, which is why the allowlist leaves them out. When one of them starts
         // passing, move it into the allowlist and into the test above rather than deleting the row.
-        Assert.False(await RoundTripAsync(connection, id++, "CHAR(1)", new List<char> { 'a', 'b' }));
-        Assert.False(await RoundTripAsync(connection, id++, "DATE", new List<DateOnly> { new(2020, 1, 2) }));
-        Assert.False(await RoundTripAsync(connection, id++, "TIME", new List<TimeOnly> { new(3, 4, 5) }));
+        // an enum is not a CLR type the allowlist can name, so an enum collection stays on JSON and
+        // the driver is never asked to read one
         Assert.False(await RoundTripAsync(connection, id++, "INTEGER", new List<Sample> { Sample.One, Sample.Two }));
     }
 
