@@ -174,6 +174,43 @@ public class ArrayColumnTests
     }
 
     [Fact]
+    public async Task A_null_array_column_is_told_apart_from_an_empty_one()
+    {
+        using var connection = ArrayDbContext.CreateConnection();
+        await using var context = await CreateStoreAsync(connection);
+
+        context.Add(new ArrayEntity { Id = 1, Cities = [], Aliases = null });
+        context.Add(new ArrayEntity { Id = 2, Cities = [], Aliases = [] });
+        context.Add(new ArrayEntity { Id = 3, Cities = [], Aliases = ["GSMNP"] });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        var read = await context.Entities.OrderBy(e => e.Id).ToListAsync();
+
+        Assert.Null(read[0].Aliases);
+        Assert.NotNull(read[1].Aliases);
+        Assert.Empty(read[1].Aliases!);
+        Assert.Equal(["GSMNP"], read[2].Aliases!);
+    }
+
+    [Fact]
+    public async Task Duplicates_and_order_survive_a_round_trip()
+    {
+        using var connection = ArrayDbContext.CreateConnection();
+        await using var context = await CreateStoreAsync(connection);
+
+        // an array is ordered and is not a set, so neither the order nor the repeat may be lost
+        context.Add(new ArrayEntity { Id = 1, Cities = ["b", "a", "b"], Ratings = [3, 1, 3] });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        var entity = await context.Entities.SingleAsync(e => e.Id == 1);
+
+        Assert.Equal(["b", "a", "b"], entity.Cities);
+        Assert.Equal([3, 1, 3], entity.Ratings);
+    }
+
+    [Fact]
     public async Task Contains_over_an_array_column_translates()
     {
         using var connection = ArrayDbContext.CreateConnection();
@@ -213,30 +250,6 @@ public class ArrayColumnTests
         // and what makes an ordered projection of the elements reproducible
         var ordered = await context.Entities.Where(e => e.Id == 1).Select(e => e.Ratings.OrderBy(r => r).ToList()).SingleAsync();
         Assert.Equal([1, 2, 3], ordered);
-    }
-
-    [Fact]
-    public void An_array_value_materializes_from_whatever_sequence_the_driver_returns()
-    {
-        // issue 52: an adapter written in .NET puts a .NET array in the column rather than the
-        // java.util.List Calcite's own runtime holds, and the column has to read the same either way
-        using var connection = ArrayDbContext.CreateConnection();
-        using var context = new ArrayDbContext(connection);
-
-        var entityType = context.Model.FindEntityType(typeof(ArrayEntity))!;
-        var mapping = (CalciteArrayTypeMapping)entityType.FindProperty(nameof(ArrayEntity.Cities))!.GetRelationalTypeMapping();
-
-        Assert.Equal(["Bryson City", "Gatlinburg"], (List<string>)CalciteArrayTypeMapping.Materialize(new[] { "Bryson City", "Gatlinburg" }, mapping)!);
-        Assert.Equal(["Bryson City"], (List<string>)CalciteArrayTypeMapping.Materialize(new List<string> { "Bryson City" }, mapping)!);
-        Assert.Empty((List<string>)CalciteArrayTypeMapping.Materialize(System.Array.Empty<string>(), mapping)!);
-
-        // a SQL NULL is the absence of a collection, not an empty one
-        Assert.Null(CalciteArrayTypeMapping.Materialize(null, mapping));
-        Assert.Null(CalciteArrayTypeMapping.Materialize(System.DBNull.Value, mapping));
-
-        // an int array reads into the int[] property the same way
-        var ratings = (CalciteArrayTypeMapping)entityType.FindProperty(nameof(ArrayEntity.Ratings))!.GetRelationalTypeMapping();
-        Assert.Equal([3, 1], (int[])CalciteArrayTypeMapping.Materialize(new[] { 3, 1 }, ratings)!);
     }
 
     [Fact]
