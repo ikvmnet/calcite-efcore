@@ -132,6 +132,28 @@ public class ArrayElementMatrixTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task A_null_element_is_refused_where_the_named_element_type_cannot_hold_one()
+    {
+        // this is what ReaderElementType is for. Only the collection says whether an element may be
+        // absent, so the mapping names int?[] for a List<int?> and int[] for a List<int>, and the
+        // driver holds it to that rather than reading a null as a zero
+        using var connection = CreateConnection();
+        await connection.OpenAsync();
+
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT ARRAY[1, NULL] AS \"I\"";
+        using var reader = (CalciteDataReader)await command.ExecuteReaderAsync();
+        Assert.True(await reader.ReadAsync());
+
+        // the column says its elements may be absent, and the reader agrees
+        Assert.Equal(typeof(int?[]), reader.GetFieldType(0));
+        Assert.Equal([1, null], reader.GetArray<int?>(0));
+
+        // naming a type with nowhere to put the null is refused rather than filled in with a zero
+        Assert.ThrowsAny<Exception>(() => reader.GetArray<int>(0));
+    }
+
+    [Fact]
     public async Task Unsupported_element_types_do_not_round_trip()
     {
         using var connection = CreateConnection();
