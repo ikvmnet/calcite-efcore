@@ -17,7 +17,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Tests.Types;
 /// The provider maps a primitive collection onto an <c>ARRAY</c> column only for the element types
 /// the driver round-trips, and onto JSON text for the rest, so this is the measurement that list is
 /// drawn from: an element type that starts round-tripping belongs in
-/// <c>CalciteTypeMappingSource</c>'s allowlist, and one that stops belongs out of it. The types
+/// <c>CalciteTypeMappingSource</c>'s allowlist, and one that stops belongs out of it. The element
+/// type is named to the reader rather than the collection type, which is the form the driver
+/// supports for reaching a shape its own conversion did not produce. The types
 /// deliberately absent are <see cref="char"/>, <see cref="DateOnly"/> and <see cref="TimeOnly"/>,
 /// each of which the driver hands back as the type Calcite's runtime holds rather than the one the
 /// element asked for; see the ARRAY element item in <c>TODO.md</c>.
@@ -70,7 +72,7 @@ public class ArrayElementMatrixTests(ITestOutputHelper output)
                 return false;
             }
 
-            var read = reader.GetFieldValue<List<T>>(0);
+            var read = reader.GetFieldValue<T[]>(0);
             var ok = read.SequenceEqual(values);
             output.WriteLine($"{(ok ? "OK  " : "DIFF")} {typeof(T).Name,-16} {storeType,-24} [{string.Join("|", read)}]");
             return ok;

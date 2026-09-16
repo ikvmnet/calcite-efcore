@@ -152,7 +152,7 @@ public class ArrayColumnTests
 
         // the array column reads as an array, and the one pinned to VARCHAR still reads as JSON text
         Assert.EndsWith("ARRAY", reader.GetDataTypeName(0));
-        Assert.Equal(["Gatlinburg", "Cherokee"], reader.GetFieldValue<List<string>>(0));
+        Assert.Equal(["Gatlinburg", "Cherokee"], reader.GetFieldValue<string[]>(0));
         Assert.Equal("[\"first\",\"second\"]", reader.GetString(1));
     }
 

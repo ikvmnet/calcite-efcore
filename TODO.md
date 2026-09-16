@@ -204,6 +204,21 @@ without ordinality and give up the ordered operators for that case.
 text storage, which is correct but is not what the column should be. `ArrayElementMatrixTests` is
 the measurement both lists are drawn from — extend it first, move the type second.
 
+**Name the element type, not the collection type**, when asking the driver what a column holds.
+`Apache.Calcite.Data` 2.0.1-pre.159 narrowed `GetFieldValue<T>` to `GetValue` plus the two things a
+type argument can say that `GetValue` cannot — choose a reading, and name element types — and a
+collection type is neither. Measured 2026-09-16 on an `ARRAY` column: `GetValue`,
+`GetFieldValue<object>`, `GetFieldValue<string[]>` and `GetFieldValue<IEnumerable<string>>` all
+answer, while `GetFieldValue<List<string>>` throws *Cannot convert value of type
+'TransformingList' … to 'List`1'*. The provider is unaffected — it has read through `GetValue` and
+built the collection itself since the precompiled-query fix — and this only reached the tests that
+probe the driver directly, which now name `T[]`.
+
+Two conversions the narrowing did **not** bring with it, both still absent: `GetFieldValue<long[]>`
+over an `INTEGER ARRAY` throws on `Int32` to `Int64`, and `GetFieldValue<DateOnly[]>` over a
+`DATE ARRAY` throws on `DateTime` to `DateOnly`. The second is the one that keeps `DateOnly` and
+`TimeOnly` out of the element allowlist.
+
 **Element types left out**, each because the driver hands back what Calcite's runtime holds rather
 than what the element asked for. Re-measured 2026-09-16 against `Apache.Calcite.Data` 2.0.1-pre.152,
 the first build with the CLR type mapping, using `GetFieldValue<List<T>>` over a column of that
