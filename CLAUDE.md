@@ -51,9 +51,18 @@ is reached. Nothing else built out of bytes has that reading to keep, so a `List
 throughout, so the column arrives as a .NET sequence whichever side produced the row — Calcite's
 runtime holds an array as a `java.util.List` and the driver converts it, while an adapter written
 in .NET (the Cosmos one) puts a .NET array there to begin with. `CalciteArrayTypeMapping` therefore
-reads the value and builds the collection itself, coercing each element, because asking the driver
-for the model's collection type only works for the first of those: the conversion it would run is
-keyed on the Java type and silently misses a .NET array.
+reads the value and builds the collection itself, because asking the driver for the model's
+collection type only works for the first of those: the conversion it would run is keyed on the Java
+type and silently misses a .NET array.
+
+**An element converts through its own type mapping and nothing else.** A conversion no mapping
+declares is not one the provider may invent because the value sits inside a collection — a string
+does not become a `Guid` here any more than it would as a scalar — and an element that arrives as
+something else is refused with a message saying so. This is why a `char` element reads (its mapping
+carries a `CharToStringConverter`) and a `DateOnly` element does not (its mapping carries nothing).
+It also means the element mapping is the extension point for elements: a user widens what a list can
+hold the same way they widen anything else, by giving the element type a mapping. An element that is
+itself a collection recurses into its own mapping.
 
 **`ARRAY` is used only where a round trip is known to work**, which two allowlists in that same
 class decide: one of element types, one of collection types. A property outside either keeps the

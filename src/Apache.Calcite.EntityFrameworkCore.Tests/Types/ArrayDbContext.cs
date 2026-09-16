@@ -57,6 +57,12 @@ public class ArrayEntity
     /// </summary>
     public sbyte[] Offsets { get; set; } = [];
 
+    /// <summary>
+    /// Gets or sets a collection the column may hold no value at all for, which is how a SQL NULL
+    /// in an ARRAY column is told apart from an empty array.
+    /// </summary>
+    public List<string>? Aliases { get; set; }
+
 }
 
 public class ArrayDbContext : DbContext

@@ -241,10 +241,10 @@ public class CalciteArrayTypeMapping : RelationalTypeMapping, ICalciteTypeMappin
     /// <remarks>
     /// Anything enumerable is accepted, because what arrives depends on who produced the row rather
     /// than on the column: a .NET array from the driver's own conversion, or whatever collection an
-    /// adapter written in .NET put there. The elements are converted one at a time — through the
-    /// element mapping's converter where it has one, and then to the element's own CLR type — which
-    /// is what lets an element type the driver would not convert inside a collection still arrive
-    /// as itself.
+    /// adapter written in .NET put there. What is <em>not</em> open-ended is the elements. Each one
+    /// is read through its own type mapping and through nothing else, so an element converts exactly
+    /// as the same value would on its own and a conversion no mapping defines does not happen here
+    /// merely because the value sits inside a collection.
     /// </remarks>
     /// <param name="value"></param>
     /// <param name="mapping"></param>
@@ -257,45 +257,40 @@ public class CalciteArrayTypeMapping : RelationalTypeMapping, ICalciteTypeMappin
         if (value is not IEnumerable elements || value is string)
             throw new InvalidCastException($"Cannot read a value of type '{value.GetType()}' as the collection '{mapping.ClrType}'; an ARRAY column reads as a sequence.");
 
-        var elementType = mapping.ElementMapping.ClrType;
-        var converter = mapping.ElementMapping.Converter;
+        // the element type comes from the collection rather than from the element mapping, because
+        // only the collection says whether an element may be absent: a List<int?> and a List<int>
+        // share an element mapping, and building the first as the second rejects the nulls it holds
+        var elementType = mapping.ClrType.TryGetSequenceType() ?? mapping.ElementMapping.ClrType;
 
         var items = new List<object?>();
         foreach (var element in elements)
-            items.Add(CoerceElement(element is null or DBNull ? null : converter is null ? element : converter.ConvertFromProvider(element), elementType));
+            items.Add(ReadElement(element, mapping.ElementMapping));
 
         return Fill(mapping.ClrType, elementType, items);
     }
 
     /// <summary>
-    /// Returns one element as the type it is declared to be, where what arrived is the type Calcite's
-    /// runtime holds it as instead.
+    /// Returns one element as its own type mapping reads it.
     /// </summary>
+    /// <remarks>
+    /// The mapping is the whole of it. A converter is applied where the element has one, an element
+    /// that is itself a collection is read by its own mapping in turn, and otherwise the value
+    /// stands as the driver gave it. Nothing is coerced beyond that: a conversion the element's
+    /// mapping does not define is not one this provider may invent, and an element that arrives as
+    /// something else is a mapping that does not hold rather than a value to repair.
+    /// </remarks>
     /// <param name="value"></param>
-    /// <param name="elementType"></param>
+    /// <param name="elementMapping"></param>
     /// <returns></returns>
-    static object? CoerceElement(object? value, Type elementType)
+    static object? ReadElement(object? value, RelationalTypeMapping elementMapping)
     {
-        if (value is null)
+        if (value is null or DBNull)
             return null;
 
-        var target = elementType.UnwrapNullableType();
-        if (target.IsInstanceOfType(value))
-            return value;
+        if (elementMapping is CalciteArrayTypeMapping nested)
+            return Materialize(value, nested);
 
-        if (target.IsEnum)
-            return Enum.ToObject(target, value);
-
-        return value switch
-        {
-            string text when target == typeof(char) && text.Length > 0 => text[0],
-            DateTime date when target == typeof(DateOnly) => DateOnly.FromDateTime(date),
-            DateTime date when target == typeof(TimeOnly) => TimeOnly.FromDateTime(date),
-            TimeSpan time when target == typeof(TimeOnly) => TimeOnly.FromTimeSpan(time),
-            DateTimeOffset offset when target == typeof(DateTime) => offset.DateTime,
-            IConvertible when target.IsPrimitive || target == typeof(decimal) => Convert.ChangeType(value, target),
-            _ => value,
-        };
+        return elementMapping.Converter is { } converter ? converter.ConvertFromProvider(value) : value;
     }
 
     /// <summary>
@@ -324,7 +319,20 @@ public class CalciteArrayTypeMapping : RelationalTypeMapping, ICalciteTypeMappin
 
         var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType), items.Count)!;
         foreach (var item in items)
-            list.Add(item);
+        {
+            try
+            {
+                list.Add(item);
+            }
+            catch (Exception e) when (e is ArgumentException or InvalidCastException)
+            {
+                // the element's mapping did not produce the element's type, and there is no
+                // conversion to reach for that the mapping has not already been asked for
+                throw new InvalidCastException(
+                    $"An element of an ARRAY column read as '{item?.GetType().ToString() ?? "null"}' where the collection '{collectionType}' holds '{elementType}'. " +
+                    $"An element converts as its own type mapping says and no further; give the element type a mapping that reads it, rather than expecting one to be inferred.", e);
+            }
+        }
 
         if (collectionType.IsInstanceOfType(list))
             return list;

@@ -221,14 +221,28 @@ The scalar accessors for all three of the first three work — `GetChar`, `GetDa
 collection does not take those paths. The enum row is a **narrowing** the CLR type mapping brought
 with it: an integer coerced to an enum element before 2.0.1-pre.152 and does not now.
 
-**The read half of this is no longer the driver's**, which changes what the allowlists are for.
+**The read half of this is no longer the driver's**, which splits the four rows apart.
 `CalciteArrayTypeMapping` reads the column as the value the driver returns and builds the collection
-itself, coercing each element, so on the way back a `char`, a `DateOnly`, a `TimeOnly` and an enum
-would all arrive as themselves and any collection type would be constructible. What keeps them out
-of the allowlists now is the **write** half, which is still the driver's and has not been measured
-for those types. Measuring it is the next step: add each to `ArrayDbContext` with a round trip
-through `SaveChanges`, and move whatever survives into the allowlists. Until that is done the lists
-are conservative rather than accurate.
+itself, putting every element through **its own type mapping and nothing else** — a conversion no
+mapping defines is not one the provider may invent because the value happens to sit in a list, and
+the element mapping is the same extension point it is anywhere else. That leaves three cases:
+
+- **`char` and an enum already read**, because `CalciteCharTypeMapping` carries a
+  `CharToStringConverter` and an enum property's element mapping carries an `EnumToNumberConverter`.
+  The conversion is declared, so it applies to an element exactly as it would to a scalar.
+- **`DateOnly` and `TimeOnly` do not**, because their mappings declare no converter at all. A scalar
+  of either works only because the driver's own `GetDateOnly`/`GetTimeOnly` accessors take a path
+  that the element conversion does not. Two ways to close it, and they are not equivalent: give
+  those mappings a converter here, which makes an element and a scalar agree by construction, or
+  have the driver convert an element the way its scalar accessors do. The first is this repo's to
+  make and is the smaller change; the second is the one that keeps the rule in one place.
+- **The collection types are readable now** — `ReadOnlyCollection`, `ObservableCollection` and
+  `Collection` are all constructed by the mapping, and `ArrayMaterializationTests` covers them.
+
+What keeps any of this out of the allowlists is the **write** half, which is still the driver's and
+has not been measured for these types. Measuring it is the next step: add each to `ArrayDbContext`
+with a round trip through `SaveChanges`, and move whatever survives into the allowlists. Until then
+the lists are conservative rather than accurate.
 
 **Collection types left out**: the driver builds `List<>`, `IList<>`, `ICollection<>`,
 `IEnumerable<>`, `IReadOnlyList<>`, `IReadOnlyCollection<>`, `ISet<>`, `HashSet<>` and arrays, and

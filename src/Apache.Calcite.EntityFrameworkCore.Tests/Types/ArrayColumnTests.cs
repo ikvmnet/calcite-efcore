@@ -174,6 +174,43 @@ public class ArrayColumnTests
     }
 
     [Fact]
+    public async Task A_null_array_column_is_told_apart_from_an_empty_one()
+    {
+        using var connection = ArrayDbContext.CreateConnection();
+        await using var context = await CreateStoreAsync(connection);
+
+        context.Add(new ArrayEntity { Id = 1, Cities = [], Aliases = null });
+        context.Add(new ArrayEntity { Id = 2, Cities = [], Aliases = [] });
+        context.Add(new ArrayEntity { Id = 3, Cities = [], Aliases = ["GSMNP"] });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        var read = await context.Entities.OrderBy(e => e.Id).ToListAsync();
+
+        Assert.Null(read[0].Aliases);
+        Assert.NotNull(read[1].Aliases);
+        Assert.Empty(read[1].Aliases!);
+        Assert.Equal(["GSMNP"], read[2].Aliases!);
+    }
+
+    [Fact]
+    public async Task Duplicates_and_order_survive_a_round_trip()
+    {
+        using var connection = ArrayDbContext.CreateConnection();
+        await using var context = await CreateStoreAsync(connection);
+
+        // an array is ordered and is not a set, so neither the order nor the repeat may be lost
+        context.Add(new ArrayEntity { Id = 1, Cities = ["b", "a", "b"], Ratings = [3, 1, 3] });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        var entity = await context.Entities.SingleAsync(e => e.Id == 1);
+
+        Assert.Equal(["b", "a", "b"], entity.Cities);
+        Assert.Equal([3, 1, 3], entity.Ratings);
+    }
+
+    [Fact]
     public async Task Contains_over_an_array_column_translates()
     {
         using var connection = ArrayDbContext.CreateConnection();
