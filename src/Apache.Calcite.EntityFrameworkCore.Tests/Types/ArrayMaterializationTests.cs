@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Linq.Expressions;
 
 using Apache.Calcite.EntityFrameworkCore.Storage.Internal.Mapping;
 
@@ -40,9 +41,23 @@ public class ArrayMaterializationTests
         return new CalciteArrayTypeMapping("VARCHAR ARRAY", collectionType, elementMapping ?? CalciteStringTypeMapping.Default);
     }
 
+    /// <summary>
+    /// Reads a value through the mapping's real reader expression, compiled, so the test exercises
+    /// exactly what the shaper runs rather than a second path that could drift from it.
+    /// </summary>
     static object? Read(Type collectionType, object? value, RelationalTypeMapping? elementMapping = null)
     {
-        return CalciteArrayTypeMapping.Materialize(value, Mapping(collectionType, elementMapping));
+        return Read(Mapping(collectionType, elementMapping), value);
+    }
+
+    static object? Read(CalciteArrayTypeMapping mapping, object? value)
+    {
+        var parameter = Expression.Parameter(typeof(object), "value");
+        var reader = Expression.Lambda<Func<object?, object?>>(
+            Expression.Convert(mapping.CustomizeDataReaderExpression(parameter), typeof(object)),
+            parameter);
+
+        return reader.Compile()(value);
     }
 
     [Fact]
@@ -124,7 +139,7 @@ public class ArrayMaterializationTests
         var inner = new CalciteArrayTypeMapping("VARCHAR ARRAY", typeof(List<string>), CalciteStringTypeMapping.Default);
         var outer = new CalciteArrayTypeMapping("VARCHAR ARRAY ARRAY", typeof(List<List<string>>), inner);
 
-        var read = (List<List<string>>)CalciteArrayTypeMapping.Materialize(new object[] { new[] { "a", "b" }, new[] { "c" } }, outer)!;
+        var read = (List<List<string>>)Read(outer, new object[] { new[] { "a", "b" }, new[] { "c" } })!;
 
         Assert.Equal(2, read.Count);
         Assert.Equal(["a", "b"], read[0]);

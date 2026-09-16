@@ -10,6 +10,7 @@ using System.Text;
 using Apache.Calcite.EntityFrameworkCore.Utilities;
 
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Storage.Json;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -228,11 +229,39 @@ public class CalciteArrayTypeMapping : RelationalTypeMapping, ICalciteTypeMappin
     }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Everything this needs is written into the expression rather than carried by it. A precompiled
+    /// query turns the shaper into C# source, which can emit a type argument and a lambda but not a
+    /// constant holding a type mapping, so the collection and element types arrive as type arguments
+    /// and the element's own conversion arrives as the converter's own expression, inlined.
+    /// </remarks>
+    /// <param name="expression"></param>
+    /// <returns></returns>
     public override Expression CustomizeDataReaderExpression(Expression expression)
     {
-        return Expression.Convert(
-            Expression.Call(MaterializeMethod, expression, Expression.Constant(this)),
-            ClrType);
+        var elementType = ClrType.TryGetSequenceType() ?? ElementMapping.ClrType;
+        var element = Expression.Parameter(typeof(object), "element");
+
+        // the element converts by its own mapping and by nothing else, so what is inlined here is
+        // that mapping's own reading rather than a rule of this one's — including where the element
+        // is itself a collection, which reads by recursing into the same method one level down
+        Expression read = ElementMapping switch
+        {
+            CalciteArrayTypeMapping nested => nested.CustomizeDataReaderExpression(element),
+            { Converter: { } converter } => ReplacingExpressionVisitor.Replace(
+                converter.ConvertFromProviderExpression.Parameters[0],
+                Expression.Convert(element, converter.ProviderClrType),
+                converter.ConvertFromProviderExpression.Body),
+            _ => element,
+        };
+
+        return Expression.Call(
+            MaterializeMethod.MakeGenericMethod(ClrType, elementType),
+            expression,
+            Expression.Lambda(
+                typeof(Func<,>).MakeGenericType(typeof(object), elementType),
+                Expression.Convert(read, elementType),
+                element));
     }
 
     /// <summary>
@@ -241,56 +270,50 @@ public class CalciteArrayTypeMapping : RelationalTypeMapping, ICalciteTypeMappin
     /// <remarks>
     /// Anything enumerable is accepted, because what arrives depends on who produced the row rather
     /// than on the column: a .NET array from the driver's own conversion, or whatever collection an
-    /// adapter written in .NET put there. What is <em>not</em> open-ended is the elements. Each one
-    /// is read through its own type mapping and through nothing else, so an element converts exactly
-    /// as the same value would on its own and a conversion no mapping defines does not happen here
-    /// merely because the value sits inside a collection.
+    /// adapter written in .NET put there. What is <em>not</em> open-ended is the elements:
+    /// <paramref name="readElement"/> is the element mapping's own conversion and the only one
+    /// applied, so an element converts exactly as the same value would on its own.
     /// </remarks>
+    /// <typeparam name="TCollection"></typeparam>
+    /// <typeparam name="TElement"></typeparam>
     /// <param name="value"></param>
-    /// <param name="mapping"></param>
+    /// <param name="readElement"></param>
     /// <returns></returns>
-    public static object? Materialize(object? value, CalciteArrayTypeMapping mapping)
+    public static TCollection? Materialize<TCollection, TElement>(object? value, Func<object, TElement> readElement)
     {
         if (value is null or DBNull)
-            return null;
+            return default;
 
         if (value is not IEnumerable elements || value is string)
-            throw new InvalidCastException($"Cannot read a value of type '{value.GetType()}' as the collection '{mapping.ClrType}'; an ARRAY column reads as a sequence.");
+            throw new InvalidCastException($"Cannot read a value of type '{value.GetType()}' as the collection '{typeof(TCollection)}'; an ARRAY column reads as a sequence.");
 
-        // the element type comes from the collection rather than from the element mapping, because
-        // only the collection says whether an element may be absent: a List<int?> and a List<int>
-        // share an element mapping, and building the first as the second rejects the nulls it holds
-        var elementType = mapping.ClrType.TryGetSequenceType() ?? mapping.ElementMapping.ClrType;
+        var items = new List<TElement>();
+        foreach (var item in elements)
+            items.Add(item is null or DBNull ? default! : Read(item, readElement, typeof(TElement)));
 
-        var items = new List<object?>();
-        foreach (var element in elements)
-            items.Add(ReadElement(element, mapping.ElementMapping));
-
-        return Fill(mapping.ClrType, elementType, items);
+        return (TCollection)Fill(typeof(TCollection), typeof(TElement), items);
     }
 
     /// <summary>
-    /// Returns one element as its own type mapping reads it.
+    /// Returns one element as its own mapping reads it, saying what went wrong where it cannot.
     /// </summary>
     /// <remarks>
-    /// The mapping is the whole of it. A converter is applied where the element has one, an element
-    /// that is itself a collection is read by its own mapping in turn, and otherwise the value
-    /// stands as the driver gave it. Nothing is coerced beyond that: a conversion the element's
-    /// mapping does not define is not one this provider may invent, and an element that arrives as
-    /// something else is a mapping that does not hold rather than a value to repair.
+    /// A conversion the element's mapping does not define is not one this provider may invent
+    /// because the value sits inside a collection, so an element that arrives as something else is
+    /// a mapping that does not hold rather than a value to repair.
     /// </remarks>
-    /// <param name="value"></param>
-    /// <param name="elementMapping"></param>
-    /// <returns></returns>
-    static object? ReadElement(object? value, RelationalTypeMapping elementMapping)
+    static TElement Read<TElement>(object item, Func<object, TElement> readElement, Type elementType)
     {
-        if (value is null or DBNull)
-            return null;
-
-        if (elementMapping is CalciteArrayTypeMapping nested)
-            return Materialize(value, nested);
-
-        return elementMapping.Converter is { } converter ? converter.ConvertFromProvider(value) : value;
+        try
+        {
+            return readElement(item);
+        }
+        catch (Exception e) when (e is InvalidCastException or ArgumentException or FormatException)
+        {
+            throw new InvalidCastException(
+                $"An element of an ARRAY column read as '{item.GetType()}' where the collection holds '{elementType}'. " +
+                "An element converts as its own type mapping says and no further; give the element type a mapping that reads it, rather than expecting one to be inferred.", e);
+        }
     }
 
     /// <summary>
@@ -306,56 +329,28 @@ public class CalciteArrayTypeMapping : RelationalTypeMapping, ICalciteTypeMappin
     /// <param name="elementType"></param>
     /// <param name="items"></param>
     /// <returns></returns>
-    static object Fill(Type collectionType, Type elementType, List<object?> items)
+    static object Fill<TElement>(Type collectionType, Type elementType, List<TElement> items)
     {
         if (collectionType.IsArray)
-        {
-            var array = Array.CreateInstance(collectionType.GetElementType()!, items.Count);
-            for (var i = 0; i < items.Count; i++)
-                array.SetValue(items[i], i);
+            return items.ToArray();
 
-            return array;
-        }
-
-        var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType), items.Count)!;
-        foreach (var item in items)
-        {
-            try
-            {
-                list.Add(item);
-            }
-            catch (Exception e) when (e is ArgumentException or InvalidCastException)
-            {
-                // the element's mapping did not produce the element's type, and there is no
-                // conversion to reach for that the mapping has not already been asked for
-                throw new InvalidCastException(
-                    $"An element of an ARRAY column read as '{item?.GetType().ToString() ?? "null"}' where the collection '{collectionType}' holds '{elementType}'. " +
-                    $"An element converts as its own type mapping says and no further; give the element type a mapping that reads it, rather than expecting one to be inferred.", e);
-            }
-        }
-
-        if (collectionType.IsInstanceOfType(list))
-            return list;
+        if (collectionType.IsInstanceOfType(items))
+            return items;
 
         // a concrete collection that wraps or copies a list is built from it, which covers
         // ReadOnlyCollection, ObservableCollection and Collection in one
         if (collectionType.GetConstructor([typeof(IList<>).MakeGenericType(elementType)]) is { } fromList)
-            return fromList.Invoke([list]);
+            return fromList.Invoke([items]);
 
         if (collectionType.GetConstructor([typeof(IEnumerable<>).MakeGenericType(elementType)]) is { } fromSequence)
-            return fromSequence.Invoke([list]);
+            return fromSequence.Invoke([items]);
 
-        if (collectionType.GetConstructor(Type.EmptyTypes) is { } empty)
+        if (collectionType.GetConstructor(Type.EmptyTypes) is { } empty && empty.Invoke(null) is ICollection<TElement> built)
         {
-            var built = empty.Invoke(null);
-            var add = collectionType.GetMethod(nameof(IList.Add), [elementType]);
-            if (add is not null && built is not null)
-            {
-                foreach (var item in items)
-                    add.Invoke(built, [item]);
+            foreach (var item in items)
+                built.Add(item);
 
-                return built;
-            }
+            return built;
         }
 
         throw new InvalidCastException($"Cannot build the collection '{collectionType}' from an ARRAY column: it is neither a list nor constructible from one.");

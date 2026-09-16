@@ -253,30 +253,6 @@ public class ArrayColumnTests
     }
 
     [Fact]
-    public void An_array_value_materializes_from_whatever_sequence_the_driver_returns()
-    {
-        // issue 52: an adapter written in .NET puts a .NET array in the column rather than the
-        // java.util.List Calcite's own runtime holds, and the column has to read the same either way
-        using var connection = ArrayDbContext.CreateConnection();
-        using var context = new ArrayDbContext(connection);
-
-        var entityType = context.Model.FindEntityType(typeof(ArrayEntity))!;
-        var mapping = (CalciteArrayTypeMapping)entityType.FindProperty(nameof(ArrayEntity.Cities))!.GetRelationalTypeMapping();
-
-        Assert.Equal(["Bryson City", "Gatlinburg"], (List<string>)CalciteArrayTypeMapping.Materialize(new[] { "Bryson City", "Gatlinburg" }, mapping)!);
-        Assert.Equal(["Bryson City"], (List<string>)CalciteArrayTypeMapping.Materialize(new List<string> { "Bryson City" }, mapping)!);
-        Assert.Empty((List<string>)CalciteArrayTypeMapping.Materialize(System.Array.Empty<string>(), mapping)!);
-
-        // a SQL NULL is the absence of a collection, not an empty one
-        Assert.Null(CalciteArrayTypeMapping.Materialize(null, mapping));
-        Assert.Null(CalciteArrayTypeMapping.Materialize(System.DBNull.Value, mapping));
-
-        // an int array reads into the int[] property the same way
-        var ratings = (CalciteArrayTypeMapping)entityType.FindProperty(nameof(ArrayEntity.Ratings))!.GetRelationalTypeMapping();
-        Assert.Equal([3, 1], (int[])CalciteArrayTypeMapping.Materialize(new[] { 3, 1 }, ratings)!);
-    }
-
-    [Fact]
     public async Task An_array_column_materializes_from_a_view()
     {
         // the shape issue 48 reports: a view projecting an ARRAY column, read into a List<string>
