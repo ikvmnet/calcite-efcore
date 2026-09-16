@@ -117,11 +117,26 @@ public class ArrayElementMatrixTests(ITestOutputHelper output)
         Assert.True(await RoundTripAsync(connection, id++, "UUID", new List<Guid> { Guid.NewGuid() }));
         Assert.True(await RoundTripAsync(connection, id++, "TIMESTAMP", new List<DateTime> { new(2020, 1, 2, 3, 4, 5) }));
         Assert.True(await RoundTripAsync(connection, id++, "TIMESTAMP WITH TIME ZONE", new List<DateTimeOffset> { new(2020, 1, 2, 3, 4, 5, TimeSpan.Zero) }));
-        Assert.True(await RoundTripAsync(connection, id++, "INTEGER", new List<Sample> { Sample.One, Sample.Two }));
-
         // a null among the elements survives, in both a reference and a value element
         Assert.True(await RoundTripAsync(connection, id++, "VARCHAR", new List<string?> { "a", null }));
         Assert.True(await RoundTripAsync(connection, id++, "INTEGER", new List<int?> { 1, null }));
+    }
+
+    [Fact]
+    public async Task Unsupported_element_types_do_not_round_trip()
+    {
+        using var connection = CreateConnection();
+        await connection.OpenAsync();
+
+        var id = 100;
+
+        // each of these is read back as the type Calcite's runtime holds rather than the one the
+        // element asked for, which is why the allowlist leaves them out. When one of them starts
+        // passing, move it into the allowlist and into the test above rather than deleting the row.
+        Assert.False(await RoundTripAsync(connection, id++, "CHAR(1)", new List<char> { 'a', 'b' }));
+        Assert.False(await RoundTripAsync(connection, id++, "DATE", new List<DateOnly> { new(2020, 1, 2) }));
+        Assert.False(await RoundTripAsync(connection, id++, "TIME", new List<TimeOnly> { new(3, 4, 5) }));
+        Assert.False(await RoundTripAsync(connection, id++, "INTEGER", new List<Sample> { Sample.One, Sample.Two }));
     }
 
 }

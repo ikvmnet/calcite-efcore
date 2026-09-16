@@ -205,26 +205,38 @@ text storage, which is correct but is not what the column should be. `ArrayEleme
 the measurement both lists are drawn from — extend it first, move the type second.
 
 **Element types left out**, each because the driver hands back what Calcite's runtime holds rather
-than what the element asked for. Measured 2026-09-15 on 1.43.0-SNAPSHOT with
-`GetFieldValue<List<T>>` over a column of that type:
+than what the element asked for. Re-measured 2026-09-16 against `Apache.Calcite.Data` 2.0.1-pre.152,
+the first build with the CLR type mapping, using `GetFieldValue<List<T>>` over a column of that
+type:
 
 | element | failure |
 |---|---|
 | `char` | *Cannot convert value of type 'String' to 'Char'* |
 | `DateOnly` | *Cannot convert value of type 'DateTime' to 'DateOnly'* |
 | `TimeOnly` | *Cannot convert value of type 'TimeSpan' to 'TimeOnly'* |
+| an enum | *Cannot convert value of type 'Int32' to 'Sample'* |
 
-The scalar accessors for all three work — `GetChar`, `GetDateOnly`, `GetTimeOnly` each take the
-right path — so the gap is that `CalciteValues.Coerce` does not take those paths for an element
-**inside** a collection. Fix it there rather than by unpacking and re-packing collections in the
-provider. Note the write direction is already handled here: `CalciteArrayTypeMapping.ConfigureParameter`
-converts elements through the element mapping's converter, which is what makes an enum collection
-writable.
+The scalar accessors for all three of the first three work — `GetChar`, `GetDateOnly`,
+`GetTimeOnly` each take the right path — so the gap is that the element conversion inside a
+collection does not take those paths. The enum row is a **narrowing** the CLR type mapping brought
+with it: an integer coerced to an enum element before 2.0.1-pre.152 and does not now. It costs
+nothing here, because an enum element never reached `ARRAY` storage anyway — the allowlist holds
+CLR types and an enum is not one of them, so an enum collection has always taken the JSON path —
+but it is the one place the new mapping reads narrower than the old table, and it is worth knowing
+before something else starts relying on it.
 
 **Collection types left out**: the driver builds `List<>`, `IList<>`, `ICollection<>`,
 `IEnumerable<>`, `IReadOnlyList<>`, `IReadOnlyCollection<>`, `ISet<>`, `HashSet<>` and arrays, and
 nothing else — so `ReadOnlyCollection<T>`, `ObservableCollection<T>` and `Collection<T>` fall back
-to JSON. Adding them to `CalciteValues.TryConvertCollection` is a few lines each.
+to JSON, each failing on *Cannot convert value of type 'ArrayList' … to '&lt;that type&gt;'*.
+Confirmed still the case on 2.0.1-pre.152. A few lines each where the driver builds the collection.
+
+**What the CLR type mapping did fix**, so it does not get re-litigated: a parameter is now typed
+from the **column** rather than from the value, so a `byte[]` or `sbyte[]` bound against a
+`TINYINT ARRAY` column arrives as the array the column is instead of as a `ByteString`. The
+provider used to normalize every collection parameter to a `List<T>` to force that, and no longer
+does — `ConfigureParameter` now only applies the element converter, and `ArrayColumnTests` covers
+both byte shapes end to end.
 
 ## DISTINCT over a row holding an ARRAY fails in the CLR runtime (calcite-dotnet)
 

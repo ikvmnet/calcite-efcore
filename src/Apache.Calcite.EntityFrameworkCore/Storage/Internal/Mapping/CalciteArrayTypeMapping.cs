@@ -214,33 +214,29 @@ public class CalciteArrayTypeMapping : RelationalTypeMapping, ICalciteTypeMappin
     /// </remarks>
     protected override void ConfigureParameter(DbParameter parameter)
     {
-        if (parameter.Value is IEnumerable elements and not string)
-            parameter.Value = ToProviderList(elements);
+        if (ElementMapping.Converter is { } converter && parameter.Value is IEnumerable elements and not string)
+            parameter.Value = ToProviderList(elements, converter);
     }
 
     /// <summary>
-    /// Returns the elements as a <see cref="List{T}"/> of the provider's element type, converted by
-    /// the element mapping where it has a converter.
+    /// Returns the elements converted to the values the store holds, as a <see cref="List{T}"/> of
+    /// the provider's element type.
     /// </summary>
     /// <remarks>
-    /// A list rather than an array, and that is not incidental. The driver decides a parameter's
-    /// Calcite type from the value's own type, and it reads an array of an 8-bit element —
-    /// <see cref="byte"/> or <see cref="sbyte"/> — as binary: a <c>byte[]</c> bound against a
-    /// <c>TINYINT ARRAY</c> column arrives as a <c>ByteString</c> and the insert fails on
-    /// <em>Unable to cast ByteString to java.util.List</em>. The same elements in a
-    /// <see cref="List{T}"/> bind as the array they are. Normalizing every collection to a list
-    /// rather than special-casing the two element types keeps one path for all of them.
+    /// Only the elements convert. The collection carries no converter of its own — the store holds
+    /// the collection — but its elements may, and nothing upstream walks into a collection to apply
+    /// one, so it is applied here. Where the element has no converter the value is passed through
+    /// untouched: the driver types a parameter from the column, so it binds a collection as the
+    /// array the column is without help.
     /// </remarks>
     /// <param name="elements"></param>
+    /// <param name="converter"></param>
     /// <returns></returns>
-    IList ToProviderList(IEnumerable elements)
+    static IList ToProviderList(IEnumerable elements, ValueConverter converter)
     {
-        var converter = ElementMapping.Converter;
-        var elementType = converter?.ProviderClrType ?? ElementMapping.ClrType;
-
-        var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType.MakeNullable()))!;
+        var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(converter.ProviderClrType.MakeNullable()))!;
         foreach (var element in elements)
-            list.Add(element is null || converter is null ? element : converter.ConvertToProvider(element));
+            list.Add(element is null ? null : converter.ConvertToProvider(element));
 
         return list;
     }
