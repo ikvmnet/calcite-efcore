@@ -243,6 +243,3 @@ ModelManifest.xml
 
 # Ignore build output
 build/
-
-# BenchmarkDotNet results
-BenchmarkDotNet.Artifacts/

@@ -379,28 +379,31 @@ adapter's operator table, so this is a function the table claims and the transla
 selects which method the enclosing call becomes — so the fix belongs in the `TRIM` case, reading the
 flag off operand 0 rather than translating it, not in a general symbol-literal case.
 
-Found by the benchmark stage's `--verify`: `FunctionBenchmarks.Function_Trim` in the adapter suite
-and `StringFunctionBenchmarks.String_Trim` in the provider suite, on all four platforms.
+It reaches both the adapter and the provider: a `Trim` on either side lands on the same missing
+case.
 
-## Six more benchmarks the provider suite cannot answer
+## Six shapes with no coverage and no diagnosis
 
-Alongside `String_Trim` above, `--verify` on `Apache.Calcite.EntityFrameworkCore.Benchmarks` reports
-207 ran / 7 failed, identically on every platform (measured 2026-09-15):
+Measured 2026-09-15 on all four platforms, and recorded here because nothing exercises them any
+more: they were found by the benchmark suites, which have since been removed, and no test covers
+them. Each is a plain LINQ shape over a seeded store, so each is reproducible by writing that query
+against any of the test fixtures.
 
-| benchmark | failure |
+| shape | failure |
 |---|---|
-| `String_Length` | `The LINQ expression 'DbSet<Product>() …' could not be translated` |
-| `Aggregate_LongCount` | `InvalidCastException: Cannot convert value of type 'Integer' with value '1000' (SQL type: INTEGER) to 'Int64'` |
-| `Aggregate_CountWithPredicate` | `InvalidOperationException: Sequence contains no elements` |
-| `Execute_Compiled` | `InvalidOperationException: Sequence contains no elements` |
-| `Execute_Literal` | `InvalidOperationException: Sequence contains no elements` |
-| `Execute_Parameterized` | `InvalidOperationException: Sequence contains no elements` |
+| `p => p.Name.Length` in a predicate | `The LINQ expression 'DbSet<Product>() …' could not be translated` |
+| `LongCount()` | `InvalidCastException: Cannot convert value of type 'Integer' with value '1000' (SQL type: INTEGER) to 'Int64'` |
+| `Count(predicate)` | `InvalidOperationException: Sequence contains no elements` |
+| a compiled query | `InvalidOperationException: Sequence contains no elements` |
+| a scalar terminal over a literal predicate | `InvalidOperationException: Sequence contains no elements` |
+| a scalar terminal over a parameterized predicate | `InvalidOperationException: Sequence contains no elements` |
 
-These have not been separated into provider gaps and breakage from below. `Aggregate_LongCount`
-failing on an INTEGER that will not narrow to `Int64` has the same shape as the UUID break below —
-a 1.43 runtime representation the layers beneath this repo have not caught up with — and the four
-`Sequence contains no elements` failures are a scalar terminal coming back empty and could be
-either. Telling them apart wants a run against a Calcite carrying neither.
+These have not been separated into provider gaps and breakage from below. `LongCount` failing on an
+INTEGER that will not narrow to `Int64` has the same shape as the UUID break below — a 1.43 runtime
+representation the layers beneath this repo have not caught up with — and the four `Sequence
+contains no elements` failures are a scalar terminal coming back empty and could be either. Telling
+them apart wants a run against a Calcite carrying neither. The first step for any of them is a test
+in `Apache.Calcite.EntityFrameworkCore.Tests` that reproduces it.
 
 ## Calcite holds a UUID as UuidValue now, and calcite-dotnet still passes java.util.UUID (calcite-dotnet)
 
