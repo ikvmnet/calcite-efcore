@@ -189,7 +189,8 @@ What is left, with why it is left:
 
 - **Blocked on JSON column mapping**: `JsonQuery` (below), `JsonTranslations`, `JsonTypes`,
   `BadDataJsonDeserialization`, and the `TPC`/`TPH`/`TPT` `InheritanceJsonQuery` trio.
-- **Blocked on the spatial item below**: `Spatial`, `SpatialQuery`.
+- **Derived 2026-09-17**: `Spatial`, `SpatialQuery` — 157 tests that did not run before, 138
+  passing. See the spatial item below for the 19 that do not.
 - **Needs infrastructure we do not have**: `CompiledModel`, `MigrationsInfrastructure`,
   `RuntimeMigration`, `OperatorsProcedural` (no `OperatorsData` locally).
 - **Blocked on the spec package, not on us**: `NavigationsBulkUpdate` and the `TPC`/`TPH`/`TPT`
@@ -339,13 +340,40 @@ standard ADO fix is marker rewriting in the command: translate `@name` markers t
 the parameter collection to match, the way JDBC-bridging providers do. Belongs in
 Apache.Calcite.Data.
 
-## Spatial
+## Spatial: the 19 the suites do not pass
 
-Calcite supports spatial: `GEOMETRY` type, ST_* functions (`SqlLibrary.SPATIAL`), backed by JTS +
-proj4j. EF Core's spatial types are NetTopologySuite — the .NET port of JTS — so an NTS↔JTS type
-mapping through IKVM is plausible. Note: `fun=all` **excludes** spatial; the connection string
-must name `spatial` in `Fun` explicitly. Investigate before deriving the `Spatial`/`SpatialQuery`
-suites.
+`Apache.Calcite.EntityFrameworkCore.NetTopologySuite` maps geometry, and the `Spatial` and
+`SpatialQuery` suites are derived. Measured 2026-09-17 on the first run: **138 pass, 19 methods
+skipped** of 157. What is left, grouped by cause rather than by test:
+
+- **A geometry behind a value converter** (`WithConversion`, `Distance_on_converted_geometry_type`
+  and its `_lhs`/`_constant`/`_constant_lhs` variants). The model's `GeoPoint` converts to a
+  geometry, and materialization fails with *"No coercion operator is defined between types
+  `NetTopologySuite.Geometries.Geometry` and `…SpatialModel.GeoPoint`"*. The mapping appears to be
+  found carrying `Geometry` where it should carry the converter's provider type, so EF then tries to
+  convert the wrong pair. **This one looks like a defect in
+  `CalciteNetTopologySuiteTypeMappingSourcePlugin` rather than a missing feature**, and is the first
+  to look at: SQLite's plugin claims geometry the same way and its suite passes these.
+- **Overloads and members not mapped**: `Buffer(distance, quadrantSegments)`, the collection
+  indexer (`Item`), and the binary `Union(geometry)` — the last deliberately, since Calcite offers
+  only the unary `ST_UnaryUnion`.
+- **`GeometryType`** disagrees on spelling. The suite asserts the OGC name; Calcite's
+  `ST_GeometryType` answers something else. Read what it returns before mapping a translation for
+  it.
+- **`AsBinary`/`ToBinary`/`ToText`** fail although the direct operator tests for `ST_AsBinary` and
+  `ST_AsText` pass, so the difference is in how the suite reaches them rather than in the functions.
+- **`GetGeometryN`** and its null-argument case, likewise mapped and covered directly; the suite
+  asks something the direct test does not.
+- **Z and M ordinates** (`Can_roundtrip_Z_and_M`, `Values_are_copied_into_change_tracker`,
+  `Mutation_of_tracked_values_does_not_mutate_values_in_store`). Other providers declare `POINTZ`,
+  `POINTM` and `POINTZM` columns; Calcite has one `GEOMETRY` type that carries the shape in the
+  value, so whether the ordinates survive is a question about the value path rather than the column.
+
+Two things about the connection, neither of them ours to set: `fun` must name `spatial`, which
+`fun=all` does not include, and the conformance must allow the `GEOMETRY` type
+(`SqlConformanceEnum.allowGeometry()` is true for `BABEL`, `LENIENT`, `MYSQL_5`,
+`SQL_SERVER_2008`, `PRESTO`). `SpatialCalciteTestStoreFactory` builds such a connection for these
+suites only, rather than giving every suite an operator table it has no use for.
 
 ## No cancellation coverage
 

@@ -33,6 +33,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Apache.Calcite.EntityFrameworkCore\Apache.Calcite.EntityFrameworkCore.csproj" />
+        <ProjectReference Include="..\Apache.Calcite.EntityFrameworkCore.NetTopologySuite\Apache.Calcite.EntityFrameworkCore.NetTopologySuite.csproj" />
         <ProjectReference Include="..\Apache.Calcite.EntityFrameworkCore.TestUtilities\Apache.Calcite.EntityFrameworkCore.TestUtilities.csproj" />
     </ItemGroup>
 

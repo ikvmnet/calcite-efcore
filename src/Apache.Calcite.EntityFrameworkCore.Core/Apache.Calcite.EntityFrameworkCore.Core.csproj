@@ -41,6 +41,7 @@
         <InternalsVisibleTo Include="Apache.Calcite.EntityFrameworkCore.Adapter" />
         <InternalsVisibleTo Include="Apache.Calcite.EntityFrameworkCore.NetTopologySuite" />
         <InternalsVisibleTo Include="Apache.Calcite.EntityFrameworkCore.Tests" />
+        <InternalsVisibleTo Include="Apache.Calcite.EntityFrameworkCore.FunctionalTests" />
     </ItemGroup>
 
 </Project>

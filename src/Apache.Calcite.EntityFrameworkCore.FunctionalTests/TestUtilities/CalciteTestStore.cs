@@ -29,6 +29,19 @@ namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities
         }
 
         /// <summary>
+        /// Creates a store whose connection can answer a spatial query.
+        /// </summary>
+        /// <remarks>
+        /// Spatial is not part of <c>fun=all</c> and has to be named, so it is a store of its own rather than
+        /// something every suite carries: adding an operator table to every connection would change which
+        /// function a name resolves to for suites that have nothing to do with geometry.
+        /// </remarks>
+        public static CalciteTestStore CreateSpatial(string name)
+        {
+            return new(name, shared: false, spatial: true);
+        }
+
+        /// <summary>
         /// Gets or creates the specified store.
         /// </summary>
         public static CalciteTestStore GetOrCreate(string name)
@@ -40,7 +53,7 @@ namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities
             return new(name, shared: false);
         }
 
-        static string BuildConnectionString(string name)
+        static string BuildConnectionString(string name, bool spatial)
         {
             return new CalciteConnectionStringBuilder()
             {
@@ -54,7 +67,9 @@ namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities
                 // here builds the same one, so the suite would run against a root carrying whatever the last
                 // test left in it.
                 Pooling = false,
-                Fun = "all",
+                // spatial is not in "all": SqlLibrary.ALL.children() lists the dialect libraries and not
+                // this one, so it is named or it is absent
+                Fun = spatial ? "all,spatial" : "all",
                 ParserFactory = "org.apache.calcite.server.ServerDdlExecutor#PARSER_FACTORY",
                 Schema = "adhoc",
             }.ConnectionString;
@@ -65,8 +80,8 @@ namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities
         /// <summary>
         /// Initializes a new instance.
         /// </summary>
-        protected CalciteTestStore(string name, bool shared, string? initScript = null) :
-            base(name, shared, new CalciteConnection(BuildConnectionString(name)))
+        protected CalciteTestStore(string name, bool shared, string? initScript = null, bool spatial = false) :
+            base(name, shared, new CalciteConnection(BuildConnectionString(name, spatial)))
         {
             _initScript = initScript;
         }
