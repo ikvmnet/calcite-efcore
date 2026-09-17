@@ -10,18 +10,6 @@ partial class TPTFiltersInheritanceBulkUpdatesCalciteTest
 {
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_where_using_hierarchy(bool async)
-    {
-        return base.Delete_where_using_hierarchy(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_where_using_hierarchy_derived(bool async)
-    {
-        return base.Delete_where_using_hierarchy_derived(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Update_base_property_on_derived_type(bool async)
     {
         return base.Update_base_property_on_derived_type(async);
@@ -43,12 +31,6 @@ partial class TPTFiltersInheritanceBulkUpdatesCalciteTest
     public override global::System.Threading.Tasks.Task Update_derived_property_on_derived_type(bool async)
     {
         return base.Update_derived_property_on_derived_type(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Update_where_using_hierarchy(bool async)
-    {
-        return base.Update_where_using_hierarchy(async);
     }
 
 }

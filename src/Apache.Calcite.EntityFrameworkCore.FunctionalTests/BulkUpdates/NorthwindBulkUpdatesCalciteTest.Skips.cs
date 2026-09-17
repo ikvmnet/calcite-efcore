@@ -10,123 +10,9 @@ partial class NorthwindBulkUpdatesCalciteTest
 {
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Concat(bool async)
-    {
-        return base.Delete_Concat(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Except(bool async)
-    {
-        return base.Delete_Except(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_SelectMany(bool async)
-    {
-        return base.Delete_SelectMany(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_SelectMany_subquery(bool async)
-    {
-        return base.Delete_SelectMany_subquery(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Union(bool async)
-    {
-        return base.Delete_Union(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Where(bool async)
-    {
-        return base.Delete_Where(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Where_Distinct(bool async)
-    {
-        return base.Delete_Where_Distinct(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Where_optional_navigation_predicate(bool async)
-    {
-        return base.Delete_Where_optional_navigation_predicate(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Where_OrderBy(bool async)
-    {
-        return base.Delete_Where_OrderBy(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Where_OrderBy_Skip(bool async)
-    {
-        return base.Delete_Where_OrderBy_Skip(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Where_OrderBy_Skip_Take(bool async)
-    {
-        return base.Delete_Where_OrderBy_Skip_Take(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Where_OrderBy_Take(bool async)
-    {
-        return base.Delete_Where_OrderBy_Take(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Where_parameter(bool async)
-    {
-        return base.Delete_Where_parameter(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Delete_Where_predicate_with_GroupBy_aggregate(bool async)
     {
         return base.Delete_Where_predicate_with_GroupBy_aggregate(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Where_predicate_with_GroupBy_aggregate_2(bool async)
-    {
-        return base.Delete_Where_predicate_with_GroupBy_aggregate_2(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Where_Skip(bool async)
-    {
-        return base.Delete_Where_Skip(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Where_Skip_Take(bool async)
-    {
-        return base.Delete_Where_Skip_Take(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Where_Skip_Take_Skip_Take_causing_subquery(bool async)
-    {
-        return base.Delete_Where_Skip_Take_Skip_Take_causing_subquery(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Where_TagWith(bool async)
-    {
-        return base.Delete_Where_TagWith(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Where_Take(bool async)
-    {
-        return base.Delete_Where_Take(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
@@ -136,21 +22,9 @@ partial class NorthwindBulkUpdatesCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Where_using_navigation_2(bool async)
-    {
-        return base.Delete_Where_using_navigation_2(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Delete_with_cross_apply(bool async)
     {
         return base.Delete_with_cross_apply(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_with_cross_join(bool async)
-    {
-        return base.Delete_with_cross_join(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]

@@ -40,45 +40,9 @@ partial class JsonUpdateCalciteTest
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Add_element_to_json_collection_root()
-    {
-        return base.Add_element_to_json_collection_root();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Add_element_to_json_collection_root_null_navigations()
-    {
-        return base.Add_element_to_json_collection_root_null_navigations();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Add_entity_with_json()
-    {
-        return base.Add_entity_with_json();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Add_entity_with_json_null_navigations()
-    {
-        return base.Add_entity_with_json_null_navigations();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Add_json_reference_leaf()
     {
         return base.Add_json_reference_leaf();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Add_json_reference_root()
-    {
-        return base.Add_json_reference_root();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_entity_with_json()
-    {
-        return base.Delete_entity_with_json();
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
@@ -88,21 +52,9 @@ partial class JsonUpdateCalciteTest
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_json_collection_root()
-    {
-        return base.Delete_json_collection_root();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Delete_json_reference_leaf()
     {
         return base.Delete_json_reference_leaf();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_json_reference_root()
-    {
-        return base.Delete_json_reference_root();
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
@@ -136,39 +88,9 @@ partial class JsonUpdateCalciteTest
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_element_in_json_collection_branch()
-    {
-        return base.Edit_element_in_json_collection_branch();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_element_in_json_collection_root2()
-    {
-        return base.Edit_element_in_json_collection_root2();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Edit_element_in_json_multiple_levels_partial_update()
     {
         return base.Edit_element_in_json_multiple_levels_partial_update();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_enum_property()
-    {
-        return base.Edit_single_enum_property();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_numeric_property()
-    {
-        return base.Edit_single_numeric_property();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_char()
-    {
-        return base.Edit_single_property_char();
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
@@ -418,186 +340,6 @@ partial class JsonUpdateCalciteTest
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_datetime()
-    {
-        return base.Edit_single_property_datetime();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_decimal()
-    {
-        return base.Edit_single_property_decimal();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_enum()
-    {
-        return base.Edit_single_property_enum();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_nullable_enum()
-    {
-        return base.Edit_single_property_nullable_enum();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_nullable_enum_with_int_converter_set_to_null()
-    {
-        return base.Edit_single_property_nullable_enum_with_int_converter_set_to_null();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_nullable_int32()
-    {
-        return base.Edit_single_property_nullable_int32();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_bool()
-    {
-        return base.Edit_single_property_relational_collection_of_bool();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_char()
-    {
-        return base.Edit_single_property_relational_collection_of_char();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_datetime()
-    {
-        return base.Edit_single_property_relational_collection_of_datetime();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_datetimeoffset()
-    {
-        return base.Edit_single_property_relational_collection_of_datetimeoffset();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_decimal()
-    {
-        return base.Edit_single_property_relational_collection_of_decimal();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_double()
-    {
-        return base.Edit_single_property_relational_collection_of_double();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_enum()
-    {
-        return base.Edit_single_property_relational_collection_of_enum();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_enum_with_int_converter()
-    {
-        return base.Edit_single_property_relational_collection_of_enum_with_int_converter();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_guid()
-    {
-        return base.Edit_single_property_relational_collection_of_guid();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_int32()
-    {
-        return base.Edit_single_property_relational_collection_of_int32();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_int64()
-    {
-        return base.Edit_single_property_relational_collection_of_int64();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_nullable_enum_with_converter_that_handles_nulls_set_to_null()
-    {
-        return base.Edit_single_property_relational_collection_of_nullable_enum_with_converter_that_handles_nulls_set_to_null();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_nullable_enum_with_int_converter()
-    {
-        return base.Edit_single_property_relational_collection_of_nullable_enum_with_int_converter();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_nullable_int32()
-    {
-        return base.Edit_single_property_relational_collection_of_nullable_int32();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_signed_byte()
-    {
-        return base.Edit_single_property_relational_collection_of_signed_byte();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_single()
-    {
-        return base.Edit_single_property_relational_collection_of_single();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_timespan()
-    {
-        return base.Edit_single_property_relational_collection_of_timespan();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_uint16()
-    {
-        return base.Edit_single_property_relational_collection_of_uint16();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_uint32()
-    {
-        return base.Edit_single_property_relational_collection_of_uint32();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_relational_collection_of_uint64()
-    {
-        return base.Edit_single_property_relational_collection_of_uint64();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_single()
-    {
-        return base.Edit_single_property_single();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_timespan()
-    {
-        return base.Edit_single_property_timespan();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_uint16()
-    {
-        return base.Edit_single_property_uint16();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_single_property_uint32()
-    {
-        return base.Edit_single_property_uint32();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Edit_single_property_uint64()
     {
         return base.Edit_single_property_uint64();
@@ -607,12 +349,6 @@ partial class JsonUpdateCalciteTest
     public override global::System.Threading.Tasks.Task Edit_two_elements_in_the_same_json_collection()
     {
         return base.Edit_two_elements_in_the_same_json_collection();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Edit_two_elements_in_the_same_json_collection_at_the_root()
-    {
-        return base.Edit_two_elements_in_the_same_json_collection_at_the_root();
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
