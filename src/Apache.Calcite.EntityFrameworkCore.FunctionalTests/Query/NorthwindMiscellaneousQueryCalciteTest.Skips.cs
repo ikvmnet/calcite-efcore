@@ -58,12 +58,6 @@ partial class NorthwindMiscellaneousQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Entity_equality_orderby_subquery(bool async)
-    {
-        return base.Entity_equality_orderby_subquery(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Entity_equality_through_subquery_composite_key(bool async)
     {
         return base.Entity_equality_through_subquery_composite_key(async);

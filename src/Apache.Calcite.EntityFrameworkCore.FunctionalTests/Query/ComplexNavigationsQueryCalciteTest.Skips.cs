@@ -16,33 +16,9 @@ partial class ComplexNavigationsQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupJoin_on_left_side_being_a_subquery(bool async)
-    {
-        return base.GroupJoin_on_left_side_being_a_subquery(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupJoin_on_right_side_being_a_subquery(bool async)
-    {
-        return base.GroupJoin_on_right_side_being_a_subquery(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Include18_1_1(bool async)
-    {
-        return base.Include18_1_1(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Join_with_result_selector_returning_queryable_throws_validation_error(bool async)
     {
         return base.Join_with_result_selector_returning_queryable_throws_validation_error(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Member_over_null_check_ternary_and_nested_dto_type(bool async)
-    {
-        return base.Member_over_null_check_ternary_and_nested_dto_type(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
@@ -67,30 +43,6 @@ partial class ComplexNavigationsQueryCalciteTest
     public override global::System.Threading.Tasks.Task Optional_navigation_inside_nested_method_call_translated_to_join_keeps_original_nullability_also_for_arguments(bool async)
     {
         return base.Optional_navigation_inside_nested_method_call_translated_to_join_keeps_original_nullability_also_for_arguments(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Optional_navigation_take_optional_navigation(bool async)
-    {
-        return base.Optional_navigation_take_optional_navigation(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task OrderBy_collection_count_ThenBy_reference_navigation(bool async)
-    {
-        return base.OrderBy_collection_count_ThenBy_reference_navigation(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task OrderBy_nav_prop_reference_optional(bool async)
-    {
-        return base.OrderBy_nav_prop_reference_optional(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task OrderBy_nav_prop_reference_optional_via_DefaultIfEmpty(bool async)
-    {
-        return base.OrderBy_nav_prop_reference_optional_via_DefaultIfEmpty(async);
     }
 
 }

@@ -27,10 +27,4 @@ partial class NorthwindSetOperationsQueryCalciteTest
         return base.Collection_projection_before_set_operation_fails(async);
     }
 
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_Union_different_fields_in_anonymous_with_subquery(bool async)
-    {
-        return base.Select_Union_different_fields_in_anonymous_with_subquery(async);
-    }
-
 }
