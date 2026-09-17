@@ -1,9 +1,12 @@
 using System;
+using System.Collections;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 using Apache.Calcite.Data;
 using Apache.Calcite.EntityFrameworkCore.Extensions;
+using Apache.Calcite.EntityFrameworkCore.Query.Internal.Translators;
 using Apache.Calcite.EntityFrameworkCore.Tests.Types;
 
 using Microsoft.EntityFrameworkCore;
@@ -134,6 +137,43 @@ public class DbFunctionsTests
     }
 
     [Fact]
+    public async Task RegexpExtract_from_a_position_projects()
+    {
+        using var connection = ArrayDbContext.CreateConnection();
+        await using var context = await CreateStoreAsync(connection);
+
+        // the vowels of Gatlinburg are a, i and u, at positions 2, 5 and 8
+        var extracted = await context.Words
+            .Where(w => w.Id == 1)
+            .Select(w => EF.Functions.RegexpExtract(w.Text, "[aeiou]", 3))
+            .SingleAsync();
+
+        Assert.Equal("i", extracted);
+    }
+
+    [Fact]
+    public async Task RegexpExtract_of_an_occurrence_projects()
+    {
+        using var connection = ArrayDbContext.CreateConnection();
+        await using var context = await CreateStoreAsync(connection);
+
+        var second = await context.Words
+            .Where(w => w.Id == 1)
+            .Select(w => EF.Functions.RegexpExtract(w.Text, "[aeiou]", 1, 2))
+            .SingleAsync();
+
+        Assert.Equal("i", second);
+
+        // counted from the position, not from the start
+        var secondFromThird = await context.Words
+            .Where(w => w.Id == 1)
+            .Select(w => EF.Functions.RegexpExtract(w.Text, "[aeiou]", 3, 2))
+            .SingleAsync();
+
+        Assert.Equal("u", secondFromThird);
+    }
+
+    [Fact]
     public async Task RegexpInstr_projects_the_position()
     {
         using var connection = ArrayDbContext.CreateConnection();
@@ -197,6 +237,54 @@ public class DbFunctionsTests
             .SingleAsync();
 
         Assert.Equal(4, difference);
+    }
+
+
+    [Fact]
+    public void Every_function_has_a_test()
+    {
+        // The list is the checklist: adding an operator to CalciteDbFunctionsExtensions fails here
+        // until it is named, and naming it is the moment to write the test that runs it. Overloads
+        // count separately, because each one is a different call for Calcite to validate.
+        string[] expected =
+        [
+            "Boolean ContainsSubstr(DbFunctions, Object, String)",
+            "Int32 Difference(DbFunctions, String, String)",
+            "Boolean RegexpContains(DbFunctions, String, String)",
+            "String RegexpExtract(DbFunctions, String, String)",
+            "String RegexpExtract(DbFunctions, String, String, Int32)",
+            "String RegexpExtract(DbFunctions, String, String, Int32, Int32)",
+            "Int32 RegexpInstr(DbFunctions, String, String)",
+            "Boolean RegexpLike(DbFunctions, String, String)",
+            "Boolean RegexpLike(DbFunctions, String, String, String)",
+            "String RegexpReplace(DbFunctions, String, String, String)",
+            "String Soundex(DbFunctions, String)",
+        ];
+
+        var actual = typeof(CalciteDbFunctionsExtensions)
+            .GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Select(m => $"{m.ReturnType.Name} {m.Name}({string.Join(", ", m.GetParameters().Select(p => p.ParameterType.Name))})")
+            .OrderBy(s => s, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Equal(expected.OrderBy(s => s, StringComparer.Ordinal), actual);
+    }
+
+    [Fact]
+    public void Every_function_translates_to_a_Calcite_function()
+    {
+        // the translator builds its map from the same class and throws if a method has no function
+        // named for it, so reading the map back proves the two agree rather than assuming it
+        var map = (IDictionary)typeof(CalciteDbFunctionsTranslator)
+            .GetField("_functions", BindingFlags.NonPublic | BindingFlags.Static)!
+            .GetValue(null)!;
+
+        var mapped = map.Keys.Cast<MethodInfo>().ToHashSet();
+
+        foreach (var method in typeof(CalciteDbFunctionsExtensions).GetMethods(BindingFlags.Public | BindingFlags.Static))
+            Assert.Contains(method, mapped);
+
+        Assert.All(map.Values.Cast<string>(), name => Assert.False(string.IsNullOrWhiteSpace(name)));
     }
 
     [Fact]
