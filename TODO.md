@@ -342,10 +342,11 @@ Apache.Calcite.Data.
 
 ## Geography: what is not exposed yet
 
-`EF.Functions.Geog*` in the NetTopologySuite package translates 29 of `Apache.Calcite.Geography`'s
-113 `ST_GEOG_*` operators, and `GeographyFunctionTests` runs every one. What is left is the rest of
-that set — the constructors beyond well-known text, the affine and simplification operators, the
-grid and Delaunay builders — added the same way, a stub and a name.
+`EF.Functions.ClrGeography()` in the NetTopologySuite package translates 29 of
+`Apache.Calcite.Geography`'s 113 `ST_GEOG_*` operators, and `GeographyFunctionTests` runs every
+one. What is left is the rest of that set — the constructors beyond well-known text, the affine
+and simplification operators, the grid and Delaunay builders — added the same way, a stub and a
+name.
 
 Two things deliberately absent rather than pending:
 
