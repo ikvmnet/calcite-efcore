@@ -249,34 +249,19 @@ preceding table — is fine, which is why column collections work and these do n
 runtime failure in Calcite's enumerable `UNNEST` before translating parameters, or translate them
 without ordinality and give up the ordered operators for that case.
 
-## Collection types an ARRAY column cannot hold
+## An enum element has no name to give the driver
 
-`ARRAY` storage is restricted to what round-trips, and the collection allowlist in
-`CalciteTypeMappingSource` is where that restriction lives; everything outside it keeps the JSON
-text storage. The element list is no longer the constraint it was — naming the element type to
-`GetArray<T>` selects the mapping that fills the array, which reaches `char`, `DateOnly` and
-`TimeOnly` — so what is left is the container and one type that has no name to give.
+`ARRAY` storage is restricted to what round-trips. The container half of that restriction is gone —
+`CalciteTypeMappingSource.IsSupportedArrayCollection` now restates EF's own rule for which
+collection types a primitive collection may be declared as, so the two admit the same set and
+`CollectionContainerTypeTests` holds them to it. The element half is nearly gone too: naming the
+element type to `GetArray<T>` selects the mapping that fills the array, which reaches `char`,
+`DateOnly` and `TimeOnly`. What is left is one type that has no name to give.
 
-**An enum element** cannot be in the allowlist, which holds CLR types, so an enum collection takes
-the JSON path and the driver is never asked to read one. Reaching it would mean matching on
+**An enum element** cannot be in `_arrayElementTypes`, which holds CLR types, so an enum collection
+takes the JSON path and the driver is never asked to read one. Reaching it would mean matching on
 `Type.IsEnum` and asking for the underlying integer, then letting the element mapping's converter
 bring it back; the converter half already works and `ArrayMaterializationTests` covers it.
-
-**The collection types** `ReadOnlyCollection<T>`, `ObservableCollection<T>` and `Collection<T>` are
-built correctly by the mapping — `ArrayMaterializationTests` covers all three — and are held out
-only because the write half has not been measured **through the ARRAY path**. Being off the
-allowlist costs no support: measured 2026-09-16 in `CollectionContainerTypeTests`, all three
-round-trip through `SaveChanges` and back on EF's JSON text storage, which is where SQL Server and
-SQLite put every primitive collection. Moving them is the same shape as the element work: add each
-to `ArrayDbContext`, round-trip, move what survives.
-
-**`HashSet<>` and `ISet<>` are on the allowlist and cannot be reached.** EF requires a primitive
-collection to be ordered — *"cannot be used as a primitive collection because it is not an array and
-does not implement `IList<string>`"* — and throws from `ListOfReferenceTypesComparer.Snapshot` when
-the change tracker first sees the value, before any SQL is generated. The model still builds and the
-property still reports `VARCHAR ARRAY`, so the entries answer for a property EF will not let anyone
-use. `CollectionContainerTypeTests` pins that. Either drop the two entries or leave them against a
-future EF that orders sets; nothing else in the provider depends on them.
 
 ## DISTINCT over a row holding an ARRAY fails in the CLR runtime (calcite-dotnet)
 
