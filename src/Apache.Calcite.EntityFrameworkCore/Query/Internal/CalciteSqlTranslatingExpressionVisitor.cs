@@ -109,8 +109,34 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         }
 
         /// <inheritdoc />
+        /// <remarks>
+        /// A conversion into one of this provider's marker types is not anything in SQL. A full text keyword
+        /// is the string it was written as, and the marker only says which position it stands in, so the
+        /// conversion is unwrapped and the operand translated in its place — which is also what restores the
+        /// string's own type mapping. Left in, it reaches the SQL tree as an expression of a type nothing
+        /// maps and fails there rather than at translation.
+        /// </remarks>
+        protected override Expression VisitUnary(UnaryExpression unaryExpression)
+        {
+            if (unaryExpression.NodeType is ExpressionType.Convert
+                && unaryExpression.Method is { Name: "op_Implicit" or "op_Explicit", DeclaringType: { } declaring }
+                && declaring.Name.StartsWith("Calcite", StringComparison.Ordinal))
+                return Visit(unaryExpression.Operand);
+
+            return base.VisitUnary(unaryExpression);
+        }
+
+        /// <inheritdoc />
         protected override Expression VisitMethodCall(MethodCallExpression methodCallExpression)
         {
+            // Before base rather than after it, unlike everything below. Three of the full text operators take
+            // their keywords as a params array, and base does not decline an array it cannot translate — it
+            // compiles and runs it (VisitNewArray, TryEvaluateToConstant), which for a keyword means invoking
+            // the conversion that builds it and losing the string. So the call is taken here first, and the
+            // array flattened into the operands the operator actually has
+            if (Translators.CalciteClrFullTextTranslator.IsFullText(methodCallExpression.Method))
+                return TranslateFullText(methodCallExpression.Method, methodCallExpression.Arguments);
+
             if (base.VisitMethodCall(methodCallExpression) is var translation && translation != QueryCompilationContext.NotTranslatedExpression)
             {
                 return translation;
@@ -145,6 +171,33 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
             return QueryCompilationContext.NotTranslatedExpression;
 
         }
+        /// <summary>
+        /// Translates a full text call, flattening a <c>params</c> array of keywords or scores into the
+        /// operands the operator takes.
+        /// </summary>
+        /// <param name="method"></param>
+        /// <param name="arguments"></param>
+        /// <returns></returns>
+        Expression TranslateFullText(System.Reflection.MethodInfo method, System.Collections.ObjectModel.ReadOnlyCollection<Expression> arguments)
+        {
+            var operands = new List<SqlExpression>();
+
+            // the first argument is the DbFunctions instance the extension method hangs off
+            for (var i = 1; i < arguments.Count; i++)
+            {
+                foreach (var argument in arguments[i] is NewArrayExpression array ? (IEnumerable<Expression>)array.Expressions : [arguments[i]])
+                {
+                    if (Visit(argument) is not SqlExpression operand)
+                        return QueryCompilationContext.NotTranslatedExpression;
+
+                    operands.Add(operand);
+                }
+            }
+
+            return Translators.CalciteClrFullTextTranslator.Translate(_sqlExpressionFactory, method, operands)
+                ?? QueryCompilationContext.NotTranslatedExpression;
+        }
+
         /// <summary>
         /// Strips a <c>Convert(…, object)</c> or <c>ConvertChecked(…, object)</c> node, returning its operand.
         /// Used so that <c>object.Equals((object)x, (object)y)</c> can be visited with the original typed expressions.
