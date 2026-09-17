@@ -23,6 +23,7 @@
     <Project Path="src/Apache.Calcite.EntityFrameworkCore.Adapter/Apache.Calcite.EntityFrameworkCore.Adapter.csproj" />
     <Project Path="src/Apache.Calcite.EntityFrameworkCore.Core/Apache.Calcite.EntityFrameworkCore.Core.csproj" />
     <Project Path="src/Apache.Calcite.EntityFrameworkCore.FunctionalTests/Apache.Calcite.EntityFrameworkCore.FunctionalTests.csproj" />
+    <Project Path="src/Apache.Calcite.EntityFrameworkCore.NetTopologySuite/Apache.Calcite.EntityFrameworkCore.NetTopologySuite.csproj" />
     <Project Path="src/Apache.Calcite.EntityFrameworkCore.TestUtilities/Apache.Calcite.EntityFrameworkCore.TestUtilities.csproj" />
     <Project Path="src/Apache.Calcite.EntityFrameworkCore.Tests/Apache.Calcite.EntityFrameworkCore.Tests.csproj" />
     <Project Path="src/Apache.Calcite.EntityFrameworkCore/Apache.Calcite.EntityFrameworkCore.csproj" />
