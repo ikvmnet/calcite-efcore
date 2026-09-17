@@ -10,6 +10,41 @@ translates rel trees into LINQ `IQueryable` expressions executed by EF Core.
 not in a pull request body, not anywhere in the history. The user is responsible for the work; the
 commit message says what changed and why.
 
+## Pull requests
+
+Work lands through a branch and a pull request — never a push to `main`.
+
+**When one change needs another that is not merged yet, stack them with `gh stack`**
+(`gh extension install github/gh-stack`, an official extension) rather than by hand. Setting a
+second PR's base to the first branch is the mechanism either way, but a hand-built stack is only a
+base branch: nothing says the two belong together, and nothing keeps them in order.
+
+```sh
+gh stack init <bottom-branch> <top-branch>   # adopt branches that already exist, bottom to top
+gh stack link <bottom-pr> <top-pr>           # link PRs that already exist into a Stack on GitHub
+gh stack submit                              # branches with no PR yet: push, open, and link in one go
+gh stack view                                # what is stacked on what, with the PR for each layer
+```
+
+GitHub then shows the layers as one **Stack**, each PR's diff is only its own layer, and merging the
+bottom retargets the ones above it. Keep the reason for the stack in the top PR's first line —
+*"Stacked on #N, which carries X"* — because the dependency is a fact about the work, not only about
+the branches.
+
+**A squash merge makes the commit graph lie, in both directions.** `git log origin/main..branch`
+lists every commit on a merged branch as unmerged, because none of the originals are reachable from
+`main` — so it can neither confirm nor deny that work landed. Ask about content instead:
+
+```sh
+git diff --stat origin/main branch          # empty means merged, whatever the log says
+git show origin/main:path/to/File.cs | grep -c SOMETHING
+```
+
+Measured 2026-09-17: #66 was squash-merged while a follow-up commit was still being pushed to its
+branch, so `main` took the earlier state and two commits were stranded with no open PR. The log said
+all seven commits were unmerged; the content said five were. Check content before re-landing
+anything, and before assuming anything landed.
+
 ## Layout
 
 | project | job |
