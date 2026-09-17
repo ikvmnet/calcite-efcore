@@ -748,6 +748,39 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
             }
         }
 
+        /// <inheritdoc/>
+        /// <remarks>
+        /// The collation is written out rather than left to the store, because an <see cref="IQueryable{T}"/>
+        /// is supposed to answer as the <see cref="IEnumerable{T}"/> would. Calcite's default null collation
+        /// is <c>HIGH</c>: a null sorts above every value, so it comes last ascending and first descending.
+        /// .NET's comparers sort a null below every value, which is also what SQL Server and SQLite do, so a
+        /// query ordered by anything nullable would come back in a different order than the same
+        /// <c>OrderBy</c> over the same objects in memory.
+        /// <para>
+        /// That is the same reasoning EF applies to <c>WHERE</c>, where <c>SqlNullabilityProcessor</c> rewrites
+        /// SQL's three-valued logic into the two-valued logic C# has. Ordering is the same contract: the store's
+        /// semantics are not the ones the caller wrote.
+        /// </para>
+        /// <para>
+        /// The cost is that an ordering written this way cannot be answered by an index built on the store's own
+        /// collation, which is why Npgsql, whose store also sorts nulls high, made the same rewrite available but
+        /// did not turn it on. Calcite plans over adapters rather than over its own indexes, so there is no index
+        /// here to disagree with; where a sort is pushed into a source that has one, this trades that source's
+        /// index for an answer that matches the query as written.
+        /// </para>
+        /// </remarks>
+        /// <param name="orderingExpression"></param>
+        /// <returns></returns>
+        protected override Expression VisitOrdering(OrderingExpression orderingExpression)
+        {
+            var visited = base.VisitOrdering(orderingExpression);
+
+            if (_options.UseStoreNullOrdering == false)
+                Sql.Append(orderingExpression.IsAscending ? " NULLS FIRST" : " NULLS LAST");
+
+            return visited;
+        }
+
     }
 
 }

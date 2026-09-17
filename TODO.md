@@ -88,8 +88,11 @@ Skip SQL text entirely: EF's `SelectExpression` is already relational algebra; b
 ## Functional suite failure clusters
 
 Clustered 2026-09-16 on a full run with every generated skip removed, after the per-test isolation
-fix: **2,244 failed / 25,613 passed / 289 skipped of 28,146**, which the regenerated skips cover as
-1,250 methods. Reference D:\efcore (11.0 head; 10.0 via `git show v10.0.5:<path>`) and D:\efcore.pg
+fix: **2,244 failed / 25,613 passed / 289 skipped of 28,146**, which the regenerated skips covered as
+1,250 methods. Re-measured 2026-09-17 after ordering nulls the way LINQ does: **2,103 failed /
+25,754 passed**, and 1,179 methods. The table below is from the first of those; the 141 cases the
+second recovered came off `GearsOfWarQuery` and its TPC/TPT variants (39 methods) and the
+`ComplexNavigations` family (28), so read those two rows as that much smaller. Reference D:\efcore (11.0 head; 10.0 via `git show v10.0.5:<path>`) and D:\efcore.pg
 for how SQLite/Npgsql derive, override, and skip.
 
 Largest classes, and what is known about each:
@@ -249,34 +252,38 @@ preceding table — is fine, which is why column collections work and these do n
 runtime failure in Calcite's enumerable `UNNEST` before translating parameters, or translate them
 without ordinality and give up the ordered operators for that case.
 
-## Collection types an ARRAY column cannot hold
+## CONTAINS_SUBSTR needs a commons-lang3 the closure does not pick (calcite-dotnet)
 
-`ARRAY` storage is restricted to what round-trips, and the collection allowlist in
-`CalciteTypeMappingSource` is where that restriction lives; everything outside it keeps the JSON
-text storage. The element list is no longer the constraint it was — naming the element type to
-`GetArray<T>` selects the mapping that fills the array, which reaches `char`, `DateOnly` and
-`TimeOnly` — so what is left is the container and one type that has no name to give.
+`CONTAINS_SUBSTR` normalizes through `org.apache.commons.text.StringEscapeUtils`, whose static
+initializer calls `org.apache.commons.lang3.Range.of` — added in commons-lang3 **3.13**. Measured
+2026-09-16: the closure under `calcite-core` carries 3.1, 3.13.0 and 3.18.0 and mediates to **3.1**,
+so the first call fails with
 
-**An enum element** cannot be in the allowlist, which holds CLR types, so an enum collection takes
-the JSON path and the driver is never asked to read one. Reaching it would mean matching on
+```
+TypeInitializationException: org.apache.commons.text.StringEscapeUtils
+---- java.lang.NoSuchMethodError: org.apache.commons.lang3.Range.of(Comparable, Comparable)
+```
+
+`Apache.Calcite.EntityFrameworkCore.Tests` pins `org.apache.commons:commons-lang3` 3.18.0 directly,
+which wins the mediation and makes the function work — `DbFunctionsTests.ContainsSubstr_filters`
+covers it. That pin only reaches our own tests. **The provider ships no `MavenReference` at all**: its
+jars arrive through `Apache.Calcite.Data`, so a consumer of that package who calls
+`EF.Functions.ContainsSubstr` hits the same failure and has to pin it themselves. The fix belongs in
+calcite-dotnet's closure, not here. Nothing else in the surface touches commons-text.
+
+## An enum element has no name to give the driver
+
+`ARRAY` storage is restricted to what round-trips. The container half of that restriction is gone —
+`CalciteTypeMappingSource.IsSupportedArrayCollection` now restates EF's own rule for which
+collection types a primitive collection may be declared as, so the two admit the same set and
+`CollectionContainerTypeTests` holds them to it. The element half is nearly gone too: naming the
+element type to `GetArray<T>` selects the mapping that fills the array, which reaches `char`,
+`DateOnly` and `TimeOnly`. What is left is one type that has no name to give.
+
+**An enum element** cannot be in `_arrayElementTypes`, which holds CLR types, so an enum collection
+takes the JSON path and the driver is never asked to read one. Reaching it would mean matching on
 `Type.IsEnum` and asking for the underlying integer, then letting the element mapping's converter
 bring it back; the converter half already works and `ArrayMaterializationTests` covers it.
-
-**The collection types** `ReadOnlyCollection<T>`, `ObservableCollection<T>` and `Collection<T>` are
-built correctly by the mapping — `ArrayMaterializationTests` covers all three — and are held out
-only because the write half has not been measured **through the ARRAY path**. Being off the
-allowlist costs no support: measured 2026-09-16 in `CollectionContainerTypeTests`, all three
-round-trip through `SaveChanges` and back on EF's JSON text storage, which is where SQL Server and
-SQLite put every primitive collection. Moving them is the same shape as the element work: add each
-to `ArrayDbContext`, round-trip, move what survives.
-
-**`HashSet<>` and `ISet<>` are on the allowlist and cannot be reached.** EF requires a primitive
-collection to be ordered — *"cannot be used as a primitive collection because it is not an array and
-does not implement `IList<string>`"* — and throws from `ListOfReferenceTypesComparer.Snapshot` when
-the change tracker first sees the value, before any SQL is generated. The model still builds and the
-property still reports `VARCHAR ARRAY`, so the entries answer for a property EF will not let anyone
-use. `CollectionContainerTypeTests` pins that. Either drop the two entries or leave them against a
-future EF that orders sets; nothing else in the provider depends on them.
 
 ## DISTINCT over a row holding an ARRAY fails in the CLR runtime (calcite-dotnet)
 

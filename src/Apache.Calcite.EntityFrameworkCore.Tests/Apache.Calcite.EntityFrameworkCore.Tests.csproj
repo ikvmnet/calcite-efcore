@@ -24,6 +24,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- commons-text normalizes for CONTAINS_SUBSTR and calls Range.of, which arrived in
+             commons-lang3 3.13; the closure otherwise mediates to 3.1 and the call fails at run time
+             with NoSuchMethodError. A direct declaration wins that mediation. -->
+        <MavenReference Include="org.apache.commons:commons-lang3" Version="3.18.0" />
         <MavenReference Include="org.apache.calcite:calcite-linq4j" Version="1.43.0-SNAPSHOT" />
         <MavenReference Include="org.apache.calcite:calcite-core" Version="1.43.0-SNAPSHOT" />
         <MavenReference Include="org.apache.calcite:calcite-server" Version="1.43.0-SNAPSHOT" />

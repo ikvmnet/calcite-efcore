@@ -1,5 +1,7 @@
 ﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 using Apache.Calcite.EntityFrameworkCore.Storage.Internal.Mapping;
 using Apache.Calcite.EntityFrameworkCore.Utilities;
@@ -96,36 +98,50 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal
         ];
 
         /// <summary>
-        /// The collection types a primitive collection is stored as an <c>ARRAY</c> of.
+        /// Returns whether a CLR collection type is one an <c>ARRAY</c> column may be stored as.
         /// </summary>
         /// <remarks>
-        /// The reader builds the collection the property asks for, and it knows how to build these.
-        /// A type it does not know — <see cref="System.Collections.ObjectModel.ReadOnlyCollection{T}"/>
-        /// and <see cref="System.Collections.ObjectModel.ObservableCollection{T}"/> among them —
-        /// fails at materialization, so those keep the JSON storage, which builds the collection in
-        /// EF rather than in the driver. An array is handled separately: it is not a generic type.
+        /// This is EF's own rule, not a list of its own. EF decides which concrete collection a
+        /// primitive collection is built as in <c>TypeMappingSourceBase.TryFindJsonCollectionMapping</c>,
+        /// and what its <c>JsonCollectionOf*ReaderWriter</c> can then construct: an array, a
+        /// <see cref="ReadOnlyCollection{T}"/>, any concrete <see cref="IList{T}"/> with a public
+        /// parameterless constructor, and for an interface a <see cref="List{T}"/>. Storing a
+        /// collection as an <c>ARRAY</c> rather than as JSON text changes where it is built, never
+        /// whether it can be — so the two have to admit the same types, or a property EF supports
+        /// would take a path this provider cannot read back.
+        /// <para>
+        /// Restating the rule rather than keeping a list of types is what keeps them in step. The
+        /// list this replaced had drifted both ways: it was missing
+        /// <see cref="ReadOnlyCollection{T}"/>, <see cref="Collection{T}"/> and
+        /// <see cref="ObservableCollection{T}"/>, which EF supports and
+        /// <c>CalciteArrayTypeMapping.Fill</c> has always built, and it carried
+        /// <see cref="HashSet{T}"/> and <see cref="ISet{T}"/>, which EF rejects outright — a
+        /// primitive collection has to be ordered, so no provider can offer one, and the entries
+        /// answered for a property nobody could use.
+        /// </para>
         /// </remarks>
-        static readonly HashSet<Type> _arrayCollectionTypes =
-        [
-            typeof(List<>),
-            typeof(IList<>),
-            typeof(ICollection<>),
-            typeof(IEnumerable<>),
-            typeof(IReadOnlyList<>),
-            typeof(IReadOnlyCollection<>),
-            typeof(HashSet<>),
-            typeof(ISet<>),
-        ];
-
-        /// <summary>
-        /// Returns whether a CLR collection type is one the reader can build.
-        /// </summary>
         /// <param name="collectionType"></param>
         /// <returns></returns>
         static bool IsSupportedArrayCollection(Type collectionType)
         {
-            return collectionType.IsArray
-                || (collectionType.IsGenericType && _arrayCollectionTypes.Contains(collectionType.GetGenericTypeDefinition()));
+            if (collectionType.IsArray)
+                return true;
+
+            if (collectionType.TryGetSequenceType() is not { } elementType)
+                return false;
+
+            // an interface a List satisfies: EF builds a List for it, and so does the reader
+            if (collectionType.IsAssignableFrom(typeof(List<>).MakeGenericType(elementType)))
+                return true;
+
+            // the one read-only collection EF constructs, which it builds from a list
+            if (collectionType.IsGenericType && collectionType.GetGenericTypeDefinition() == typeof(ReadOnlyCollection<>))
+                return true;
+
+            // any other concrete list EF can instantiate, which is the same test EF applies
+            return collectionType.IsAbstract == false
+                && typeof(IList<>).MakeGenericType(elementType).IsAssignableFrom(collectionType)
+                && collectionType.GetConstructor(Type.EmptyTypes) is { IsPublic: true };
         }
 
         /// <summary>

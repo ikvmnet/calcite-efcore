@@ -28,12 +28,6 @@ partial class TPTGearsOfWarQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Correlated_collections_with_funky_orderby_complex_scenario2(bool async)
-    {
-        return base.Correlated_collections_with_funky_orderby_complex_scenario2(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task DateTimeOffset_Contains_Less_than_Greater_than(bool async)
     {
         return base.DateTimeOffset_Contains_Less_than_Greater_than(async);
@@ -52,12 +46,6 @@ partial class TPTGearsOfWarQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Double_order_by_on_nullable_bool_coming_from_optional_navigation(bool async)
-    {
-        return base.Double_order_by_on_nullable_bool_coming_from_optional_navigation(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Group_by_on_StartsWith_with_null_parameter_as_argument(bool async)
     {
         return base.Group_by_on_StartsWith_with_null_parameter_as_argument(async);
@@ -70,12 +58,6 @@ partial class TPTGearsOfWarQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Groupby_anonymous_type_with_navigations_followed_up_by_anonymous_projection_and_orderby(bool async)
-    {
-        return base.Groupby_anonymous_type_with_navigations_followed_up_by_anonymous_projection_and_orderby(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task GroupBy_Property_Include_Select_LongCount(bool async)
     {
         return base.GroupBy_Property_Include_Select_LongCount(async);
@@ -85,18 +67,6 @@ partial class TPTGearsOfWarQueryCalciteTest
     public override global::System.Threading.Tasks.Task GroupBy_Select_sum(bool async)
     {
         return base.GroupBy_Select_sum(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Include_with_complex_order_by(bool async)
-    {
-        return base.Include_with_complex_order_by(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Include_with_nested_navigation_in_order_by(bool async)
-    {
-        return base.Include_with_nested_navigation_in_order_by(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
@@ -118,63 +88,15 @@ partial class TPTGearsOfWarQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Order_by_entity_qsre(bool async)
-    {
-        return base.Order_by_entity_qsre(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Order_by_entity_qsre_composite_key(bool async)
-    {
-        return base.Order_by_entity_qsre_composite_key(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Order_by_entity_qsre_with_other_orderbys(bool async)
-    {
-        return base.Order_by_entity_qsre_with_other_orderbys(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task OrderBy_bool_coming_from_optional_navigation(bool async)
-    {
-        return base.OrderBy_bool_coming_from_optional_navigation(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Projecting_property_converted_to_nullable_into_member_access(bool async)
     {
         return base.Projecting_property_converted_to_nullable_into_member_access(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_null_propagation_negative3(bool async)
-    {
-        return base.Select_null_propagation_negative3(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_null_propagation_negative4(bool async)
-    {
-        return base.Select_null_propagation_negative4(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_null_propagation_negative5(bool async)
-    {
-        return base.Select_null_propagation_negative5(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Select_StartsWith_with_null_parameter_as_argument(bool async)
     {
         return base.Select_StartsWith_with_null_parameter_as_argument(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task SelectMany_predicate_after_navigation_with_non_equality_comparison_DefaultIfEmpty_converted_to_left_join(bool async)
-    {
-        return base.SelectMany_predicate_after_navigation_with_non_equality_comparison_DefaultIfEmpty_converted_to_left_join(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
