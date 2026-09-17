@@ -18,7 +18,7 @@ using Xunit;
 namespace Apache.Calcite.EntityFrameworkCore.Tests.Types;
 
 /// <summary>
-/// Runs every <c>ST_GEOG_*</c> operator <c>EF.Functions.ClrGeography</c> exposes, against Calcite.
+/// Runs every <c>CLR_ST_GEOG_*</c> operator <c>EF.Functions.ClrGeography</c> exposes, against Calcite.
 /// </summary>
 /// <remarks>
 /// These read WGS84 and answer in metres, where Calcite's own spatial functions are planar and answer in the

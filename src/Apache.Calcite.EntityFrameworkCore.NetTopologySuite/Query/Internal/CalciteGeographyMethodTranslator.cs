@@ -13,12 +13,12 @@ using NetTopologySuite.Geometries;
 namespace Apache.Calcite.EntityFrameworkCore.NetTopologySuite.Query.Internal;
 
 /// <summary>
-/// Translates the <see cref="CalciteClrGeographyDbFunctionsExtensions" /> stubs into the <c>ST_GEOG_*</c>
+/// Translates the <see cref="CalciteClrGeographyDbFunctionsExtensions" /> stubs into the <c>CLR_ST_GEOG_*</c>
 /// operators they name.
 /// </summary>
 /// <remarks>
 /// A suite of its own rather than a prefix over the geometry translators, because the two sets are not a
-/// prefix apart. Measured against <c>Apache.Calcite.Geography</c>: 113 <c>ST_GEOG_*</c> operators against
+/// prefix apart. Measured against <c>Apache.Calcite.Geography</c>: 113 <c>CLR_ST_GEOG_*</c> operators against
 /// Calcite's 139 <c>ST_*</c>, and of the operations the geometry translators map, eight have no geography
 /// counterpart — <c>PointOnSurface</c>, <c>IsRectangle</c>, <c>Crosses</c>, <c>Overlaps</c>, <c>Relate</c>,
 /// <c>Touches</c> and the two aggregates. Four of those are DE-9IM predicates. So the geography surface is
@@ -43,35 +43,35 @@ public class CalciteGeographyMethodTranslator : IMethodCallTranslator
         {
             var function = method.Name switch
             {
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyFromText) => "ST_GEOG_GEOMFROMTEXT",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyDistance) => "ST_GEOG_DISTANCE",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyMaxDistance) => "ST_GEOG_MAXDISTANCE",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyArea) => "ST_GEOG_AREA",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyLength) => "ST_GEOG_LENGTH",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyPerimeter) => "ST_GEOG_PERIMETER",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyWithinDistance) => "ST_GEOG_DWITHIN",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyIntersects) => "ST_GEOG_INTERSECTS",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyDisjoint) => "ST_GEOG_DISJOINT",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyContains) => "ST_GEOG_CONTAINS",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyWithin) => "ST_GEOG_WITHIN",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyCovers) => "ST_GEOG_COVERS",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyCoveredBy) => "ST_GEOG_COVEREDBY",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyEqualsTopologically) => "ST_GEOG_EQUALS",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyIsValid) => "ST_GEOG_ISVALID",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyIsEmpty) => "ST_GEOG_ISEMPTY",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyBuffer) => "ST_GEOG_BUFFER",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyCentroid) => "ST_GEOG_CENTROID",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyEnvelope) => "ST_GEOG_ENVELOPE",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyBoundary) => "ST_GEOG_BOUNDARY",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyConvexHull) => "ST_GEOG_CONVEXHULL",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyIntersection) => "ST_GEOG_INTERSECTION",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyDifference) => "ST_GEOG_DIFFERENCE",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographySymmetricDifference) => "ST_GEOG_SYMDIFFERENCE",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyClosestPoint) => "ST_GEOG_CLOSESTPOINT",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyX) => "ST_GEOG_X",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyY) => "ST_GEOG_Y",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyAsText) => "ST_GEOG_ASTEXT",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyAsBinary) => "ST_GEOG_ASBINARY",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyFromText) => "CLR_ST_GEOG_GEOMFROMTEXT",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyDistance) => "CLR_ST_GEOG_DISTANCE",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyMaxDistance) => "CLR_ST_GEOG_MAXDISTANCE",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyArea) => "CLR_ST_GEOG_AREA",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyLength) => "CLR_ST_GEOG_LENGTH",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyPerimeter) => "CLR_ST_GEOG_PERIMETER",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyWithinDistance) => "CLR_ST_GEOG_DWITHIN",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyIntersects) => "CLR_ST_GEOG_INTERSECTS",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyDisjoint) => "CLR_ST_GEOG_DISJOINT",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyContains) => "CLR_ST_GEOG_CONTAINS",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyWithin) => "CLR_ST_GEOG_WITHIN",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyCovers) => "CLR_ST_GEOG_COVERS",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyCoveredBy) => "CLR_ST_GEOG_COVEREDBY",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyEqualsTopologically) => "CLR_ST_GEOG_EQUALS",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyIsValid) => "CLR_ST_GEOG_ISVALID",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyIsEmpty) => "CLR_ST_GEOG_ISEMPTY",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyBuffer) => "CLR_ST_GEOG_BUFFER",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyCentroid) => "CLR_ST_GEOG_CENTROID",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyEnvelope) => "CLR_ST_GEOG_ENVELOPE",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyBoundary) => "CLR_ST_GEOG_BOUNDARY",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyConvexHull) => "CLR_ST_GEOG_CONVEXHULL",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyIntersection) => "CLR_ST_GEOG_INTERSECTION",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyDifference) => "CLR_ST_GEOG_DIFFERENCE",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographySymmetricDifference) => "CLR_ST_GEOG_SYMDIFFERENCE",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyClosestPoint) => "CLR_ST_GEOG_CLOSESTPOINT",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyX) => "CLR_ST_GEOG_X",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyY) => "CLR_ST_GEOG_Y",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyAsText) => "CLR_ST_GEOG_ASTEXT",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyAsBinary) => "CLR_ST_GEOG_ASBINARY",
                 _ => throw new InvalidOperationException($"No geography operator is mapped for '{method.Name}'."),
             };
 
