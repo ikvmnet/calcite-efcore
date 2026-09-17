@@ -19,6 +19,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
             AddTranslators(
             [
                 new CalciteConvertTranslator(sqlExpressionFactory),
+                new CalciteDbFunctionsTranslator(sqlExpressionFactory),
                 new CalciteMathTranslator(sqlExpressionFactory),
                 new CalciteStringMethodTranslator(sqlExpressionFactory),
                 new CalciteBoolMethodTranslator(sqlExpressionFactory),

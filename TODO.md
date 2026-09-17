@@ -249,6 +249,25 @@ preceding table — is fine, which is why column collections work and these do n
 runtime failure in Calcite's enumerable `UNNEST` before translating parameters, or translate them
 without ordinality and give up the ordered operators for that case.
 
+## CONTAINS_SUBSTR needs a commons-lang3 the closure does not pick (calcite-dotnet)
+
+`CONTAINS_SUBSTR` normalizes through `org.apache.commons.text.StringEscapeUtils`, whose static
+initializer calls `org.apache.commons.lang3.Range.of` — added in commons-lang3 **3.13**. Measured
+2026-09-16: the closure under `calcite-core` carries 3.1, 3.13.0 and 3.18.0 and mediates to **3.1**,
+so the first call fails with
+
+```
+TypeInitializationException: org.apache.commons.text.StringEscapeUtils
+---- java.lang.NoSuchMethodError: org.apache.commons.lang3.Range.of(Comparable, Comparable)
+```
+
+`Apache.Calcite.EntityFrameworkCore.Tests` pins `org.apache.commons:commons-lang3` 3.18.0 directly,
+which wins the mediation and makes the function work — `DbFunctionsTests.ContainsSubstr_filters`
+covers it. That pin only reaches our own tests. **The provider ships no `MavenReference` at all**: its
+jars arrive through `Apache.Calcite.Data`, so a consumer of that package who calls
+`EF.Functions.ContainsSubstr` hits the same failure and has to pin it themselves. The fix belongs in
+calcite-dotnet's closure, not here. Nothing else in the surface touches commons-text.
+
 ## An enum element has no name to give the driver
 
 `ARRAY` storage is restricted to what round-trips. The container half of that restriction is gone —
