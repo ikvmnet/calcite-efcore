@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Apache.Calcite.FullText" Version="2.0.1-pre.188" />
         <PackageReference Include="Apache.Calcite.Geography" Version="2.0.1-pre.188" />
         <PackageReference Include="IKVM" Version="8.16.1" />
         <!-- Not PrivateAssets, deliberately. This package ships only buildTransitive, which is the folder that
