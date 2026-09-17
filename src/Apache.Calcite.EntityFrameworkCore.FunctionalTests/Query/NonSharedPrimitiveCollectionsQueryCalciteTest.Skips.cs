@@ -16,12 +16,6 @@ partial class NonSharedPrimitiveCollectionsQueryCalciteTest
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Array_of_DateOnly()
-    {
-        return base.Array_of_DateOnly();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Array_of_DateTime_with_microseconds()
     {
         return base.Array_of_DateTime_with_microseconds();
@@ -31,24 +25,6 @@ partial class NonSharedPrimitiveCollectionsQueryCalciteTest
     public override global::System.Threading.Tasks.Task Array_of_enum()
     {
         return base.Array_of_enum();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Array_of_TimeOnly()
-    {
-        return base.Array_of_TimeOnly();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Array_of_TimeOnly_with_microseconds()
-    {
-        return base.Array_of_TimeOnly_with_microseconds();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Array_of_TimeOnly_with_milliseconds()
-    {
-        return base.Array_of_TimeOnly_with_milliseconds();
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]

@@ -46,18 +46,6 @@ partial class TransactionCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task RelationalTransaction_can_be_rolled_back(global::Microsoft.EntityFrameworkCore.AutoTransactionBehavior autoTransactionBehavior)
-    {
-        return base.RelationalTransaction_can_be_rolled_back(autoTransactionBehavior);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task RelationalTransaction_can_be_rolled_back_from_context(global::Microsoft.EntityFrameworkCore.AutoTransactionBehavior autoTransactionBehavior)
-    {
-        return base.RelationalTransaction_can_be_rolled_back_from_context(autoTransactionBehavior);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task SaveChanges_can_be_used_with_AutoTransactionBehavior_Always(bool async)
     {
         return base.SaveChanges_can_be_used_with_AutoTransactionBehavior_Always(async);
@@ -79,12 +67,6 @@ partial class TransactionCalciteTest
     public override global::System.Threading.Tasks.Task SaveChanges_can_be_used_with_no_savepoint(bool async)
     {
         return base.SaveChanges_can_be_used_with_no_savepoint(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task SaveChanges_false_uses_explicit_transaction_without_committing_or_accepting_changes(bool async, global::Microsoft.EntityFrameworkCore.AutoTransactionBehavior autoTransactionBehavior)
-    {
-        return base.SaveChanges_false_uses_explicit_transaction_without_committing_or_accepting_changes(async, autoTransactionBehavior);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
@@ -115,12 +97,6 @@ partial class TransactionCalciteTest
     public override global::System.Threading.Tasks.Task SaveChanges_uses_explicit_transaction_with_failure_behavior(bool async, global::Microsoft.EntityFrameworkCore.AutoTransactionBehavior autoTransactionBehavior)
     {
         return base.SaveChanges_uses_explicit_transaction_with_failure_behavior(async, autoTransactionBehavior);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task SaveChanges_uses_explicit_transaction_without_committing(bool async, global::Microsoft.EntityFrameworkCore.AutoTransactionBehavior autoTransactionBehavior)
-    {
-        return base.SaveChanges_uses_explicit_transaction_without_committing(async, autoTransactionBehavior);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]

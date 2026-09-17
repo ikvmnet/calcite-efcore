@@ -14,14 +14,19 @@ store whose only goal is running the EF Core spec suite. Components:
 - Tables in C# via IKVM implementing the Clr-native scan surfaces from
   `Apache.Calcite.Extensions` (async first) plus `ModifiableTable` for TableModify.
 - Sequence objects (`TableType.SEQUENCE`) native to the store — see the auto-generated keys item.
-- Transactions as copy-on-write table snapshots with commit/rollback, plumbed from
-  `Apache.Calcite.Data`'s transaction surface. The one genuinely non-trivial piece.
 - Migrations/DDL by direct store manipulation from `CalciteMigrationCommandExecutor` — drops the
   `ServerDdlExecutor`/parserFactory dependency from the test store entirely.
 
-Sequencing: wait for the functional-run failure clustering before building — if SQL-generation
-failures dominate, those come first; the backend swap unblocks the transaction- and
-sharing-shaped clusters.
+Transactions are **no longer part of this**. They were listed here as copy-on-write table snapshots
+with commit/rollback, and the one genuinely non-trivial piece; `CalciteTestRelationalConnection` in
+`FunctionalTests/TestUtilities` now does exactly that against the store the suite has today, through
+`ModifiableTable.getModifiableCollection()`, with no new store required. Measured 2026-09-16 it took
+the suite from 4,093 failures to 2,244 and the skip set from 1,717 methods to 1,250, with nothing
+newly skipped. A purpose-built store should take the mechanism over rather than reinvent it.
+
+Sequencing: the clustering the build was waiting on has been done — see the clusters item below.
+What is left for the new store is sharing across connections and native sequences; neither is what
+the largest remaining clusters are about, so neither is urgent.
 
 ## Auto-generated keys: real sequences
 
@@ -82,9 +87,33 @@ Skip SQL text entirely: EF's `SelectExpression` is already relational algebra; b
 
 ## Functional suite failure clusters
 
-Full-run trx in flight. Cluster the ~12k failures by exception fingerprint, fix the biggest root
-causes first. Reference D:\efcore (11.0 head; 10.0 via `git show v10.0.5:<path>`) and
-D:\efcore.pg for how SQLite/Npgsql derive, override, and skip.
+Clustered 2026-09-16 on a full run with every generated skip removed, after the per-test isolation
+fix: **2,244 failed / 25,613 passed / 289 skipped of 28,146**, which the regenerated skips cover as
+1,250 methods. Reference D:\efcore (11.0 head; 10.0 via `git show v10.0.5:<path>`) and D:\efcore.pg
+for how SQLite/Npgsql derive, override, and skip.
+
+Largest classes, and what is known about each:
+
+| class | failures | shape |
+|---|---|---|
+| `Query.EntitySplittingQueryCalciteTest` | 116 | not diagnosed |
+| `StoreGeneratedCalciteTest` | 110 | store-generated values; the provider generates no keys by design |
+| `BulkUpdates.NorthwindBulkUpdatesCalciteTest` | 82 | `ExecuteUpdate`/`ExecuteDelete` SQL generation |
+| `GraphUpdates.ProxyGraphUpdatesCalciteTest` (x3) | 215 | mostly FK cascade: Calcite has no constraints, so "cascade deleted in store" cannot pass |
+| `Query.NorthwindGroupByQueryCalciteTest` | 68 | not diagnosed |
+| `Query.GearsOfWarQueryCalciteTest` and the TPC/TPT variants | 192 | not diagnosed; the three move together |
+| `Update.JsonUpdateCalciteTest` | 63 | JSON column mapping, which does not exist — see the derivations item |
+| `TransactionCalciteTest` | 53 | the store has no transactions; these assert real ones |
+
+Largest fingerprints not already attributed above: 648 `Assert.Equal() Failure: Values differ`
+(too coarse to be one cause — split it before acting), 80 `SqlParseException : Encountered <FROM>`,
+76 `The LINQ expression 'DbSet<BasicTypesEntity>() …' could not be translated`, 52 `An error
+occurred while reading a database value. The expected type was '*' but the actual value was of
+type '*'`, 38 `variable '*' of type '*' referenced from scope '*', but it is not defined`, and 28
+`SqlParseException : Lexical error`.
+
+The parse-error clusters are the ones the rel-tree item below would eliminate structurally rather
+than one dialect quirk at a time.
 
 ## Calcite logs nowhere: bind slf4j through IKVM.Extensions.Logging.Slf4j
 
@@ -160,9 +189,32 @@ What is left, with why it is left:
 - **Blocked on the spatial item below**: `Spatial`, `SpatialQuery`.
 - **Needs infrastructure we do not have**: `CompiledModel`, `MigrationsInfrastructure`,
   `RuntimeMigration`, `OperatorsProcedural` (no `OperatorsData` locally).
-- **Plain derivations, not yet attempted**: `BadData` (SQLite's fakes a `DbDataReader` over
-  `Microsoft.Data.Sqlite`, so it needs a Calcite equivalent rather than a rename),
-  `NavigationsBulkUpdate`, and the `TPC`/`TPH`/`TPT` `InheritanceTableSplittingQuery` trio.
+- **Blocked on the spec package, not on us**: `NavigationsBulkUpdate` and the `TPC`/`TPH`/`TPT`
+  `InheritanceTableSplittingQuery` trio. These were recorded as plain derivations not yet
+  attempted. Measured 2026-09-16: `NavigationsBulkUpdateRelationalTestBase` and the
+  `TP*InheritanceTableSplittingQueryRelationalTestBase` trio are **not in
+  `Microsoft.EntityFrameworkCore.Relational.Specification.Tests` 10.0.8**, which is what this
+  project builds against — they are 11.0-era additions carried only by the `D:\efcore` checkout at
+  head. Neither is reachable before the spec-package bump. Recount the gap against the package, not
+  against the sibling checkout.
+- `StoreValueGenerationLegacy` is a third file-name false positive: the class inside it is
+  `StoreValueGenerationWithoutReturning*`, already derived here.
+
+Nothing on this list is reachable today. `BadData` was the last one that was, and it is derived as
+of 2026-09-16 — 8 tests, all passing. It derives nothing from the spec package: it is an
+`IClassFixture` over the Northwind fixture plus a fake `DbDataReader` behind a substituted
+`IRelationalCommandBuilderFactory`, so it needed a Calcite equivalent of that plumbing rather than a
+rename. What it covers is the materialization error path, and no query in it reaches Calcite.
+
+Two names a file-name recount calls missing are derived here under the wrong class name, which is
+why such a count cannot be trusted. `Query/Translations/Operators/MiscellaneousOperatorTranslationsCalciteTest.cs`
+declares `MiscellaneousOperatorTranslationsSqlServerTest` and
+`Query/PrecompiledSqlPregenerationQueryCalciteTest.cs` declares
+`PrecompiledSqlPregenerationQuerySqlServerTest`, both left over from the copy they were made from;
+`Query/Associations/Navigations/NavigationsMiscellaneousCalciteTest.cs` has it the other way and
+declares `OwnedNavigationsMiscellaneousCalciteTest`. All three run — xunit discovers by attribute,
+not by name — so no coverage is lost. Renaming them moves the fully qualified test names the skip
+files key on, so rename only in the change that regenerates the skips, never between runs.
 
 Derived 2026-09-07: `DataBinding`, `Serialization`, `NorthwindQueryTaggingQuery`,
 `NonLoadingNavigationsManyToManyLoad` — 414 tests that did not run before, 387 passing.
@@ -212,8 +264,19 @@ bring it back; the converter half already works and `ArrayMaterializationTests` 
 
 **The collection types** `ReadOnlyCollection<T>`, `ObservableCollection<T>` and `Collection<T>` are
 built correctly by the mapping — `ArrayMaterializationTests` covers all three — and are held out
-only because the write half has not been measured for them. Measuring it is the same shape as the
-element work: add each to `ArrayDbContext`, round-trip through `SaveChanges`, move what survives.
+only because the write half has not been measured **through the ARRAY path**. Being off the
+allowlist costs no support: measured 2026-09-16 in `CollectionContainerTypeTests`, all three
+round-trip through `SaveChanges` and back on EF's JSON text storage, which is where SQL Server and
+SQLite put every primitive collection. Moving them is the same shape as the element work: add each
+to `ArrayDbContext`, round-trip, move what survives.
+
+**`HashSet<>` and `ISet<>` are on the allowlist and cannot be reached.** EF requires a primitive
+collection to be ordered — *"cannot be used as a primitive collection because it is not an array and
+does not implement `IList<string>`"* — and throws from `ListOfReferenceTypesComparer.Snapshot` when
+the change tracker first sees the value, before any SQL is generated. The model still builds and the
+property still reports `VARCHAR ARRAY`, so the entries answer for a property EF will not let anyone
+use. `CollectionContainerTypeTests` pins that. Either drop the two entries or leave them against a
+future EF that orders sets; nothing else in the provider depends on them.
 
 ## DISTINCT over a row holding an ARRAY fails in the CLR runtime (calcite-dotnet)
 
@@ -376,48 +439,9 @@ against any of the test fixtures.
 | a scalar terminal over a parameterized predicate | `InvalidOperationException: Sequence contains no elements` |
 
 These have not been separated into provider gaps and breakage from below. `LongCount` failing on an
-INTEGER that will not narrow to `Int64` has the same shape as the UUID break below — a 1.43 runtime
-representation the layers beneath this repo have not caught up with — and the four `Sequence
-contains no elements` failures are a scalar terminal coming back empty and could be either. Telling
-them apart wants a run against a Calcite carrying neither. The first step for any of them is a test
-in `Apache.Calcite.EntityFrameworkCore.Tests` that reproduces it.
-
-## Calcite holds a UUID as UuidValue now, and calcite-dotnet still passes java.util.UUID (calcite-dotnet)
-
-Every write of a Guid fails:
-
-```
-System.InvalidCastException: Unable to cast object of type 'java.util.UUID'
-                             to type 'org.apache.calcite.util.UuidValue'.
-```
-
-[CALCITE-7716] added `org.apache.calcite.util.UuidValue`, whose own javadoc calls it "the value of a
-UUID `RexLiteral` and the runtime representation of a UUID". It wraps `java.util.UUID` because
-`UUID.compareTo` compares the two 64-bit halves as signed longs while SQL orders UUIDs as unsigned
-128-bit values. `RexBuilder`, `RexLiteral`, `SqlFunctions`, `JavaTypeFactoryImpl` and `BuiltInMethod`
-are all on the wrapper, so generated code casts to it.
-
-calcite-dotnet is still on the old representation throughout, several places saying so in comments:
-
-| file | what it assumes |
-|---|---|
-| `Apache.Calcite.Extensions/Interop/JavaUuids.cs` | converts `Guid` to and from `java.util.UUID` |
-| `Apache.Calcite.Data/Internal/CalciteValues.cs` | reads `java.util.UUID u => JavaUuids.ToGuid(u)` |
-| `Apache.Calcite.Data/Internal/CalciteResultValue.cs` | `GetGuid` reads a `java.util.UUID` and nothing else |
-| `Apache.Calcite.Data/Internal/CalciteResultColumns.cs` | "Calcite's runtime representation of a UUID is a java.util.UUID" |
-| `Apache.Calcite.Adapter.AdoNet/AdoReaderUtil.cs`, `AdoEnumerable.cs` | the same assumption on the ADO side |
-
-The fix is calcite-dotnet's, not this repo's: `JavaUuids` and those read paths go through
-`UuidValue`. Nothing here can work around it — this repo never names either type. It maps `Guid` to
-the SQL type `UUID` and lets the layers below carry the value.
-
-What it costs here while it stands: `FunctionalTests` 7,870 failed / 15,634 passed / 2,119 skipped
-against a baseline of 0 failed, because the spec fixtures seed through `SaveChanges`; the five
-Guid-touching tests in `EntityFrameworkCore.Tests` (`AllTypesCrudTests` x3, `GuidKeyGenerationTests`
-x2); and nothing in `Adapter.Tests`, which does not write.
-
-Not established: why `main` at `0c2c7f0` was green at 2026-09-14 22:12Z and the same tree plus a
-CI-only diff was red at 02:46Z. Calcite's source has not moved since 2026-08-30 and
-`Apache.Calcite.Data` is pinned at `2.0.1-pre.129`, so what differs has to be the resolved
-`1.43.0-SNAPSHOT` artifact. `repository.apache.org` was unreachable from where this was diagnosed,
-so the snapshot timestamps were never compared.
+INTEGER that will not narrow to `Int64` has the shape the UUID break had — a 1.43 runtime
+representation the layers beneath this repo have not caught up with; that one is resolved as of
+`Apache.Calcite.Data` 2.0.1-pre.167 — and the four `Sequence contains no elements` failures are a
+scalar terminal coming back empty and could be either. Telling them apart wants a run against a
+Calcite carrying neither. The first step for any of them is a test in
+`Apache.Calcite.EntityFrameworkCore.Tests` that reproduces it.

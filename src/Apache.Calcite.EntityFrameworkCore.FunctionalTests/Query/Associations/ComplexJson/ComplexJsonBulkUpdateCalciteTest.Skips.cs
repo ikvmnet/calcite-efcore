@@ -10,48 +10,6 @@ partial class ComplexJsonBulkUpdateCalciteTest
 {
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Update_associate_to_another_associate()
-    {
-        return base.Update_associate_to_another_associate();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Update_associate_to_inline_with_lambda()
-    {
-        return base.Update_associate_to_inline_with_lambda();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Update_associate_to_null()
-    {
-        return base.Update_associate_to_null();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Update_associate_to_null_parameter()
-    {
-        return base.Update_associate_to_null_parameter();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Update_associate_to_null_with_lambda()
-    {
-        return base.Update_associate_to_null_with_lambda();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Update_associate_to_parameter()
-    {
-        return base.Update_associate_to_parameter();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Update_collection_to_parameter()
-    {
-        return base.Update_collection_to_parameter();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Update_inside_primitive_collection()
     {
         return base.Update_inside_primitive_collection();
@@ -157,12 +115,6 @@ partial class ComplexJsonBulkUpdateCalciteTest
     public override global::System.Threading.Tasks.Task Update_property_on_projected_associate_with_OrderBy_Skip()
     {
         return base.Update_property_on_projected_associate_with_OrderBy_Skip();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Update_required_nested_associate_to_null()
-    {
-        return base.Update_required_nested_associate_to_null();
     }
 
 }

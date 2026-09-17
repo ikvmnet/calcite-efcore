@@ -41,6 +41,12 @@ namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities
             serviceCollection.AddScoped<Microsoft.EntityFrameworkCore.Storage.IRelationalDatabaseCreator, CalciteTestDatabaseCreator>();
             serviceCollection.AddScoped<Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure.IConventionSetPlugin, CalciteTestConventionSetPlugin>();
 
+            // Test-infrastructure isolation: the spec fixtures isolate their tests by opening a
+            // transaction and never committing it, which against the provider's inert transaction
+            // leaves every test's writes in place for the next one. This connection's transactions
+            // put the rows back instead — see CalciteTestRelationalConnection.
+            serviceCollection.AddScoped<Apache.Calcite.EntityFrameworkCore.Storage.Internal.ICalciteConnection, CalciteTestRelationalConnection>();
+
             return serviceCollection;
         }
 

@@ -115,14 +115,26 @@ Sibling checkouts this project depends on:
   `calcite.model.classes.allowed` covers it, which is what the module initializers in the provider
   and adapter are for. IKVM.Maven.Sdk resolves from the repositories in
   `$(MavenAdditionalRepositories)`.
-- `FunctionalTests` is the EF Core relational **specification suite** (~25,000 tests, ~40 minutes).
-  It runs **green with skips**: 23,117 pass / 0 fail / 2,092 skipped as of 2026-09-02 on Calcite
-  1.43.0-SNAPSHOT + Apache.Calcite.Data 2.0.1-pre.11. Known-failing tests carry generated
-  `Skip` overrides in `*.Skips.cs` files produced by `tools/GenerateSkips` from a trx run —
-  **a red FunctionalTests run is now a regression signal**, alongside the gates `Adapter.Tests`
-  (110) and `EntityFrameworkCore.Tests` (27). To un-skip after fixing behavior: delete the
-  `*.Skips.cs` files, run the suite with a trx logger, and regenerate
+- `FunctionalTests` is the EF Core relational **specification suite** (~27,000 tests, ~55 minutes).
+  It runs **green with skips**: 25,501 pass / 0 fail / 1,547 skipped as of 2026-09-16 on Calcite
+  1.43.0-SNAPSHOT + Apache.Calcite.Data 2.0.1-pre.167.
+  Known-failing tests carry generated `Skip` overrides in `*.Skips.cs` files produced by
+  `tools/GenerateSkips` from a trx run — **a red FunctionalTests run is now a regression signal**,
+  alongside the gates `Adapter.Tests` (170) and `EntityFrameworkCore.Tests` (75). To un-skip after fixing
+  behavior: delete the `*.Skips.cs` files, run the suite with a trx logger, and regenerate
   (`dotnet run --project tools/GenerateSkips -- <trx> <FunctionalTests.dll> <FunctionalTests source root>`).
+- **The suite's per-test isolation is ours, not Calcite's.** The spec fixtures isolate tests by
+  opening a transaction, running the test and never committing
+  (`TestHelpers.ExecuteWithStrategyInTransactionAsync`), and the provider's connection hands out an
+  inert transaction because Calcite has none. `CalciteTestRelationalConnection` in
+  `FunctionalTests/TestUtilities` closes that gap: it copies the rows of every `ModifiableTable`
+  reachable from the root schema when a transaction opens, and puts them back unless it commits.
+  Without it a test's writes survive into the next one and a class's row counts climb as it runs —
+  measured 2026-09-16, that alone accounted for 1,849 of 4,093 failures, and 467 of the skips.
+  Keep it in the test project: the provider must keep reporting what the store can actually do, and
+  `CurrentTransaction` must keep returning `null`, because EF stamps
+  `CurrentTransaction.GetDbTransaction()` onto every `DbCommand` and a Calcite command takes only a
+  Calcite transaction.
 - Parallel builds sometimes fail with an IOException on a `.deps.json` from IKVM.Core.MSBuild's
   `GenerateDepsFileExtensions` racing itself. It is transient — rebuild, or build with `-m:1`.
 - **Cluster a functional run before fixing anything**: run with
