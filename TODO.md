@@ -88,8 +88,11 @@ Skip SQL text entirely: EF's `SelectExpression` is already relational algebra; b
 ## Functional suite failure clusters
 
 Clustered 2026-09-16 on a full run with every generated skip removed, after the per-test isolation
-fix: **2,244 failed / 25,613 passed / 289 skipped of 28,146**, which the regenerated skips cover as
-1,250 methods. Reference D:\efcore (11.0 head; 10.0 via `git show v10.0.5:<path>`) and D:\efcore.pg
+fix: **2,244 failed / 25,613 passed / 289 skipped of 28,146**, which the regenerated skips covered as
+1,250 methods. Re-measured 2026-09-17 after ordering nulls the way LINQ does: **2,103 failed /
+25,754 passed**, and 1,179 methods. The table below is from the first of those; the 141 cases the
+second recovered came off `GearsOfWarQuery` and its TPC/TPT variants (39 methods) and the
+`ComplexNavigations` family (28), so read those two rows as that much smaller. Reference D:\efcore (11.0 head; 10.0 via `git show v10.0.5:<path>`) and D:\efcore.pg
 for how SQLite/Npgsql derive, override, and skip.
 
 Largest classes, and what is known about each:
