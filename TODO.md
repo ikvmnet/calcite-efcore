@@ -264,8 +264,19 @@ bring it back; the converter half already works and `ArrayMaterializationTests` 
 
 **The collection types** `ReadOnlyCollection<T>`, `ObservableCollection<T>` and `Collection<T>` are
 built correctly by the mapping — `ArrayMaterializationTests` covers all three — and are held out
-only because the write half has not been measured for them. Measuring it is the same shape as the
-element work: add each to `ArrayDbContext`, round-trip through `SaveChanges`, move what survives.
+only because the write half has not been measured **through the ARRAY path**. Being off the
+allowlist costs no support: measured 2026-09-16 in `CollectionContainerTypeTests`, all three
+round-trip through `SaveChanges` and back on EF's JSON text storage, which is where SQL Server and
+SQLite put every primitive collection. Moving them is the same shape as the element work: add each
+to `ArrayDbContext`, round-trip, move what survives.
+
+**`HashSet<>` and `ISet<>` are on the allowlist and cannot be reached.** EF requires a primitive
+collection to be ordered — *"cannot be used as a primitive collection because it is not an array and
+does not implement `IList<string>`"* — and throws from `ListOfReferenceTypesComparer.Snapshot` when
+the change tracker first sees the value, before any SQL is generated. The model still builds and the
+property still reports `VARCHAR ARRAY`, so the entries answer for a property EF will not let anyone
+use. `CollectionContainerTypeTests` pins that. Either drop the two entries or leave them against a
+future EF that orders sets; nothing else in the provider depends on them.
 
 ## DISTINCT over a row holding an ARRAY fails in the CLR runtime (calcite-dotnet)
 

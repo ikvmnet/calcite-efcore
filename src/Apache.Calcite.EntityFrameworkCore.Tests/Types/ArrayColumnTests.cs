@@ -339,6 +339,74 @@ public class ArrayColumnTests
         Assert.Equal([2], await context.Parks.Where(p => p.Cities.Contains("Moab")).Select(p => p.Id).ToListAsync());
     }
 
+    [Fact]
+    public async Task A_null_array_column_materializes_as_null_from_a_view()
+    {
+        // the column, not an element, is the null: the property has to be nullable to hold it
+        using var connection = ArrayDbContext.CreateConnection();
+        await connection.OpenAsync();
+
+        using (var ddl = connection.CreateCommand())
+        {
+            ddl.CommandText =
+                "CREATE VIEW \"NullableParks\" AS " +
+                "SELECT 1 AS \"Id\", CAST(NULL AS VARCHAR ARRAY) AS \"Cities\" " +
+                "UNION ALL SELECT 2, ARRAY[CAST('Moab' AS VARCHAR)]";
+            await ddl.ExecuteNonQueryAsync();
+        }
+
+        await using var context = new NullableParkContext(connection);
+
+        var parks = await context.Parks.OrderBy(p => p.Id).ToListAsync();
+
+        Assert.Null(parks[0].Cities);
+        Assert.Equal(["Moab"], parks[1].Cities!);
+    }
+
+    [Fact]
+    public async Task A_null_array_column_will_not_materialize_into_a_collection_that_cannot_be_null()
+    {
+        // A model that says the collection is never null, over a column that holds NULL, is a model
+        // that disagrees with the store, and EF reads it the way it reads any such property: it does
+        // not emit the null check, so the driver is asked for the array and has no array to give.
+        // Recorded because the default message names neither the property nor the null — it reports a
+        // conversion to the element array type, which is the shape the reader asked for.
+        using var connection = ArrayDbContext.CreateConnection();
+        await connection.OpenAsync();
+
+        using (var ddl = connection.CreateCommand())
+        {
+            ddl.CommandText = "CREATE VIEW \"NonNullableParks\" AS SELECT 1 AS \"Id\", CAST(NULL AS VARCHAR ARRAY) AS \"Cities\"";
+            await ddl.ExecuteNonQueryAsync();
+        }
+
+        await using var context = new NonNullableParkContext(connection);
+
+        var thrown = await Assert.ThrowsAsync<InvalidCastException>(() => context.Parks.ToListAsync());
+        Assert.Contains("String[]", thrown.Message);
+    }
+
+    [Fact]
+    public async Task Detailed_errors_name_the_property_a_null_array_column_could_not_fill()
+    {
+        // the same read with detailed errors on, which is what makes the failure diagnosable
+        using var connection = ArrayDbContext.CreateConnection();
+        await connection.OpenAsync();
+
+        using (var ddl = connection.CreateCommand())
+        {
+            ddl.CommandText = "CREATE VIEW \"NonNullableParks\" AS SELECT 1 AS \"Id\", CAST(NULL AS VARCHAR ARRAY) AS \"Cities\"";
+            await ddl.ExecuteNonQueryAsync();
+        }
+
+        await using var context = new NonNullableParkContext(connection, detailedErrors: true);
+
+        var thrown = await Assert.ThrowsAsync<InvalidOperationException>(() => context.Parks.ToListAsync());
+
+        Assert.Contains("Park.Cities", thrown.Message);
+        Assert.Contains("List", thrown.Message);
+    }
+
     public class Park
     {
 
@@ -346,6 +414,16 @@ public class ArrayColumnTests
 
         [System.ComponentModel.DataAnnotations.Schema.Column("Cities", TypeName = "VARCHAR ARRAY")]
         public List<string> Cities { get; set; } = [];
+
+    }
+
+    public class NullablePark
+    {
+
+        public int Id { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Schema.Column("Cities", TypeName = "VARCHAR ARRAY")]
+        public List<string>? Cities { get; set; }
 
     }
 
@@ -368,6 +446,55 @@ public class ArrayColumnTests
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseCalcite(connection);
+        }
+
+    }
+
+    class NullableParkContext(CalciteConnection connection) : DbContext
+    {
+
+        public DbSet<NullablePark> Parks { get; set; } = null!;
+
+        /// <inheritdoc />
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<NullablePark>(b =>
+            {
+                b.ToView("NullableParks");
+                b.Property(e => e.Id).ValueGeneratedNever();
+            });
+        }
+
+        /// <inheritdoc />
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseCalcite(connection);
+        }
+
+    }
+
+    class NonNullableParkContext(CalciteConnection connection, bool detailedErrors = false) : DbContext
+    {
+
+        public DbSet<Park> Parks { get; set; } = null!;
+
+        /// <inheritdoc />
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Park>(b =>
+            {
+                b.ToView("NonNullableParks");
+                b.Property(e => e.Id).ValueGeneratedNever();
+            });
+        }
+
+        /// <inheritdoc />
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseCalcite(connection);
+
+            if (detailedErrors)
+                optionsBuilder.EnableDetailedErrors();
         }
 
     }
