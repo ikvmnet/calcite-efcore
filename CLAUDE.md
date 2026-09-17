@@ -96,6 +96,23 @@ Sibling checkouts this project depends on:
   /// </summary>
   ```
   never `/// <summary>Does the thing.</summary>`.
+- **An `EF.Functions` name mirrors the store's function name**, PascalCased, expanded where the
+  store's name is cryptic — `RegexpLike` for `REGEXP_LIKE`, `ContainsSubstr` for `CONTAINS_SUBSTR`.
+  No family prefix: measured against `Microsoft.EntityFrameworkCore.SqlServer` 10.0.11, all 28 of
+  its methods follow exactly this (`FreeText`, `PatIndex`, `DateFromParts`, and
+  `StandardDeviationPopulation` for `STDEVP`), and full-text is `Contains`/`FreeText` rather than
+  `FullTextContains`.
+  **Unless the function is ours rather than the store's**, which takes a `Clr` prefix naming the
+  set: `ClrGeographyDistance`, because `ST_GEOG_*` is not something Calcite ships —
+  `Apache.Calcite.Geography` registers those on a schema, and without it the query fails in Calcite
+  with Calcite's own message. Mirroring there would promise an upstream name that does not exist,
+  where the prefix says the opposite: a CLR-side extension point, replaceable a name at a time if
+  Calcite ever grows geodesic operators of its own.
+- **A NetTopologySuite member is not ours to name.** The geometry translators bind
+  `typeof(Geometry).GetRuntimeMethod(...)`, so a spatial query is ordinary NTS code —
+  `p.Location.Distance(x)`, never a `SpatialDistance` of our invention, which would shadow NTS and
+  stop that code translating. `Microsoft.EntityFrameworkCore.Sqlite.NetTopologySuite` ships no
+  `EF.Functions` surface at all for the same reason.
 
 ## Building and testing
 
