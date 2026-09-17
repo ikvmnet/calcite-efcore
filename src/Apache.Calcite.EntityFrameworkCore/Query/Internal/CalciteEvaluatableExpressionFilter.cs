@@ -46,10 +46,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         /// </summary>
         /// <remarks>
         /// By name rather than by reference, so the geometry package's own surface is covered without this
-        /// assembly having to know about it. A class that answers a receiver rather than an operator — the
-        /// geography package's <c>ClrGeography</c> — is deliberately named otherwise, because it has to be
-        /// evaluated: a receiver is a marker object, and a call left standing on one is an argument no
-        /// translator can turn into SQL, which abandons the whole query to client evaluation.
+        /// assembly having to know about it.
         /// </remarks>
         /// <param name="type"></param>
         /// <returns></returns>
