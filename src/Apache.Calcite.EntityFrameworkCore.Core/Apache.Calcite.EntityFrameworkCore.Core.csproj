@@ -39,6 +39,7 @@
              These are the assemblies that name our own namespace on it. -->
         <InternalsVisibleTo Include="Apache.Calcite.EntityFrameworkCore" />
         <InternalsVisibleTo Include="Apache.Calcite.EntityFrameworkCore.Adapter" />
+        <InternalsVisibleTo Include="Apache.Calcite.EntityFrameworkCore.NetTopologySuite" />
         <InternalsVisibleTo Include="Apache.Calcite.EntityFrameworkCore.Tests" />
     </ItemGroup>
 
