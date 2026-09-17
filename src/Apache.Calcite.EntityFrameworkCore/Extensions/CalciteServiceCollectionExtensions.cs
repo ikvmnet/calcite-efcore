@@ -111,6 +111,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Extensions
                 .TryAdd<ISqlGenerationHelper, CalciteSqlGenerationHelper>()
                 .TryAdd<IRelationalAnnotationProvider,RelationalAnnotationProvider>()
                 .TryAdd<IModelValidator, CalciteModelValidator>()
+                // without this the EF.Functions stubs are folded away before translation: a call whose
+                // arguments are all constants is an evaluatable root, and evaluating one throws
+                .TryAdd<IEvaluatableExpressionFilter, CalciteEvaluatableExpressionFilter>()
                 .TryAdd<IProviderConventionSetBuilder, CalciteConventionSetBuilder>()
                 .TryAdd<IUpdateSqlGenerator, CalciteUpdateSqlGenerator>()
                 .TryAdd<IModificationCommandBatchFactory, CalciteModificationCommandBatchFactory>()
