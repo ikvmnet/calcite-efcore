@@ -340,6 +340,33 @@ standard ADO fix is marker rewriting in the command: translate `@name` markers t
 the parameter collection to match, the way JDBC-bridging providers do. Belongs in
 Apache.Calcite.Data.
 
+## Geography, as a project of its own
+
+`Apache.Calcite.Geography` gives Calcite a parallel set of `ST_GEOG_*` operators that read WGS84 and
+answer in metres. Its own README is clear that this is not a unit difference: *"the ratio varies with
+latitude and with bearing, so no conversion of a result recovers it and no transformation of the
+inputs does either. An ordering is not merely wrong, it is differently ordered."* So choosing the
+wrong set does not give a wrong number, it gives a plausible answer in a different order.
+
+The decision belongs to the type, and cannot be yet: `SqlTypeName` is a closed enum, so
+`GeographyTypes` impersonates `GEOMETRY`. A geography and a geometry are therefore the same store
+type and the same NetTopologySuite CLR type, and nothing about `p.Location.Distance(other)` says
+which is meant. Until Calcite can carry the type, the model has to — a property marked as geography,
+selecting a mapping that emits the parallel names.
+
+**Do it as a project of its own** (`Apache.Calcite.EntityFrameworkCore.Geography`), the way
+NetTopologySuite support is, and not by teaching the geometry translators a prefix. Measured
+2026-09-17, the two sets are not a prefix apart: there are 113 `ST_GEOG_*` functions, and of the 52
+operations the geometry translators map, **eight have no geography counterpart** —
+`PointOnSurface`, `IsRectangle`, `Crosses`, `Overlaps`, `Relate`, `Touches`, and the `ST_UNION` and
+`ST_COLLECT` aggregates. Four of those are DE-9IM predicates. A geography map is therefore a
+different map, not the same one with a prefix, and an operation missing from it has to fail as
+untranslatable rather than fall back to the planar function.
+
+Registration stays the caller's, as `fun=spatial` is: `GeographyOperatorTable.Instance()` is chained
+onto the operator table when the connection is built, so an EF package can emit the names but cannot
+make them resolve.
+
 ## Spatial: the 19 the suites do not pass
 
 `Apache.Calcite.EntityFrameworkCore.NetTopologySuite` maps geometry, and the `Spatial` and
