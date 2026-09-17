@@ -94,12 +94,6 @@ partial class PrimitiveCollectionsQueryCalciteTest
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Project_collection_of_nullable_ints_with_paging2()
-    {
-        return base.Project_collection_of_nullable_ints_with_paging2();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Project_multiple_collections()
     {
         return base.Project_multiple_collections();

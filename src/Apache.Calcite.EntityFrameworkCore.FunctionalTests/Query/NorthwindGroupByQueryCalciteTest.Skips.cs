@@ -124,12 +124,6 @@ partial class NorthwindGroupByQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_select_grouping_composed_list(bool async)
-    {
-        return base.GroupBy_select_grouping_composed_list(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task GroupBy_Sum_constant_cast(bool async)
     {
         return base.GroupBy_Sum_constant_cast(async);
