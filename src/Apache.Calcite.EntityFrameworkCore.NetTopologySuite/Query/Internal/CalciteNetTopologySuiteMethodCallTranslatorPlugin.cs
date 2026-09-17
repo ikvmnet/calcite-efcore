@@ -18,7 +18,11 @@ public class CalciteNetTopologySuiteMethodCallTranslatorPlugin : IMethodCallTran
     /// <param name="typeMappingSource"></param>
     public CalciteNetTopologySuiteMethodCallTranslatorPlugin(ISqlExpressionFactory sqlExpressionFactory, IRelationalTypeMappingSource typeMappingSource)
     {
-        Translators = [new CalciteGeometryMethodTranslator(sqlExpressionFactory, typeMappingSource)];
+        Translators =
+        [
+            new CalciteGeometryMethodTranslator(sqlExpressionFactory, typeMappingSource),
+            new CalciteGeographyMethodTranslator(sqlExpressionFactory, typeMappingSource),
+        ];
     }
 
     /// <inheritdoc />
