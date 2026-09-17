@@ -18,7 +18,7 @@ using Xunit;
 namespace Apache.Calcite.EntityFrameworkCore.Tests.Types;
 
 /// <summary>
-/// Runs every <c>ST_GEOG_*</c> operator the geography surface exposes, against Calcite.
+/// Runs every <c>ST_GEOG_*</c> operator <c>EF.Functions.ClrGeography</c> exposes, against Calcite.
 /// </summary>
 /// <remarks>
 /// These read WGS84 and answer in metres, where Calcite's own spatial functions are planar and answer in the
@@ -123,111 +123,111 @@ public class GeographyFunctionTests
     }
 
     [Fact]
-    public async Task GeogDistance() => Assert.Equal(343_923d, await ProjectAsync(p => EF.Functions.GeogDistance(p.Location!, _paris)), 0);
+    public async Task Distance() => Assert.Equal(343_923d, await ProjectAsync(p => EF.Functions.ClrGeography().Distance(p.Location!, _paris)), 0);
 
     [Fact]
-    public async Task GeogMaxDistance() => Assert.True(await ProjectAsync(p => EF.Functions.GeogMaxDistance(p.Location!, _paris)) > 300_000d);
+    public async Task MaxDistance() => Assert.True(await ProjectAsync(p => EF.Functions.ClrGeography().MaxDistance(p.Location!, _paris)) > 300_000d);
 
     [Fact]
-    public async Task GeogArea() => Assert.True(await ProjectAsync(p => EF.Functions.GeogArea(p.Region!)) > 1e10);
+    public async Task Area() => Assert.True(await ProjectAsync(p => EF.Functions.ClrGeography().Area(p.Region!)) > 1e10);
 
     [Fact]
-    public async Task GeogLength() => Assert.Equal(0d, await ProjectAsync(p => EF.Functions.GeogLength(p.Location!)));
+    public async Task Length() => Assert.Equal(0d, await ProjectAsync(p => EF.Functions.ClrGeography().Length(p.Location!)));
 
     [Fact]
-    public async Task GeogPerimeter() => Assert.True(await ProjectAsync(p => EF.Functions.GeogPerimeter(p.Region!)) > 100_000d);
+    public async Task Perimeter() => Assert.True(await ProjectAsync(p => EF.Functions.ClrGeography().Perimeter(p.Region!)) > 100_000d);
 
     [Fact]
-    public async Task GeogWithinDistance()
+    public async Task WithinDistance()
     {
-        Assert.True(await ProjectAsync(p => EF.Functions.GeogWithinDistance(p.Location!, _paris, 400_000d)));
-        Assert.False(await ProjectAsync(p => EF.Functions.GeogWithinDistance(p.Location!, _paris, 300_000d)));
+        Assert.True(await ProjectAsync(p => EF.Functions.ClrGeography().WithinDistance(p.Location!, _paris, 400_000d)));
+        Assert.False(await ProjectAsync(p => EF.Functions.ClrGeography().WithinDistance(p.Location!, _paris, 300_000d)));
     }
 
     [Fact]
-    public async Task GeogIntersects() => Assert.False(await ProjectAsync(p => EF.Functions.GeogIntersects(p.Location!, _paris)));
+    public async Task Intersects() => Assert.False(await ProjectAsync(p => EF.Functions.ClrGeography().Intersects(p.Location!, _paris)));
 
     [Fact]
-    public async Task GeogDisjoint() => Assert.True(await ProjectAsync(p => EF.Functions.GeogDisjoint(p.Location!, _paris)));
+    public async Task Disjoint() => Assert.True(await ProjectAsync(p => EF.Functions.ClrGeography().Disjoint(p.Location!, _paris)));
 
     [Fact]
-    public async Task GeogContains() => Assert.False(await ProjectAsync(p => EF.Functions.GeogContains(p.Location!, _paris)));
+    public async Task Contains() => Assert.False(await ProjectAsync(p => EF.Functions.ClrGeography().Contains(p.Location!, _paris)));
 
     [Fact]
-    public async Task GeogWithin() => Assert.False(await ProjectAsync(p => EF.Functions.GeogWithin(p.Location!, p.Region!)));
+    public async Task Within() => Assert.False(await ProjectAsync(p => EF.Functions.ClrGeography().Within(p.Location!, p.Region!)));
 
     [Fact]
-    public async Task GeogCovers() => Assert.False(await ProjectAsync(p => EF.Functions.GeogCovers(p.Location!, _paris)));
+    public async Task Covers() => Assert.False(await ProjectAsync(p => EF.Functions.ClrGeography().Covers(p.Location!, _paris)));
 
     [Fact]
-    public async Task GeogCoveredBy() => Assert.False(await ProjectAsync(p => EF.Functions.GeogCoveredBy(p.Location!, _paris)));
+    public async Task CoveredBy() => Assert.False(await ProjectAsync(p => EF.Functions.ClrGeography().CoveredBy(p.Location!, _paris)));
 
     [Fact]
-    public async Task GeogEquals() => Assert.True(await ProjectAsync(p => EF.Functions.GeogEquals(p.Location!, _london)));
+    public async Task EqualsTopologically() => Assert.True(await ProjectAsync(p => EF.Functions.ClrGeography().EqualsTopologically(p.Location!, _london)));
 
     [Fact]
-    public async Task GeogIsValid() => Assert.True(await ProjectAsync(p => EF.Functions.GeogIsValid(p.Region!)));
+    public async Task IsValid() => Assert.True(await ProjectAsync(p => EF.Functions.ClrGeography().IsValid(p.Region!)));
 
     [Fact]
-    public async Task GeogIsEmpty() => Assert.False(await ProjectAsync(p => EF.Functions.GeogIsEmpty(p.Region!)));
+    public async Task IsEmpty() => Assert.False(await ProjectAsync(p => EF.Functions.ClrGeography().IsEmpty(p.Region!)));
 
     [Fact]
-    public async Task GeogBuffer() => Assert.NotNull(await ProjectAsync(p => EF.Functions.GeogBuffer(p.Location!, 1000d)));
+    public async Task Buffer() => Assert.NotNull(await ProjectAsync(p => EF.Functions.ClrGeography().Buffer(p.Location!, 1000d)));
 
     [Fact]
-    public async Task GeogCentroid() => Assert.NotNull(await ProjectAsync(p => EF.Functions.GeogCentroid(p.Region!)));
+    public async Task Centroid() => Assert.NotNull(await ProjectAsync(p => EF.Functions.ClrGeography().Centroid(p.Region!)));
 
     [Fact]
-    public async Task GeogEnvelope() => Assert.NotNull(await ProjectAsync(p => EF.Functions.GeogEnvelope(p.Region!)));
+    public async Task Envelope() => Assert.NotNull(await ProjectAsync(p => EF.Functions.ClrGeography().Envelope(p.Region!)));
 
     [Fact]
-    public async Task GeogBoundary() => Assert.NotNull(await ProjectAsync(p => EF.Functions.GeogBoundary(p.Region!)));
+    public async Task Boundary() => Assert.NotNull(await ProjectAsync(p => EF.Functions.ClrGeography().Boundary(p.Region!)));
 
     [Fact]
-    public async Task GeogConvexHull() => Assert.NotNull(await ProjectAsync(p => EF.Functions.GeogConvexHull(p.Region!)));
+    public async Task ConvexHull() => Assert.NotNull(await ProjectAsync(p => EF.Functions.ClrGeography().ConvexHull(p.Region!)));
 
     [Fact]
-    public async Task GeogIntersection() => Assert.NotNull(await ProjectAsync(p => EF.Functions.GeogIntersection(p.Region!, p.Region!)));
+    public async Task Intersection() => Assert.NotNull(await ProjectAsync(p => EF.Functions.ClrGeography().Intersection(p.Region!, p.Region!)));
 
     [Fact]
-    public async Task GeogDifference()
+    public async Task Difference()
     {
         // against the overlapping half-square rather than against the point: subtracting something of no
         // area answers nothing rather than the original shape
         var half = Half();
-        Assert.NotNull(await ProjectAsync(p => EF.Functions.GeogDifference(p.Region!, half)));
+        Assert.NotNull(await ProjectAsync(p => EF.Functions.ClrGeography().Difference(p.Region!, half)));
     }
 
     [Fact]
-    public async Task GeogSymmetricDifference()
+    public async Task SymmetricDifference()
     {
         var half = Half();
-        Assert.NotNull(await ProjectAsync(p => EF.Functions.GeogSymmetricDifference(p.Region!, half)));
+        Assert.NotNull(await ProjectAsync(p => EF.Functions.ClrGeography().SymmetricDifference(p.Region!, half)));
     }
 
     [Fact]
-    public async Task GeogClosestPoint() => Assert.NotNull(await ProjectAsync(p => EF.Functions.GeogClosestPoint(p.Region!, p.Location!)));
+    public async Task ClosestPoint() => Assert.NotNull(await ProjectAsync(p => EF.Functions.ClrGeography().ClosestPoint(p.Region!, p.Location!)));
 
     [Fact]
-    public async Task GeogX() => Assert.Equal(_london.X, await ProjectAsync(p => EF.Functions.GeogX(p.Location!)), 6);
+    public async Task X() => Assert.Equal(_london.X, await ProjectAsync(p => EF.Functions.ClrGeography().X(p.Location!)), 6);
 
     [Fact]
-    public async Task GeogY() => Assert.Equal(_london.Y, await ProjectAsync(p => EF.Functions.GeogY(p.Location!)), 6);
+    public async Task Y() => Assert.Equal(_london.Y, await ProjectAsync(p => EF.Functions.ClrGeography().Y(p.Location!)), 6);
 
     [Fact]
-    public async Task GeogAsText() => Assert.Contains("POINT", await ProjectAsync(p => EF.Functions.GeogAsText(p.Location!))!, StringComparison.OrdinalIgnoreCase);
+    public async Task AsText() => Assert.Contains("POINT", await ProjectAsync(p => EF.Functions.ClrGeography().AsText(p.Location!))!, StringComparison.OrdinalIgnoreCase);
 
     [Fact]
-    public async Task GeogAsBinary() => Assert.NotEmpty(await ProjectAsync(p => EF.Functions.GeogAsBinary(p.Location!))!);
+    public async Task AsBinary() => Assert.NotEmpty(await ProjectAsync(p => EF.Functions.ClrGeography().AsBinary(p.Location!))!);
 
     [Fact]
-    public async Task GeogFromText()
+    public async Task FromText()
     {
         // reached through an expression carrying a column: a call whose arguments are all constants is one
         // EF evaluates on the client, where the stub throws, and that is EF's parameterization rather than
         // anything about this function
-        Assert.True(await ProjectAsync(p => EF.Functions.GeogDistance(p.Location!, EF.Functions.GeogFromText("POINT(2.3522 48.8566)")!)) > 300_000d);
-        Assert.True(await ProjectAsync(p => EF.Functions.GeogDistance(p.Location!, EF.Functions.GeogFromText("POINT(2.3522 48.8566)", 4326)!)) > 300_000d);
+        Assert.True(await ProjectAsync(p => EF.Functions.ClrGeography().Distance(p.Location!, EF.Functions.ClrGeography().FromText("POINT(2.3522 48.8566)")!)) > 300_000d);
+        Assert.True(await ProjectAsync(p => EF.Functions.ClrGeography().Distance(p.Location!, EF.Functions.ClrGeography().FromText("POINT(2.3522 48.8566)", 4326)!)) > 300_000d);
     }
 
     [Fact]
@@ -236,7 +236,7 @@ public class GeographyFunctionTests
         // Nothing in the store refuses a mixture: both of these validate and run over the same two points,
         // and the difference is not a scale factor that a caller could undo. Which is the whole reason the
         // geography operators are a surface of their own rather than a mode over Distance.
-        var metres = await ProjectAsync(p => EF.Functions.GeogDistance(p.Location!, _paris));
+        var metres = await ProjectAsync(p => EF.Functions.ClrGeography().Distance(p.Location!, _paris));
         var degrees = await ProjectAsync(p => p.Location!.Distance(_paris));
 
         Assert.Equal(343_923d, metres, 0);
@@ -248,7 +248,7 @@ public class GeographyFunctionTests
     }
 
     [Fact]
-    public void Every_geography_function_has_a_test()
+    public void Every_geography_operator_has_a_test()
     {
         // the map is the checklist, as it is for the geometry operators: a function added to the surface
         // fails here until a test named for it runs it
