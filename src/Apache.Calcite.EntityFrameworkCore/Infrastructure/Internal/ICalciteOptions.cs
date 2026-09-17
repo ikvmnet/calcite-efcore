@@ -14,6 +14,12 @@ namespace Apache.Calcite.EntityFrameworkCore.Infrastructure.Internal
         /// </summary>
         string? ConnectionString { get; }
 
+        /// <summary>
+        /// Gets whether an <c>ORDER BY</c> leaves the placement of nulls to the store rather than writing out
+        /// the collation LINQ implies.
+        /// </summary>
+        bool UseStoreNullOrdering { get; }
+
     }
 
 }

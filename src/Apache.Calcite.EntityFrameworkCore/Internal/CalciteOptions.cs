@@ -17,6 +17,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Internal
         {
             var calciteJdbcOptions = options.FindExtension<CalciteOptionsExtension>() ?? new CalciteOptionsExtension();
             ConnectionString = calciteJdbcOptions.Connection?.ConnectionString ?? calciteJdbcOptions.ConnectionString!;
+            UseStoreNullOrdering = calciteJdbcOptions.UseStoreNullOrdering;
         }
 
         /// <inheritdoc />
@@ -27,6 +28,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Internal
 
         /// <inheritdoc />
         public virtual string? ConnectionString { get; private set; }
+
+        /// <inheritdoc />
+        public virtual bool UseStoreNullOrdering { get; private set; }
 
     }
 

@@ -22,6 +22,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Infrastructure.Internal
         DbContextOptionsExtensionInfo? _info;
         CalciteProviderFactory? _providerFactory;
         CalciteDataSource? _dataSource;
+        bool _useStoreNullOrdering;
 
         /// <summary>
         /// Initializes a new instance.
@@ -40,6 +41,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Infrastructure.Internal
         {
             _providerFactory = copyFrom._providerFactory;
             _dataSource = copyFrom._dataSource;
+            _useStoreNullOrdering = copyFrom._useStoreNullOrdering;
         }
 
         /// <inheritdoc />
@@ -47,6 +49,24 @@ namespace Apache.Calcite.EntityFrameworkCore.Infrastructure.Internal
 
         /// <inheritdoc />
         protected override RelationalOptionsExtension Clone() => new CalciteOptionsExtension(this);
+
+        /// <summary>
+        /// Gets whether an <c>ORDER BY</c> leaves the placement of nulls to the store rather than writing out
+        /// the collation LINQ implies.
+        /// </summary>
+        public virtual bool UseStoreNullOrdering => _useStoreNullOrdering;
+
+        /// <summary>
+        /// Sets whether an <c>ORDER BY</c> leaves the placement of nulls to the store.
+        /// </summary>
+        /// <param name="useStoreNullOrdering"></param>
+        /// <returns></returns>
+        public virtual CalciteOptionsExtension WithUseStoreNullOrdering(bool useStoreNullOrdering)
+        {
+            var clone = (CalciteOptionsExtension)Clone();
+            clone._useStoreNullOrdering = useStoreNullOrdering;
+            return clone;
+        }
 
         /// <summary>
         /// Gets the <see cref="CalciteProviderFactory"/> that will be used to initialize new connections.
@@ -118,6 +138,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Infrastructure.Internal
                         if (Extension._dataSource != null)
                             builder.Append("CalciteDataSource ");
 
+                        if (Extension._useStoreNullOrdering)
+                            builder.Append("UseStoreNullOrdering ");
+
                         _logFragment = builder.ToString();
                     }
 
@@ -132,7 +155,8 @@ namespace Apache.Calcite.EntityFrameworkCore.Infrastructure.Internal
                     base.GetServiceProviderHashCode(),
                     3313,
                     Extension._providerFactory,
-                    Extension._dataSource);
+                    Extension._dataSource,
+                    Extension._useStoreNullOrdering);
 
                 return _serviceProviderHash.Value;
             }
