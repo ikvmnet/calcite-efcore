@@ -8,7 +8,7 @@ using NetTopologySuite.Geometries;
 namespace Microsoft.EntityFrameworkCore;
 
 /// <summary>
-/// The geodesic reading of a geometry: Calcite's <c>ST_GEOG_*</c> operators, which read coordinates as WGS84
+/// The geodesic reading of a geometry: Calcite's <c>CLR_ST_GEOG_*</c> operators, which read coordinates as WGS84
 /// and answer in metres, reached through <c>EF.Functions.ClrGeography*</c>.
 /// </summary>
 /// <remarks>
@@ -18,7 +18,7 @@ namespace Microsoft.EntityFrameworkCore;
 /// name of the operator applied to it, and nothing else</em>.
 /// <para>
 /// Nothing refuses a mixture, at either layer. <c>ST_DISTANCE</c> over geodesic coordinates answers in
-/// degrees and <c>ST_GEOG_DISTANCE</c> over projected ones answers metres as though they were degrees; both
+/// degrees and <c>CLR_ST_GEOG_DISTANCE</c> over projected ones answers metres as though they were degrees; both
 /// validate and both run, and an expression can be half of each. So the choice is put where the store puts
 /// it — in the name at the call site. The difference is not a scale factor either: the ratio varies with
 /// latitude and with bearing, so no conversion of a result recovers it, and an ordering by one is not an
@@ -53,7 +53,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
     #region Constructors
 
     /// <summary>
-    /// Reads well-known text as a geography, translated to <c>ST_GEOG_GEOMFROMTEXT</c>.
+    /// Reads well-known text as a geography, translated to <c>CLR_ST_GEOG_GEOMFROMTEXT</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="text">The well-known text.</param>
@@ -62,7 +62,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyFromText)));
 
     /// <summary>
-    /// Reads well-known text as a geography with the given SRID, translated to <c>ST_GEOG_GEOMFROMTEXT</c>.
+    /// Reads well-known text as a geography with the given SRID, translated to <c>CLR_ST_GEOG_GEOMFROMTEXT</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="text">The well-known text.</param>
@@ -76,7 +76,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
     #region Measures
 
     /// <summary>
-    /// The geodesic distance between two geographies in metres, translated to <c>ST_GEOG_DISTANCE</c>.
+    /// The geodesic distance between two geographies in metres, translated to <c>CLR_ST_GEOG_DISTANCE</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -87,7 +87,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
 
     /// <summary>
     /// The greatest geodesic distance between two geographies in metres, translated to
-    /// <c>ST_GEOG_MAXDISTANCE</c>.
+    /// <c>CLR_ST_GEOG_MAXDISTANCE</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -97,7 +97,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyMaxDistance)));
 
     /// <summary>
-    /// The geodesic area of a geography in square metres, translated to <c>ST_GEOG_AREA</c>.
+    /// The geodesic area of a geography in square metres, translated to <c>CLR_ST_GEOG_AREA</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -106,7 +106,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyArea)));
 
     /// <summary>
-    /// The geodesic length of a geography in metres, translated to <c>ST_GEOG_LENGTH</c>.
+    /// The geodesic length of a geography in metres, translated to <c>CLR_ST_GEOG_LENGTH</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -115,7 +115,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyLength)));
 
     /// <summary>
-    /// The geodesic perimeter of a geography in metres, translated to <c>ST_GEOG_PERIMETER</c>.
+    /// The geodesic perimeter of a geography in metres, translated to <c>CLR_ST_GEOG_PERIMETER</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -129,7 +129,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
 
     /// <summary>
     /// Whether two geographies are within the given number of metres of each other, translated to
-    /// <c>ST_GEOG_DWITHIN</c>.
+    /// <c>CLR_ST_GEOG_DWITHIN</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -140,7 +140,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyWithinDistance)));
 
     /// <summary>
-    /// Whether two geographies intersect, translated to <c>ST_GEOG_INTERSECTS</c>.
+    /// Whether two geographies intersect, translated to <c>CLR_ST_GEOG_INTERSECTS</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -150,7 +150,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyIntersects)));
 
     /// <summary>
-    /// Whether two geographies are disjoint, translated to <c>ST_GEOG_DISJOINT</c>.
+    /// Whether two geographies are disjoint, translated to <c>CLR_ST_GEOG_DISJOINT</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -160,7 +160,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyDisjoint)));
 
     /// <summary>
-    /// Whether one geography contains another, translated to <c>ST_GEOG_CONTAINS</c>.
+    /// Whether one geography contains another, translated to <c>CLR_ST_GEOG_CONTAINS</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -170,7 +170,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyContains)));
 
     /// <summary>
-    /// Whether one geography lies within another, translated to <c>ST_GEOG_WITHIN</c>.
+    /// Whether one geography lies within another, translated to <c>CLR_ST_GEOG_WITHIN</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -180,7 +180,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyWithin)));
 
     /// <summary>
-    /// Whether one geography covers another, translated to <c>ST_GEOG_COVERS</c>.
+    /// Whether one geography covers another, translated to <c>CLR_ST_GEOG_COVERS</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -190,7 +190,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyCovers)));
 
     /// <summary>
-    /// Whether one geography is covered by another, translated to <c>ST_GEOG_COVEREDBY</c>.
+    /// Whether one geography is covered by another, translated to <c>CLR_ST_GEOG_COVEREDBY</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -200,7 +200,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyCoveredBy)));
 
     /// <summary>
-    /// Whether two geographies are topologically equal, translated to <c>ST_GEOG_EQUALS</c>.
+    /// Whether two geographies are topologically equal, translated to <c>CLR_ST_GEOG_EQUALS</c>.
     /// </summary>
     /// <remarks>
     /// Not named <c>Equals</c>, which every receiver already has and which takes one argument: a reader
@@ -214,7 +214,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyEqualsTopologically)));
 
     /// <summary>
-    /// Whether a geography is valid, translated to <c>ST_GEOG_ISVALID</c>.
+    /// Whether a geography is valid, translated to <c>CLR_ST_GEOG_ISVALID</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -223,7 +223,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyIsValid)));
 
     /// <summary>
-    /// Whether a geography is empty, translated to <c>ST_GEOG_ISEMPTY</c>.
+    /// Whether a geography is empty, translated to <c>CLR_ST_GEOG_ISEMPTY</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -236,7 +236,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
     #region Shapes
 
     /// <summary>
-    /// The geography buffered by the given number of metres, translated to <c>ST_GEOG_BUFFER</c>.
+    /// The geography buffered by the given number of metres, translated to <c>CLR_ST_GEOG_BUFFER</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -246,7 +246,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyBuffer)));
 
     /// <summary>
-    /// The geodesic centroid of a geography, translated to <c>ST_GEOG_CENTROID</c>.
+    /// The geodesic centroid of a geography, translated to <c>CLR_ST_GEOG_CENTROID</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -255,7 +255,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyCentroid)));
 
     /// <summary>
-    /// The envelope of a geography, translated to <c>ST_GEOG_ENVELOPE</c>.
+    /// The envelope of a geography, translated to <c>CLR_ST_GEOG_ENVELOPE</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -264,7 +264,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyEnvelope)));
 
     /// <summary>
-    /// The boundary of a geography, translated to <c>ST_GEOG_BOUNDARY</c>.
+    /// The boundary of a geography, translated to <c>CLR_ST_GEOG_BOUNDARY</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -273,7 +273,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyBoundary)));
 
     /// <summary>
-    /// The convex hull of a geography, translated to <c>ST_GEOG_CONVEXHULL</c>.
+    /// The convex hull of a geography, translated to <c>CLR_ST_GEOG_CONVEXHULL</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -282,7 +282,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyConvexHull)));
 
     /// <summary>
-    /// The intersection of two geographies, translated to <c>ST_GEOG_INTERSECTION</c>.
+    /// The intersection of two geographies, translated to <c>CLR_ST_GEOG_INTERSECTION</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -292,7 +292,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyIntersection)));
 
     /// <summary>
-    /// The difference of two geographies, translated to <c>ST_GEOG_DIFFERENCE</c>.
+    /// The difference of two geographies, translated to <c>CLR_ST_GEOG_DIFFERENCE</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -302,7 +302,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyDifference)));
 
     /// <summary>
-    /// The symmetric difference of two geographies, translated to <c>ST_GEOG_SYMDIFFERENCE</c>.
+    /// The symmetric difference of two geographies, translated to <c>CLR_ST_GEOG_SYMDIFFERENCE</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -312,7 +312,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographySymmetricDifference)));
 
     /// <summary>
-    /// The point on one geography closest to another, translated to <c>ST_GEOG_CLOSESTPOINT</c>.
+    /// The point on one geography closest to another, translated to <c>CLR_ST_GEOG_CLOSESTPOINT</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -326,7 +326,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
     #region Accessors
 
     /// <summary>
-    /// The longitude of a geography point, translated to <c>ST_GEOG_X</c>.
+    /// The longitude of a geography point, translated to <c>CLR_ST_GEOG_X</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -335,7 +335,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyX)));
 
     /// <summary>
-    /// The latitude of a geography point, translated to <c>ST_GEOG_Y</c>.
+    /// The latitude of a geography point, translated to <c>CLR_ST_GEOG_Y</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -344,7 +344,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyY)));
 
     /// <summary>
-    /// The well-known text of a geography, translated to <c>ST_GEOG_ASTEXT</c>.
+    /// The well-known text of a geography, translated to <c>CLR_ST_GEOG_ASTEXT</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
@@ -353,7 +353,7 @@ public static class CalciteClrGeographyDbFunctionsExtensions
         => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyAsText)));
 
     /// <summary>
-    /// The well-known binary of a geography, translated to <c>ST_GEOG_ASBINARY</c>.
+    /// The well-known binary of a geography, translated to <c>CLR_ST_GEOG_ASBINARY</c>.
     /// </summary>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>

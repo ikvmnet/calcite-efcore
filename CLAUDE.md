@@ -102,12 +102,14 @@ Sibling checkouts this project depends on:
   its methods follow exactly this (`FreeText`, `PatIndex`, `DateFromParts`, and
   `StandardDeviationPopulation` for `STDEVP`), and full-text is `Contains`/`FreeText` rather than
   `FullTextContains`.
-  **Unless the function is ours rather than the store's**, which takes a `Clr` prefix naming the
-  set: `ClrGeographyDistance`, because `ST_GEOG_*` is not something Calcite ships —
-  `Apache.Calcite.Geography` registers those on a schema, and without it the query fails in Calcite
-  with Calcite's own message. Mirroring there would promise an upstream name that does not exist,
-  where the prefix says the opposite: a CLR-side extension point, replaceable a name at a time if
-  Calcite ever grows geodesic operators of its own.
+  The `Clr` prefix is that rule rather than an exception to it: **every function calcite-dotnet adds
+  to Calcite carries a `CLR_`**, so `ClrGeographyDistance` mirrors `CLR_ST_GEOG_DISTANCE` the same
+  way `RegexpLike` mirrors `REGEXP_LIKE`. The store prefixes for a structural reason worth knowing —
+  a connection chains the table its `fun` names *ahead of* the catalog reader and overload
+  resolution takes the first candidate whose arity fits, so a name Calcite also used would answer
+  instead, silently, and only for hosts that set `fun`. So the prefix on our side is not a label we
+  chose; it is what the function is called, and it says which half of the surface needs a library
+  the connection may not have loaded.
 - **A NetTopologySuite member is not ours to name.** The geometry translators bind
   `typeof(Geometry).GetRuntimeMethod(...)`, so a spatial query is ordinary NTS code —
   `p.Location.Distance(x)`, never a `SpatialDistance` of our invention, which would shadow NTS and
@@ -134,7 +136,10 @@ Sibling checkouts this project depends on:
   `$(MavenAdditionalRepositories)`.
 - `FunctionalTests` is the EF Core relational **specification suite** (~27,000 tests, ~55 minutes).
   It runs **green with skips**: 25,780 pass / 0 fail / 1,495 skipped as of 2026-09-17 on Calcite
-  1.43.0-SNAPSHOT + Apache.Calcite.Data 2.0.1-pre.167.
+  1.43.0-SNAPSHOT + Apache.Calcite.Data 2.0.1-pre.167. **That baseline has not been re-measured on
+  pre.188**, which the projects now pin: the bump was taken for `CLR_ST_GEOG_*` and carried 21
+  versions of everything else with it, IKVM 8.16.1 among them. The two fast gates are green on it;
+  the suite is a ~55-minute run that has not happened.
   Known-failing tests carry generated `Skip` overrides in `*.Skips.cs` files produced by
   `tools/GenerateSkips` from a trx run — **a red FunctionalTests run is now a regression signal**,
   alongside the gates `Adapter.Tests` (170) and `EntityFrameworkCore.Tests` (75). To un-skip after fixing

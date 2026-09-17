@@ -343,7 +343,7 @@ Apache.Calcite.Data.
 ## Geography: what is not exposed yet
 
 `EF.Functions.ClrGeography*` in the NetTopologySuite package translates 29 of
-`Apache.Calcite.Geography`'s 113 `ST_GEOG_*` operators, and `GeographyFunctionTests` runs every
+`Apache.Calcite.Geography`'s 113 `CLR_ST_GEOG_*` operators, and `GeographyFunctionTests` runs every
 one. What is left is the rest of that set — the constructors beyond well-known text, the affine
 and simplification operators, the grid and Delaunay builders — added the same way, a stub and a
 name.
@@ -351,7 +351,7 @@ name.
 Two things deliberately absent rather than pending:
 
 - **Anything geography has no operator for.** Eight of the operations the geometry translators map
-  have no `ST_GEOG_` counterpart — `PointOnSurface`, `IsRectangle`, `Crosses`, `Overlaps`,
+  have no `CLR_ST_GEOG_` counterpart — `PointOnSurface`, `IsRectangle`, `Crosses`, `Overlaps`,
   `Relate`, `Touches`, and the two aggregates — four of them DE-9IM predicates. The geography
   package's own README says its set is a first increment of a library of about 130 names, so these
   may arrive; until they do, a geodesic query cannot ask them, and must not be given the planar
@@ -360,7 +360,7 @@ Two things deliberately absent rather than pending:
   Calcite has no `GEOGRAPHY` type — `SqlTypeName` is closed, so `GeographyTypes` impersonates
   `GEOMETRY` — and *what says a value is to be read geodesically is the name of the operator
   applied to it, and nothing else*. Nothing refuses a mixture at any layer: measured 2026-09-17,
-  London to Paris answers 343,923 from `ST_GEOG_DISTANCE` and 3.63 from `ST_DISTANCE`, both
+  London to Paris answers 343,923 from `CLR_ST_GEOG_DISTANCE` and 3.63 from `ST_DISTANCE`, both
   validating and both running, and the ratio is a function of latitude and bearing rather than a
   constant. So the choice is put where the store puts it, in the name at the call site.
 
