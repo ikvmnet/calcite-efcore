@@ -52,6 +52,7 @@ anything, and before assuming anything landed.
 | `Apache.Calcite.EntityFrameworkCore.Adapter` | the `EfCoreConvention`: rel nodes (`Rel/Core`), converter rules (`Rel/Rules/Convert`), Rex→LINQ translation (`Rex/`) |
 | `Apache.Calcite.EntityFrameworkCore` | the EF Core provider surface |
 | `Apache.Calcite.EntityFrameworkCore.Core` | shared type mapping |
+| `Apache.Calcite.EntityFrameworkCore.NetTopologySuite` | spatial: the NetTopologySuite type mapping and the geometry and geography translators, opted into with `UseNetTopologySuite()`. Separate because NetTopologySuite is a real dependency and a model with no geometry in it should not acquire one |
 | `Apache.Calcite.EntityFrameworkCore.Adapter.Tests` | xunit; `EfCoreAdapterComplexTests` is the end-to-end suite (SQL → Calcite → EF Core → SQLite) |
 | `Apache.Calcite.EntityFrameworkCore.TestUtilities` | **test-only** provider strategies shared by both test projects: entity-sequence HiLo, the MAX-seeded key generator, `CalciteTestValueGeneratorSelector`/`CalciteTestDatabaseCreator`/`CalciteTestConventionSetPlugin` |
 | `Apache.Calcite.EntityFrameworkCore.Tests` | our own one-off provider tests |
