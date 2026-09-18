@@ -43,20 +43,20 @@ public class CalciteGeographyMethodTranslator : IMethodCallTranslator
         {
             var function = method.Name switch
             {
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyFromText) => "CLR_ST_GEOG_GEOMFROMTEXT",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyGeomFromText) => "CLR_ST_GEOG_GEOMFROMTEXT",
                 nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyDistance) => "CLR_ST_GEOG_DISTANCE",
                 nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyMaxDistance) => "CLR_ST_GEOG_MAXDISTANCE",
                 nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyArea) => "CLR_ST_GEOG_AREA",
                 nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyLength) => "CLR_ST_GEOG_LENGTH",
                 nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyPerimeter) => "CLR_ST_GEOG_PERIMETER",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyWithinDistance) => "CLR_ST_GEOG_DWITHIN",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyDistanceWithin) => "CLR_ST_GEOG_DWITHIN",
                 nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyIntersects) => "CLR_ST_GEOG_INTERSECTS",
                 nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyDisjoint) => "CLR_ST_GEOG_DISJOINT",
                 nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyContains) => "CLR_ST_GEOG_CONTAINS",
                 nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyWithin) => "CLR_ST_GEOG_WITHIN",
                 nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyCovers) => "CLR_ST_GEOG_COVERS",
                 nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyCoveredBy) => "CLR_ST_GEOG_COVEREDBY",
-                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyEqualsTopologically) => "CLR_ST_GEOG_EQUALS",
+                nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyEquals) => "CLR_ST_GEOG_EQUALS",
                 nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyIsValid) => "CLR_ST_GEOG_ISVALID",
                 nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyIsEmpty) => "CLR_ST_GEOG_ISEMPTY",
                 nameof(CalciteClrGeographyDbFunctionsExtensions.ClrGeographyBuffer) => "CLR_ST_GEOG_BUFFER",
