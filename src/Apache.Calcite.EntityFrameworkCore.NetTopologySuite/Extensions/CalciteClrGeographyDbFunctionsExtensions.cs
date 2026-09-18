@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
@@ -58,8 +58,8 @@ public static class CalciteClrGeographyDbFunctionsExtensions
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="text">The well-known text.</param>
     /// <returns></returns>
-    public static Geometry? ClrGeographyFromText(this DbFunctions _, string text)
-        => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyFromText)));
+    public static Geometry? ClrGeographyGeomFromText(this DbFunctions _, string text)
+        => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyGeomFromText)));
 
     /// <summary>
     /// Reads well-known text as a geography with the given SRID, translated to <c>CLR_ST_GEOG_GEOMFROMTEXT</c>.
@@ -68,8 +68,8 @@ public static class CalciteClrGeographyDbFunctionsExtensions
     /// <param name="text">The well-known text.</param>
     /// <param name="srid">The spatial reference identifier.</param>
     /// <returns></returns>
-    public static Geometry? ClrGeographyFromText(this DbFunctions _, string text, int srid)
-        => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyFromText)));
+    public static Geometry? ClrGeographyGeomFromText(this DbFunctions _, string text, int srid)
+        => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyGeomFromText)));
 
     #endregion
 
@@ -136,8 +136,8 @@ public static class CalciteClrGeographyDbFunctionsExtensions
     /// <param name="other">The geography to measure to.</param>
     /// <param name="distance">The distance in metres.</param>
     /// <returns></returns>
-    public static bool ClrGeographyWithinDistance(this DbFunctions _, Geometry geography, Geometry other, double distance)
-        => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyWithinDistance)));
+    public static bool ClrGeographyDistanceWithin(this DbFunctions _, Geometry geography, Geometry other, double distance)
+        => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyDistanceWithin)));
 
     /// <summary>
     /// Whether two geographies intersect, translated to <c>CLR_ST_GEOG_INTERSECTS</c>.
@@ -203,15 +203,16 @@ public static class CalciteClrGeographyDbFunctionsExtensions
     /// Whether two geographies are topologically equal, translated to <c>CLR_ST_GEOG_EQUALS</c>.
     /// </summary>
     /// <remarks>
-    /// Not named <c>Equals</c>, which every receiver already has and which takes one argument: a reader
-    /// should not have to work out which of the two a two-argument <c>Equals</c> is.
+    /// The <c>ClrGeography</c> prefix is what keeps this apart from the one-argument <c>Equals</c> every
+    /// receiver already has, so the name can mirror <c>CLR_ST_GEOG_EQUALS</c> without a reader having to
+    /// work out which of the two is meant.
     /// </remarks>
     /// <param name="_">The <see cref="DbFunctions" /> instance.</param>
     /// <param name="geography">The geography.</param>
     /// <param name="other">The other geography.</param>
     /// <returns></returns>
-    public static bool ClrGeographyEqualsTopologically(this DbFunctions _, Geometry geography, Geometry other)
-        => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyEqualsTopologically)));
+    public static bool ClrGeographyEquals(this DbFunctions _, Geometry geography, Geometry other)
+        => throw new InvalidOperationException(CoreStrings.FunctionOnClient(nameof(ClrGeographyEquals)));
 
     /// <summary>
     /// Whether a geography is valid, translated to <c>CLR_ST_GEOG_ISVALID</c>.

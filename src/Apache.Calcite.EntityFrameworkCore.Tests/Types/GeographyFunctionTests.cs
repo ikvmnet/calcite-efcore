@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -138,10 +138,10 @@ public class GeographyFunctionTests
     public async Task Perimeter() => Assert.True(await ProjectAsync(p => EF.Functions.ClrGeographyPerimeter(p.Region!)) > 100_000d);
 
     [Fact]
-    public async Task WithinDistance()
+    public async Task DistanceWithin()
     {
-        Assert.True(await ProjectAsync(p => EF.Functions.ClrGeographyWithinDistance(p.Location!, _paris, 400_000d)));
-        Assert.False(await ProjectAsync(p => EF.Functions.ClrGeographyWithinDistance(p.Location!, _paris, 300_000d)));
+        Assert.True(await ProjectAsync(p => EF.Functions.ClrGeographyDistanceWithin(p.Location!, _paris, 400_000d)));
+        Assert.False(await ProjectAsync(p => EF.Functions.ClrGeographyDistanceWithin(p.Location!, _paris, 300_000d)));
     }
 
     [Fact]
@@ -163,7 +163,7 @@ public class GeographyFunctionTests
     public async Task CoveredBy() => Assert.False(await ProjectAsync(p => EF.Functions.ClrGeographyCoveredBy(p.Location!, _paris)));
 
     [Fact]
-    public async Task EqualsTopologically() => Assert.True(await ProjectAsync(p => EF.Functions.ClrGeographyEqualsTopologically(p.Location!, _london)));
+    public async Task EqualsTopologically() => Assert.True(await ProjectAsync(p => EF.Functions.ClrGeographyEquals(p.Location!, _london)));
 
     [Fact]
     public async Task IsValid() => Assert.True(await ProjectAsync(p => EF.Functions.ClrGeographyIsValid(p.Region!)));
@@ -221,13 +221,13 @@ public class GeographyFunctionTests
     public async Task AsBinary() => Assert.NotEmpty(await ProjectAsync(p => EF.Functions.ClrGeographyAsBinary(p.Location!))!);
 
     [Fact]
-    public async Task FromText()
+    public async Task GeomFromText()
     {
         // reached through an expression carrying a column: a call whose arguments are all constants is one
         // EF evaluates on the client, where the stub throws, and that is EF's parameterization rather than
         // anything about this function
-        Assert.True(await ProjectAsync(p => EF.Functions.ClrGeographyDistance(p.Location!, EF.Functions.ClrGeographyFromText("POINT(2.3522 48.8566)")!)) > 300_000d);
-        Assert.True(await ProjectAsync(p => EF.Functions.ClrGeographyDistance(p.Location!, EF.Functions.ClrGeographyFromText("POINT(2.3522 48.8566)", 4326)!)) > 300_000d);
+        Assert.True(await ProjectAsync(p => EF.Functions.ClrGeographyDistance(p.Location!, EF.Functions.ClrGeographyGeomFromText("POINT(2.3522 48.8566)")!)) > 300_000d);
+        Assert.True(await ProjectAsync(p => EF.Functions.ClrGeographyDistance(p.Location!, EF.Functions.ClrGeographyGeomFromText("POINT(2.3522 48.8566)", 4326)!)) > 300_000d);
     }
 
     [Fact]
@@ -256,6 +256,11 @@ public class GeographyFunctionTests
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
             .Select(m => m.Name)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // xUnit1024 refuses a test method named Equals, which object already declares, so the one for
+        // ClrGeographyEquals is named for what it asserts and counted here under the surface's name
+        if (tests.Contains("EqualsTopologically"))
+            tests.Add("Equals");
 
         var map = (System.Collections.IDictionary)typeof(CalciteGeographyMethodTranslator)
             .GetField("_functions", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
