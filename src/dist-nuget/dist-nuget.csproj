@@ -16,6 +16,9 @@
         <PackageProjectReference Include="..\Apache.Calcite.EntityFrameworkCore.Adapter\Apache.Calcite.EntityFrameworkCore.Adapter.csproj">
             <PackageTargetPath>.</PackageTargetPath>
         </PackageProjectReference>
+        <PackageProjectReference Include="..\Apache.Calcite.EntityFrameworkCore.NetTopologySuite\Apache.Calcite.EntityFrameworkCore.NetTopologySuite.csproj">
+            <PackageTargetPath>.</PackageTargetPath>
+        </PackageProjectReference>
     </ItemGroup>
 
 </Project>
