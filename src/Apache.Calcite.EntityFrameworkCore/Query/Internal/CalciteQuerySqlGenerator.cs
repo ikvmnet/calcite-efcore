@@ -585,16 +585,24 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         };
 
         /// <summary>
-        /// Emits <c>CAST(COUNT(…) AS INTEGER)</c>.
-        /// Calcite always returns <c>BIGINT</c> for <c>COUNT</c>, but EF Core's <c>Count()</c> operator shapes the
-        /// result as <see cref="int"/>. Without the cast the JDBC reader returns a <c>long</c> and the shaper throws
-        /// an <see cref="System.InvalidCastException"/>.
+        /// Emits <c>COUNT(…)</c>, wrapped in a <c>CAST</c> to the shaped type where that is narrower.
+        /// Calcite always returns <c>BIGINT</c> for <c>COUNT</c>, so <c>LongCount()</c> needs no cast at all,
+        /// while EF Core's <c>Count()</c> shapes the result as <see cref="int"/> and does: without it the JDBC
+        /// reader returns a <c>long</c> and the shaper throws an <see cref="System.InvalidCastException"/>.
+        /// Casting a long-typed count to <c>INTEGER</c> makes the same mismatch happen the other way round.
         /// </summary>
         protected virtual Expression VisitCountFunction(SqlFunctionExpression sqlFunctionExpression)
         {
+            var clrType = Nullable.GetUnderlyingType(sqlFunctionExpression.Type) ?? sqlFunctionExpression.Type;
+            if (clrType == typeof(long) || clrType == typeof(ulong))
+            {
+                base.VisitSqlFunction(sqlFunctionExpression);
+                return sqlFunctionExpression;
+            }
+
             Sql.Append("CAST(");
             base.VisitSqlFunction(sqlFunctionExpression);
-            Sql.Append(" AS INTEGER)");
+            Sql.Append(" AS ").Append(sqlFunctionExpression.TypeMapping?.StoreType ?? "INTEGER").Append(")");
             return sqlFunctionExpression;
         }
 
