@@ -90,15 +90,16 @@ Calcite in-process is always case- and accent-sensitive. `=`, `LIKE` and the ord
 case-insensitive column therefore match more rows through the adapter than the same SQL would matching in Calcite.
 That is the trade pushdown is: the store is being asked the question, in the store's own terms.
 
-There is exactly one way out: `EfCoreToClrEnumerableConverter` into `ClrEnumerableConvention`. A node of that
-convention has two bodies — `Implement`, which is pulled, and `ImplementAsync`, which awaits — and the caller of the
-root member picks the hierarchy the whole plan is read in. The converter writes both, because EF Core executes a
-query either way: enumerating the `IQueryable` is what `ToList` does, and the same query through
-`IAsyncQueryProvider` is what is behind `ToListAsync`. So `EfCoreEnumerable` holds a pulled pair and an awaiting
-pair, each body names its own, and a plan read synchronously is not an asynchronous one blocked a row at a time.
-Everything above the execution call — translating the subtree, resolving the columns, settling the row format — is
-shared. From there the bridge converters in `Apache.Calcite.Extensions` carry the rows onward to whatever
-convention the rest of the plan needs.
+There is exactly one way out: `EfCoreToClrCursorConverter` into `ClrCursorConvention`. A node of that convention
+has two bodies — `Implement`, whose open acquires synchronously, and `ImplementAsync`, whose open awaits — and both
+evaluate to an opened cursor with `Read` and `ReadAsync(token)`. The adapter holds only an `IQueryable`, and reads it
+one way: through its `IAsyncEnumerable`, the path behind `ToListAsync`. Over a provider with real asynchronous I/O
+that holds no thread, and over one without it costs nothing, so `EfCoreCursors` has a pair of opens per row shape
+but one cursor, whose `Read` waits for its `ReadAsync`. EF Core's enumerator takes a token only when it is created,
+so the awaiting open's token is the one it sees; each `ReadAsync` checks its own token before advancing, and a
+synchronous `Read` polls the statement's cancel flag. Everything above the open — translating the subtree,
+resolving the columns, settling the row format — is shared. From there the bridge converters in `Apache.Calcite.Extensions`
+carry the rows onward to whatever convention the rest of the plan needs.
 
 ## Extending the translation
 

@@ -1,6 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 using Apache.Calcite.Data;
 
@@ -112,6 +115,49 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Tests
             var rows = Execute($@"SELECT * FROM ""{AdapterFixture.SchemaName}"".""Product"" WHERE ""InStock"" = TRUE");
             Assert.All(rows, row => Assert.Equal(true, row["InStock"]));
             Assert.Equal(2, rows.Count);
+        }
+
+        [Fact]
+        public void Plan_LeavesTheAdapterIntoTheCursorConvention()
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = $@"EXPLAIN PLAN FOR SELECT * FROM ""{AdapterFixture.SchemaName}"".""Product"" WHERE ""Id"" = 1";
+            using var reader = cmd.ExecuteReader();
+
+            var plan = new StringBuilder();
+            while (reader.Read())
+                plan.AppendLine(reader.GetString(0));
+
+            _output.WriteLine(plan.ToString());
+            Assert.Contains("EfCoreToClrCursorConverter", plan.ToString());
+            Assert.DoesNotContain("ClrEnumerable", plan.ToString());
+        }
+
+        [Fact]
+        public async Task SelectAll_ReadAsync_ReturnsAllSeededProducts()
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = $@"SELECT ""Id"" FROM ""{AdapterFixture.SchemaName}"".""Product"" ORDER BY ""Id""";
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            var ids = new List<int>();
+            while (await reader.ReadAsync())
+                ids.Add(reader.GetInt32(0));
+
+            Assert.Equal([1, 2, 3], ids);
+        }
+
+        [Fact]
+        public async Task SelectAll_ReadAsync_CancelledToken_Throws()
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = $@"SELECT * FROM ""{AdapterFixture.SchemaName}"".""Product""";
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await reader.ReadAsync(cts.Token));
         }
 
     }

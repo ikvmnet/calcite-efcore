@@ -101,15 +101,17 @@ put a null in an `int[]` rather than quietly widening it.
 is not dead code — an enum element and the `ReadOnlyCollection` family still take it. See the ARRAY
 item in `TODO.md` before widening either.
 
-The adapter has exactly **one outgoing converter**: `EfCoreToClrEnumerableConverter`, into
-`ClrEnumerableConvention`. That convention has two bodies per node rather than a second convention:
-`Implement` is pulled, `ImplementAsync` awaits, and which one runs is decided by the root member the
-implementor is asked for. **Both are written out here, neither is the other read across**, because EF
-Core answers either way — enumerating the `IQueryable` is the path `ToList` takes and
-`IAsyncQueryProvider` is the one behind `ToListAsync` — so `EfCoreEnumerable` carries a pulled and an
-awaiting pair and each body names its own. Reaching any other convention (Enumerable, bindable
-fallback) is the job of the bridge converters in `Apache.Calcite.Extensions`; do not add EfCore→X
-converters for conventions the bridge lattice already reaches.
+The adapter has exactly **one outgoing converter**: `EfCoreToClrCursorConverter`, into
+`ClrCursorConvention`. A node there evaluates to an *opened* cursor, and has two bodies:
+`Implement` composes opens that acquire synchronously, `ImplementAsync` opens that await, and the root
+factory carries both. **Both read EF the one way, through the query's `IAsyncEnumerable`** (the
+`ToListAsync` path): the adapter holds only an `IQueryable`, and the awaiting enumerator is never worse
+than the pulled one, so `EfCoreCursors`' cursor has no pulled path and its `Read` blocks on `ReadAsync`.
+The awaiting open appends the implementor's `CancellationToken` parameter, never `default` — it is the
+only token EF's enumerator sees, since it takes one only when created; a per-read token is checked
+before `MoveNextAsync`, not passed on. Reaching any other convention (Enumerable, bindable fallback) is the job of
+the bridge converters in `Apache.Calcite.Extensions`; do not add EfCore→X converters for conventions the
+bridge lattice already reaches.
 
 `TODO.md` holds the outstanding work. Items are **removed entirely when resolved**, never marked
 done — if it is listed, it is open.
@@ -173,12 +175,12 @@ Sibling checkouts this project depends on:
 - `FunctionalTests` is the EF Core relational **specification suite** (~27,000 tests, ~55 minutes).
   It runs **green with skips**: 25,780 pass / 0 fail / 1,495 skipped as of 2026-09-17 on Calcite
   1.43.0-SNAPSHOT + Apache.Calcite.Data 2.0.1-pre.167. **That baseline has not been re-measured on
-  pre.188**, which the projects now pin: the bump was taken for `CLR_ST_GEOG_*` and carried 21
-  versions of everything else with it, IKVM 8.16.1 among them. The two fast gates are green on it;
-  the suite is a ~55-minute run that has not happened.
+  pre.230**, which the projects now pin: pre.188 was taken for `CLR_ST_GEOG_*` and carried IKVM 8.16.1
+  with it, and pre.230 for `ClrCursorConvention`, which the provider's own statements now root at as
+  well as the adapter's converter. The suite is a ~55-minute run that has not happened on either.
   Known-failing tests carry generated `Skip` overrides in `*.Skips.cs` files produced by
   `tools/GenerateSkips` from a trx run — **a red FunctionalTests run is now a regression signal**,
-  alongside the gates `Adapter.Tests` (170) and `EntityFrameworkCore.Tests` (75). To un-skip after fixing
+  alongside the gates `Adapter.Tests` (173) and `EntityFrameworkCore.Tests` (222). To un-skip after fixing
   behavior: delete the `*.Skips.cs` files, run the suite with a trx logger, and regenerate
   (`dotnet run --project tools/GenerateSkips -- <trx> <FunctionalTests.dll> <FunctionalTests source root>`).
 - **The suite's per-test isolation is ours, not Calcite's.** The spec fixtures isolate tests by
