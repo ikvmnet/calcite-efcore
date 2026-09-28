@@ -1,218 +1,59 @@
 # Apache.Calcite.EntityFrameworkCore
 
-An EF Core backend for Apache Calcite through IKVM: Calcite plans SQL, and the `EfCoreConvention`
-translates rel trees into LINQ `IQueryable` expressions executed by EF Core.
+An EF Core provider for Apache Calcite through IKVM. Calcite plans the SQL; the adapter turns rel trees
+into LINQ that EF Core executes. Its Calcite runtime comes from calcite-dotnet (`D:\calcite-dotnet`), and
+Calcite's own source is at `D:\calcite`.
 
-## Attribution
+This file is rules. Do not add status, measurements, history or incident notes to it; those belong in
+commit messages and pull requests.
 
-**Never mention Claude, AI tools, or AI assistance in git commits or PR bodies.** No
-`Co-Authored-By` trailer, no "generated with" line, no bot attribution — not in a commit message,
-not in a pull request body, not anywhere in the history. The user is responsible for the work; the
-commit message says what changed and why.
+## Commits and pull requests
 
-## Pull requests
+- Never mention Claude, AI tools or AI assistance in a commit, a pull request, or a comment: no
+  `Co-Authored-By` trailer, no "generated with" line.
+- Never push to `main`. Work lands through a branch and a pull request.
+- When a change needs another that is not merged yet, stack them with `gh stack`
+  (`gh extension install github/gh-stack`), and start the top pull request with
+  "Stacked on #N, which carries X".
+- Decide whether work landed by comparing content (`git diff --stat origin/main <branch>`), never by
+  `git log origin/main..<branch>`: squash merges make every commit look unmerged.
 
-Work lands through a branch and a pull request — never a push to `main`.
+## TODO.md
 
-**When one change needs another that is not merged yet, stack them with `gh stack`**
-(`gh extension install github/gh-stack`, an official extension) rather than by hand. Setting a
-second PR's base to the first branch is the mechanism either way, but a hand-built stack is only a
-base branch: nothing says the two belong together, and nothing keeps them in order.
+- It lists open work only. Remove an item when it is resolved; never mark it done.
 
-```sh
-gh stack init <bottom-branch> <top-branch>   # adopt branches that already exist, bottom to top
-gh stack link <bottom-pr> <top-pr>           # link PRs that already exist into a Stack on GitHub
-gh stack submit                              # branches with no PR yet: push, open, and link in one go
-gh stack view                                # what is stacked on what, with the PR for each layer
-```
+## Code
 
-GitHub then shows the layers as one **Stack**, each PR's diff is only its own layer, and merging the
-bottom retargets the ones above it. Keep the reason for the stack in the top PR's first line —
-*"Stacked on #N, which carries X"* — because the dependency is a fact about the work, not only about
-the branches.
-
-**A squash merge makes the commit graph lie, in both directions.** `git log origin/main..branch`
-lists every commit on a merged branch as unmerged, because none of the originals are reachable from
-`main` — so it can neither confirm nor deny that work landed. Ask about content instead:
-
-```sh
-git diff --stat origin/main branch          # empty means merged, whatever the log says
-git show origin/main:path/to/File.cs | grep -c SOMETHING
-```
-
-Measured 2026-09-17: #66 was squash-merged while a follow-up commit was still being pushed to its
-branch, so `main` took the earlier state and two commits were stranded with no open PR. The log said
-all seven commits were unmerged; the content said five were. Check content before re-landing
-anything, and before assuming anything landed.
-
-## Layout
-
-| project | job |
-|---|---|
-| `Apache.Calcite.EntityFrameworkCore.Adapter` | the `EfCoreConvention`: rel nodes (`Rel/Core`), converter rules (`Rel/Rules/Convert`), Rex→LINQ translation (`Rex/`) |
-| `Apache.Calcite.EntityFrameworkCore` | the EF Core provider surface |
-| `Apache.Calcite.EntityFrameworkCore.Core` | shared type mapping |
-| `Apache.Calcite.EntityFrameworkCore.NetTopologySuite` | spatial: the NetTopologySuite type mapping and the geometry and geography translators, opted into with `UseNetTopologySuite()`. Separate because NetTopologySuite is a real dependency and a model with no geometry in it should not acquire one |
-| `Apache.Calcite.EntityFrameworkCore.Adapter.Tests` | xunit; `EfCoreAdapterComplexTests` is the end-to-end suite (SQL → Calcite → EF Core → SQLite) |
-| `Apache.Calcite.EntityFrameworkCore.TestUtilities` | **test-only** provider strategies shared by both test projects: entity-sequence HiLo, the MAX-seeded key generator, `CalciteTestValueGeneratorSelector`/`CalciteTestDatabaseCreator`/`CalciteTestConventionSetPlugin` |
-| `Apache.Calcite.EntityFrameworkCore.Tests` | our own one-off provider tests |
-| `Apache.Calcite.EntityFrameworkCore.FunctionalTests` | the standard EF Core spec suite |
-| `Apache.Calcite.Sample` | a Northwind federation over three SQLite stores and a CSV directory, exposed as both JSON:API and GraphQL; the auto-mapping layers generate the queries, so it is the broadest provider exercise outside the spec suite. Has its own README and a request book. |
-
-Key generation splits by type. **Guid keys are provider surface**: `CalciteValueGeneratorSelector`
-gives `OnAdd` Guid properties a client-side `SequentialGuidValueGenerator`, the same default SQL
-Server uses (`GuidKeyGenerationTests` locks it). **Numeric strategies are test infrastructure,
-never provider surface**: the provider refuses plain numeric `OnAdd` keys by design (Calcite
-cannot generate or return keys), and the test projects wire HiLo/MAX-seeded strategies via DI
-overrides (`CalciteTestStoreFactory.AddProviderServices`, or `ReplaceService` for contexts built
-outside the factory). Do not move those into the provider.
-
-**A primitive collection is an `ARRAY`, not a JSON string.** Calcite has a native array type, so
-`CalciteTypeMappingSource.FindCollectionMapping` maps a `List<T>`/`T[]` property to
-`<element> ARRAY` — the postfix form Calcite's DDL parser accepts, since `ARRAY<VARCHAR>` is
-rejected — rather than composing the `CollectionToJsonStringConverter` over a `VARCHAR` that the
-relational base falls back to. This is a deliberate divergence from every other provider: the
-column holds what a reader hands back, what `UNNEST` takes, and what someone writing the SQL by
-hand would expect. Declaring a non-collection store type (`TypeName = "VARCHAR"`) still reaches the
-JSON fallback, which is the escape hatch. Query-side, `TranslatePrimitiveCollection` expands the
-column with `UNNEST(x) WITH ORDINALITY AS a(value, ord)`; the ordinality is always requested,
-because it is what makes indexing and the ordered operators well defined.
-
-**A `byte[]` is binary, not an array of bytes**, and stays `VARBINARY` even where the model declares
-it a primitive collection: it resolves by CLR type in `_clrTypeMappings` before the collection path
-is reached. Nothing else built out of bytes has that reading to keep, so a `List<byte>` is
-`TINYINT UNSIGNED ARRAY` and an `sbyte[]` is `TINYINT ARRAY`. `ArrayColumnTests` locks all three.
-
-**An `ARRAY` is read by naming its element type to the driver.** `CalciteArrayTypeMapping.GetDataReaderMethod`
-returns `CalciteDataReader.GetArray<T>`, which has no ADO.NET equivalent: naming the element there
-*selects the mapping that fills the array* rather than casting whatever the column's default reading
-produced, and that is the only way to reach a reading that is not the default — a `DateOnly` over a
-`DATE`, a `char` over a `CHAR(1)`. The driver answers with an array or with nothing, and nothing is
-a null column, so the mapping has no third case to take apart. What it does add is the container,
-since the model may want a list, a set, or a collection type the driver has no reason to know about,
-and any conversion **EF** rather than the driver defines, as for an enum element.
-
-`ReaderElementType` is what gets named, and it is nullable exactly where the model says an element
-may be absent: a `List<int>` and a `List<int?>` share an element mapping, and the driver refuses to
-put a null in an `int[]` rather than quietly widening it.
-
-**`ARRAY` is used only where a round trip is known to work**, which the two allowlists in
-`CalciteTypeMappingSource` decide. A property outside either keeps the JSON storage, so the fallback
-is not dead code — an enum element and the `ReadOnlyCollection` family still take it. See the ARRAY
-item in `TODO.md` before widening either.
-
-The adapter has exactly **one outgoing converter**: `EfCoreToClrEnumerableConverter`, into
-`ClrEnumerableConvention`. That convention has two bodies per node rather than a second convention:
-`Implement` is pulled, `ImplementAsync` awaits, and which one runs is decided by the root member the
-implementor is asked for. **Both are written out here, neither is the other read across**, because EF
-Core answers either way — enumerating the `IQueryable` is the path `ToList` takes and
-`IAsyncQueryProvider` is the one behind `ToListAsync` — so `EfCoreEnumerable` carries a pulled and an
-awaiting pair and each body names its own. Reaching any other convention (Enumerable, bindable
-fallback) is the job of the bridge converters in `Apache.Calcite.Extensions`; do not add EfCore→X
-converters for conventions the bridge lattice already reaches.
-
-`TODO.md` holds the outstanding work. Items are **removed entirely when resolved**, never marked
-done — if it is listed, it is open.
-
-Sibling checkouts this project depends on:
-
-- `D:\calcite-dotnet` — source of the `Apache.Calcite.Data` / `Apache.Calcite.Extensions` NuGet
-  packages (published to nuget.org, prerelease line `2.0.0-pre.*`).
-- `D:\calcite` — Apache Calcite itself, checked out at `1.43.0-SNAPSHOT`.
-
-## Conventions
-
-- **File-scoped namespaces** (`namespace Foo.Bar;`) in new code.
-- **`<inheritdoc />` on every member that overrides or implements another** — interface
-  implementations included.
-- **`<summary>` tags on their own lines**:
-  ```csharp
-  /// <summary>
-  /// Does the thing.
-  /// </summary>
-  ```
-  never `/// <summary>Does the thing.</summary>`.
-- **An `EF.Functions` name mirrors the store's function name**, PascalCased, expanded where the
-  store's name is cryptic — `RegexpLike` for `REGEXP_LIKE`, `ContainsSubstr` for `CONTAINS_SUBSTR`.
-  No family prefix: measured against `Microsoft.EntityFrameworkCore.SqlServer` 10.0.11, all 28 of
-  its methods follow exactly this (`FreeText`, `PatIndex`, `DateFromParts`, and
-  `StandardDeviationPopulation` for `STDEVP`), and full-text is `Contains`/`FreeText` rather than
-  `FullTextContains`.
-  The `Clr` prefix is that rule rather than an exception to it: **every function calcite-dotnet adds
-  to Calcite carries a `CLR_`**, so `ClrGeographyDistance` mirrors `CLR_ST_GEOG_DISTANCE` the same
-  way `RegexpLike` mirrors `REGEXP_LIKE`. The store prefixes for a structural reason worth knowing —
-  a connection chains the table its `fun` names *ahead of* the catalog reader and overload
-  resolution takes the first candidate whose arity fits, so a name Calcite also used would answer
-  instead, silently, and only for hosts that set `fun`. So the prefix on our side is not a label we
-  chose; it is what the function is called, and it says which half of the surface needs a library
-  the connection may not have loaded.
-- **A NetTopologySuite member is not ours to name.** The geometry translators bind
-  `typeof(Geometry).GetRuntimeMethod(...)`, so a spatial query is ordinary NTS code —
-  `p.Location.Distance(x)`, never a `SpatialDistance` of our invention, which would shadow NTS and
-  stop that code translating. `Microsoft.EntityFrameworkCore.Sqlite.NetTopologySuite` ships no
-  `EF.Functions` surface at all for the same reason.
+- File-scoped namespaces in new code.
+- `<inheritdoc />` on every member that overrides or implements another.
+- `<summary>` tags on their own lines, never `/// <summary>Text.</summary>`.
+- An `EF.Functions` method is named after the store function it reaches, PascalCased, with no family
+  prefix: `RegexpLike` for `REGEXP_LIKE`, `ClrGeographyDistance` for `CLR_ST_GEOG_DISTANCE`.
+- Never invent a name for a NetTopologySuite member. Spatial queries are written against NTS's own
+  methods, which the translators bind.
+- In the adapter, derive a translation context from the ambient one (`WithInputs`,
+  `WithReplacedInputs`); never construct an `EfCoreTranslationContext`, which loses the implementor and
+  the correlation scope.
+- Numeric key generation (HiLo, MAX-seeded) is test infrastructure. Keep it in `TestUtilities` and the
+  test projects' DI overrides; never move it into the provider.
+- Keep `CalciteTestRelationalConnection` in the FunctionalTests project, and keep the provider's
+  `CurrentTransaction` returning `null`.
+- Read the ARRAY item in `TODO.md` before widening either ARRAY allowlist in `CalciteTypeMappingSource`.
 
 ## Building and testing
 
-- Build the **solution**: `dotnet build Apache.Calcite.EntityFrameworkCore.slnx`. IKVM compiles the
-  Calcite jars on first build; expect minutes, not seconds.
-- Tests are plain xunit on VSTest: `dotnet test src\Apache.Calcite.EntityFrameworkCore.Adapter.Tests`
-  works and **`--filter` is honored** (unlike calcite-dotnet, which is on Microsoft.Testing.Platform).
-- Calcite comes in via `MavenReference` with versions inline in each project file, and every
-  project — shipping and test alike — is on **1.43.0-SNAPSHOT**. The test projects need
-  it for calcite-server DML (the `EnumerableTableModify` rewrite behind the mutable test stores);
-  the rest are on it because `Apache.Calcite.Data` is, and a closure merges to the higher version.
-  A declaration of 1.42 there would be advisory only: measured 2026-09-13, the shipping projects
-  declared 1.42.0 and every one of them still compiled against `calcite-core-1.43.0-SNAPSHOT.jar`,
-  which the `IkvmReferenceItemPrepare.cache` shows. They now say what they resolve.
-- **1.43 is where model-class filtering starts**, so it applies to shipped consumers rather than
-  only to tests: `ClassNameFilter` rejects every class a model JSON names unless
-  `calcite.model.classes.allowed` covers it, which is what the module initializers in the provider
-  and adapter are for. IKVM.Maven.Sdk resolves from the repositories in
-  `$(MavenAdditionalRepositories)`.
-- `FunctionalTests` is the EF Core relational **specification suite** (~27,000 tests, ~55 minutes).
-  It runs **green with skips**: 25,780 pass / 0 fail / 1,495 skipped as of 2026-09-17 on Calcite
-  1.43.0-SNAPSHOT + Apache.Calcite.Data 2.0.1-pre.167. **That baseline has not been re-measured on
-  pre.188**, which the projects now pin: the bump was taken for `CLR_ST_GEOG_*` and carried 21
-  versions of everything else with it, IKVM 8.16.1 among them. The two fast gates are green on it;
-  the suite is a ~55-minute run that has not happened.
-  Known-failing tests carry generated `Skip` overrides in `*.Skips.cs` files produced by
-  `tools/GenerateSkips` from a trx run — **a red FunctionalTests run is now a regression signal**,
-  alongside the gates `Adapter.Tests` (170) and `EntityFrameworkCore.Tests` (75). To un-skip after fixing
-  behavior: delete the `*.Skips.cs` files, run the suite with a trx logger, and regenerate
-  (`dotnet run --project tools/GenerateSkips -- <trx> <FunctionalTests.dll> <FunctionalTests source root>`).
-- **The suite's per-test isolation is ours, not Calcite's.** The spec fixtures isolate tests by
-  opening a transaction, running the test and never committing
-  (`TestHelpers.ExecuteWithStrategyInTransactionAsync`), and the provider's connection hands out an
-  inert transaction because Calcite has none. `CalciteTestRelationalConnection` in
-  `FunctionalTests/TestUtilities` closes that gap: it copies the rows of every `ModifiableTable`
-  reachable from the root schema when a transaction opens, and puts them back unless it commits.
-  Without it a test's writes survive into the next one and a class's row counts climb as it runs —
-  measured 2026-09-16, that alone accounted for 1,849 of 4,093 failures, and 467 of the skips.
-  Keep it in the test project: the provider must keep reporting what the store can actually do, and
-  `CurrentTransaction` must keep returning `null`, because EF stamps
-  `CurrentTransaction.GetDbTransaction()` onto every `DbCommand` and a Calcite command takes only a
-  Calcite transaction.
-- Parallel builds sometimes fail with an IOException on a `.deps.json` from IKVM.Core.MSBuild's
-  `GenerateDepsFileExtensions` racing itself. It is transient — rebuild, or build with `-m:1`.
-- **Cluster a functional run before fixing anything**: run with
-  `--logger "trx;LogFileName=run.trx" --results-directory TestResults\functional`, then
-  `tools\cluster-trx.ps1 -Path <trx>` tallies failures by error fingerprint (unwrapping the
-  opaque `CalciteException` to the inner Java exception, and parse errors to the offending
-  token) and by test class. Every large cluster so far has been one root cause.
-
-## Traps
-
-- **Calcite's "Unable to implement <rel>" hides the real exception.** `EnumerableRelImplementor.implementRoot`
-  wraps the cause as a *suppressed* exception on the `IllegalStateException`, which .NET's
-  `ToString` does not print. Catch the exception, walk to the `java.lang.Throwable`, and read
-  `getSuppressed()` — the one-line message there is usually the whole diagnosis.
-- **The `Hook.QUERY_PLAN` payload is a LINQ `Expression`, not an `IQueryable`.** Hook consumers
-  (test fixtures, samples) must not cast.
-- **A rel node's `implement` returns an `Expression` typed `IQueryable<T>`**, and downstream nodes
-  extract the element type from that static type. Build contexts by deriving from the ambient one
-  (`context.WithReplacedInputs(...)` / `WithInputs(...)`), never by constructing a fresh
-  `EfCoreTranslationContext` — a fresh one loses the implementor and correlation scope.
-- **A test for the bindable fallback needs a function the validator accepts.** A function missing
-  from the standard operator table (e.g. `REVERSE`) fails validation before planning and tests
-  nothing; use a standard function the translator lacks (e.g. `INITCAP`).
+- Build the solution, `dotnet build Apache.Calcite.EntityFrameworkCore.slnx`. If a parallel build fails
+  with an IOException on a `.deps.json`, build again or use `-m:1`.
+- Keep every project's Calcite `MavenReference` on the same version.
+- `Adapter.Tests`, `EntityFrameworkCore.Tests` and `FunctionalTests` must all be green; a failure in any
+  of them is a regression. `dotnet test <project> --filter ...` works.
+- Tests the provider cannot yet pass are skipped by the generated `*.Skips.cs` files in
+  FunctionalTests. To change them, delete the files, run the suite with a trx logger, and run
+  `dotnet run --project tools/GenerateSkips -- <trx> <FunctionalTests.dll> <FunctionalTests source root>`.
+- Before fixing FunctionalTests failures, group them with `tools\cluster-trx.ps1 -Path <trx>`.
+- If the FunctionalTests host crashes or hangs rather than failing, run it with
+  `--blame-crash --blame-hang-timeout 10m` to name the test.
+- When Calcite reports "Unable to implement <rel>", read `getSuppressed()` on the Java exception; the
+  cause is there and .NET's `ToString` does not print it.
+- A test of the bindable fallback needs a standard function the translator lacks, such as `INITCAP`. A
+  function outside the standard operator table fails validation and tests nothing.
