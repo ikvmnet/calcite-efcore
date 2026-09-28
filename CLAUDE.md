@@ -174,13 +174,19 @@ Sibling checkouts this project depends on:
   `$(MavenAdditionalRepositories)`.
 - `FunctionalTests` is the EF Core relational **specification suite** (~27,000 tests, ~55 minutes).
   It runs **green with skips**: 25,780 pass / 0 fail / 1,495 skipped as of 2026-09-17 on Calcite
-  1.43.0-SNAPSHOT + Apache.Calcite.Data 2.0.1-pre.167. **That baseline has not been re-measured on
-  pre.236**, which the projects now pin: pre.188 was taken for `CLR_ST_GEOG_*` and carried IKVM 8.16.1
-  with it, and pre.236 for `ClrCursorConvention`, which the provider's own statements now root at as
-  well as the adapter's converter. The suite is a ~55-minute run that has not happened on either.
+  1.43.0-SNAPSHOT + Apache.Calcite.Data 2.0.1-pre.167, and the same counts again on 2026-09-27 against
+  a local build of pre.236 carrying calcite-dotnet#177. The projects now pin **pre.254**, whose
+  `ClrCursorConvention` the provider's own statements root at as well as the adapter's converter.
+  **A suite that dies rather than fails is a finding too.** pre.230 through pre.250 compiled a
+  `UNION ALL` into an expression that doubled with every input, and EF Core's parameter bucketization
+  pads a `Contains` to exactly twenty parameters — Calcite's `IN` threshold, past which the list is a
+  semi-join against a twenty-way union. The test host passed 40 GB and CI reported it as a runner
+  shutdown or a host crash, never as a failing test; `--blame-crash --blame-hang-timeout 10m` named
+  `Parameter_collection_Contains_parameter_bucketization`, and `ContainsBucketizationTests` now catches
+  it in seconds. A healthy run peaks under 3 GB.
   Known-failing tests carry generated `Skip` overrides in `*.Skips.cs` files produced by
   `tools/GenerateSkips` from a trx run — **a red FunctionalTests run is now a regression signal**,
-  alongside the gates `Adapter.Tests` (173) and `EntityFrameworkCore.Tests` (222). To un-skip after fixing
+  alongside the gates `Adapter.Tests` (173) and `EntityFrameworkCore.Tests` (224). To un-skip after fixing
   behavior: delete the `*.Skips.cs` files, run the suite with a trx logger, and regenerate
   (`dotnet run --project tools/GenerateSkips -- <trx> <FunctionalTests.dll> <FunctionalTests source root>`).
 - **The suite's per-test isolation is ours, not Calcite's.** The spec fixtures isolate tests by

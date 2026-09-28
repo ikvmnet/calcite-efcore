@@ -1,7 +1,6 @@
 using System.Linq.Expressions;
 
 using Apache.Calcite.Extensions.Adapter.Cursor;
-using Apache.Calcite.Extensions.Adapter.Enumerable;
 
 using org.apache.calcite.plan;
 using org.apache.calcite.rel;
@@ -66,7 +65,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         }
 
         /// <inheritdoc />
-        public ClrCursorResult Implement(ClrCursorRelImplementor implementor, ClrEnumerablePrefer pref)
+        public ClrCursorResult Implement(ClrCursorRelImplementor implementor, ClrCursorPrefer pref)
         {
             var (physType, arguments) = Translate(implementor, pref);
             var method = Open(physType, OpenArrayMethod, OpenScalarMethod);
@@ -75,7 +74,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         }
 
         /// <inheritdoc />
-        public ClrCursorAsyncResult ImplementAsync(ClrCursorRelImplementor implementor, ClrEnumerablePrefer pref)
+        public ClrCursorAsyncResult ImplementAsync(ClrCursorRelImplementor implementor, ClrCursorPrefer pref)
         {
             var (physType, arguments) = Translate(implementor, pref);
             var method = Open(physType, OpenArrayAsyncMethod, OpenScalarAsyncMethod);
@@ -119,7 +118,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Adapter.Rel.Convert
         /// The half of this node that does not care which hierarchy is reading it. What a body adds is the
         /// open it calls and the result factory it answers with.
         /// </remarks>
-        (ClrPhysType PhysType, Expression[] Arguments) Translate(ClrCursorRelImplementor implementor, ClrEnumerablePrefer pref)
+        (ClrPhysType PhysType, Expression[] Arguments) Translate(ClrCursorRelImplementor implementor, ClrCursorPrefer pref)
         {
             var input = (EfCoreRel)getInput();
 
