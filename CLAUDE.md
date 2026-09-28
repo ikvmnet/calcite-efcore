@@ -174,7 +174,7 @@ Sibling checkouts this project depends on:
   `$(MavenAdditionalRepositories)`.
 - `FunctionalTests` is the EF Core relational **specification suite** (~27,000 tests, ~55 minutes).
   It runs **green with skips**: 25,780 pass / 0 fail / 1,495 skipped as of 2026-09-17 on Calcite
-  1.43.0-SNAPSHOT + Apache.Calcite.Data 2.0.1-pre.167; not yet re-measured on pre.254.
+  1.43.0-SNAPSHOT + Apache.Calcite.Data 2.0.1-pre.167.
   Known-failing tests carry generated `Skip` overrides in `*.Skips.cs` files produced by
   `tools/GenerateSkips` from a trx run — **a red FunctionalTests run is now a regression signal**,
   alongside the gates `Adapter.Tests` (173) and `EntityFrameworkCore.Tests` (224). To un-skip after fixing
