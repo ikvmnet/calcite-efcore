@@ -91,7 +91,7 @@ public class DateTimeParameterTests
 }
 
 /// <summary>
-/// An entity carrying a <see cref="DateTime"/>.
+/// An entity carrying a <see cref="DateTime"/> and a <see cref="TimeOnly"/>.
 /// </summary>
 public class StampEntity
 {
@@ -101,6 +101,8 @@ public class StampEntity
     public DateTime ChangeUtcTime { get; set; }
 
     public DateTime DeclaredUtcTime { get; set; }
+
+    public TimeOnly ChangeTime { get; set; }
 
 }
 
