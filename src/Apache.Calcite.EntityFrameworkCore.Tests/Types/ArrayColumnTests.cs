@@ -269,7 +269,7 @@ public class ArrayColumnTests
         var entityType = context.Model.FindEntityType(typeof(ArrayEntity))!;
 
         Assert.Equal("DATE ARRAY", entityType.FindProperty(nameof(ArrayEntity.Seasons))!.GetRelationalTypeMapping().StoreType);
-        Assert.Equal("TIME ARRAY", entityType.FindProperty(nameof(ArrayEntity.Openings))!.GetRelationalTypeMapping().StoreType);
+        Assert.Equal("TIME(3) ARRAY", entityType.FindProperty(nameof(ArrayEntity.Openings))!.GetRelationalTypeMapping().StoreType);
         Assert.Equal("CHAR(1) ARRAY", entityType.FindProperty(nameof(ArrayEntity.Grades))!.GetRelationalTypeMapping().StoreType);
     }
 

@@ -21,8 +21,15 @@ namespace Apache.Calcite.EntityFrameworkCore.Storage.Internal.Mapping
         /// <summary>
         /// Initializes a new instance.
         /// </summary>
+        /// <remarks>
+        /// The precision is stated because Calcite reads a bare <c>TIMESTAMP</c> as
+        /// <c>TIMESTAMP(0)</c>. A parameter is sent as <c>CAST(? AS storeType)</c>, so with no
+        /// precision it lost its fractional seconds before it was compared, while a literal of the
+        /// same value kept them. Three digits is what the literal format writes and the most
+        /// Calcite's default type system allows.
+        /// </remarks>
         public CalciteDateTimeTypeMapping() :
-            base("TIMESTAMP")
+            base("TIMESTAMP(3)")
         {
 
         }

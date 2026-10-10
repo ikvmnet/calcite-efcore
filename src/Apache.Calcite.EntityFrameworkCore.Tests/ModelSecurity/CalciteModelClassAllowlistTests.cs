@@ -21,6 +21,20 @@ public class CalciteModelClassAllowlistTests
 {
 
     /// <summary>
+    /// Runs the provider's module initializer before any test here swaps the property out.
+    /// </summary>
+    /// <remarks>
+    /// Other classes run in parallel with this one, and the first of them to touch a provider type runs the
+    /// initializer. If that lands while <see cref="WithAllowlist"/> holds a substitute value, the append goes
+    /// to the substitute and the restore discards it; the initializer never runs again, so the namespace is
+    /// gone for the rest of the process.
+    /// </remarks>
+    static CalciteModelClassAllowlistTests()
+    {
+        RuntimeHelpers.RunModuleConstructor(typeof(CalciteDbContextOptionsBuilderExtensions).Module.ModuleHandle);
+    }
+
+    /// <summary>
     /// Runs <paramref name="body"/> with the allowlist set to <paramref name="initial"/>, restoring
     /// whatever was there before.
     /// </summary>

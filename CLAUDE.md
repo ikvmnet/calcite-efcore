@@ -11,6 +11,9 @@ commit messages and pull requests.
 
 - Never mention Claude, AI tools or AI assistance in a commit, a pull request, or a comment: no
   `Co-Authored-By` trailer, no "generated with" line.
+- Never author or commit as Claude or an Anthropic address. An environment may preset `user.name` and
+  `user.email` to one; check `git config user.name` before the first commit and commit as the person you
+  work for.
 - Never push to `main`. Work lands through a branch and a pull request.
 - When a change needs another that is not merged yet, stack them with `gh stack`
   (`gh extension install github/gh-stack`), and start the top pull request with
