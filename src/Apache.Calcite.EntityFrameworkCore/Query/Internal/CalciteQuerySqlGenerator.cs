@@ -358,7 +358,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         /// Visits the WHERE predicate. Appends <c>IS TRUE</c> when the predicate is a bare boolean
         /// <see cref="ColumnExpression"/>, which Calcite requires for boolean column conditions.
         /// </summary>
-        public Expression VisitPredicate(Expression node)
+        public virtual Expression VisitPredicate(Expression node)
         {
             if (node is ColumnExpression col && col.Type == typeof(bool))
             {

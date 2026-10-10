@@ -100,12 +100,6 @@ partial class NorthwindMiscellaneousQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_distinct_long_count(bool async)
-    {
-        return base.Select_distinct_long_count(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Select_distinct_Select_with_client_bindings(bool async)
     {
         return base.Select_distinct_Select_with_client_bindings(async);
@@ -124,36 +118,6 @@ partial class NorthwindMiscellaneousQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_orderBy_skip_long_count(bool async)
-    {
-        return base.Select_orderBy_skip_long_count(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_orderBy_take_long_count(bool async)
-    {
-        return base.Select_orderBy_take_long_count(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_skip_long_count(bool async)
-    {
-        return base.Select_skip_long_count(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_take_long_count(bool async)
-    {
-        return base.Select_take_long_count(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task SelectMany_LongCount(bool async)
-    {
-        return base.SelectMany_LongCount(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Subquery_with_navigation_inside_inline_collection(bool async)
     {
         return base.Subquery_with_navigation_inside_inline_collection(async);
@@ -169,18 +133,6 @@ partial class NorthwindMiscellaneousQueryCalciteTest
     public override global::System.Threading.Tasks.Task Take_with_single_select_many(bool async)
     {
         return base.Take_with_single_select_many(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Using_static_string_Equals_with_StringComparison_throws_informative_error(bool async)
-    {
-        return base.Using_static_string_Equals_with_StringComparison_throws_informative_error(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Using_string_Equals_with_StringComparison_throws_informative_error(bool async)
-    {
-        return base.Using_string_Equals_with_StringComparison_throws_informative_error(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]

@@ -58,18 +58,6 @@ partial class NorthwindSelectQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Reverse_without_explicit_ordering(bool async)
-    {
-        return base.Reverse_without_explicit_ordering(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_bool_closure_with_order_by_property_with_cast_to_nullable(bool async)
-    {
-        return base.Select_bool_closure_with_order_by_property_with_cast_to_nullable(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Select_nested_collection(bool async)
     {
         return base.Select_nested_collection(async);

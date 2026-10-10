@@ -10,6 +10,24 @@ partial class NorthwindDbFunctionsQueryCalciteTest
 {
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task Collate_case_insensitive(bool async)
+    {
+        return base.Collate_case_insensitive(async);
+    }
+
+    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task Collate_case_sensitive(bool async)
+    {
+        return base.Collate_case_sensitive(async);
+    }
+
+    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task Collate_case_sensitive_constant(bool async)
+    {
+        return base.Collate_case_sensitive_constant(async);
+    }
+
+    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Like_literal(bool async)
     {
         return base.Like_literal(async);

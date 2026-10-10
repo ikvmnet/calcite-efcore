@@ -4,7 +4,7 @@
 #pragma warning disable xUnit1003 // a skipped theory reports without enumerating data
 #pragma warning disable xUnit1024 // a shadowed non-virtual test hides the base slot from discovery
 
-namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.GraphUpdates;
+namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
 partial class ProxyGraphUpdatesCalciteTest
 {

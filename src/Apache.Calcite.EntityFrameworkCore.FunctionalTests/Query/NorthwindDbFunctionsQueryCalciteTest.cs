@@ -21,6 +21,15 @@ namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query
             Fixture.TestSqlLoggerFactory.SetTestOutputHelper(testOutputHelper);
         }
 
+        /// <inheritdoc />
+        /// <remarks>
+        /// A Calcite collation is named <c>charset$locale$strength</c>; primary strength ignores case.
+        /// </remarks>
+        protected override string CaseInsensitiveCollation => "ISO-8859-1$en_US$primary";
+
+        /// <inheritdoc />
+        protected override string CaseSensitiveCollation => "ISO-8859-1$en_US$tertiary";
+
     }
 
 }

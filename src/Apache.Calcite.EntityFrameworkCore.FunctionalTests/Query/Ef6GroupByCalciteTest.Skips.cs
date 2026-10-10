@@ -10,12 +10,6 @@ partial class Ef6GroupByCalciteTest
 {
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task LongCount_Grouped_from_LINQ_101(bool async)
-    {
-        return base.LongCount_Grouped_from_LINQ_101(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Whats_new_2021_sample_7(bool async)
     {
         return base.Whats_new_2021_sample_7(async);

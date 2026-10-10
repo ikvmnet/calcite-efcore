@@ -5,9 +5,9 @@ using Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities;
 using Microsoft.EntityFrameworkCore.TestUtilities;
 using Microsoft.EntityFrameworkCore.Types;
 
-namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Types.Temporal;
+namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Types;
 
-public class DateTimeTypeCalciteTest(DateTimeTypeCalciteTest.DateTimeTypeFixture fixture)
+public partial class DateTimeTypeCalciteTest(DateTimeTypeCalciteTest.DateTimeTypeFixture fixture)
     : RelationalTypeTestBase<DateTime, DateTimeTypeCalciteTest.DateTimeTypeFixture>(fixture)
 {
 
@@ -27,7 +27,7 @@ public class DateTimeTypeCalciteTest(DateTimeTypeCalciteTest.DateTimeTypeFixture
 
 }
 
-public class DateTimeOffsetTypeCalciteTest(DateTimeOffsetTypeCalciteTest.DateTimeOffsetTypeFixture fixture)
+public partial class DateTimeOffsetTypeCalciteTest(DateTimeOffsetTypeCalciteTest.DateTimeOffsetTypeFixture fixture)
     : RelationalTypeTestBase<DateTimeOffset, DateTimeOffsetTypeCalciteTest.DateTimeOffsetTypeFixture>(fixture)
 {
 
@@ -47,7 +47,7 @@ public class DateTimeOffsetTypeCalciteTest(DateTimeOffsetTypeCalciteTest.DateTim
 
 }
 
-public class DateOnlyTypeCalciteTest(DateOnlyTypeCalciteTest.DateOnlyTypeFixture fixture)
+public partial class DateOnlyTypeCalciteTest(DateOnlyTypeCalciteTest.DateOnlyTypeFixture fixture)
     : RelationalTypeTestBase<DateOnly, DateOnlyTypeCalciteTest.DateOnlyTypeFixture>(fixture)
 {
 
@@ -67,7 +67,7 @@ public class DateOnlyTypeCalciteTest(DateOnlyTypeCalciteTest.DateOnlyTypeFixture
 
 }
 
-public class TimeOnlyTypeCalciteTest(TimeOnlyTypeCalciteTest.TimeOnlyTypeFixture fixture)
+public partial class TimeOnlyTypeCalciteTest(TimeOnlyTypeCalciteTest.TimeOnlyTypeFixture fixture)
     : RelationalTypeTestBase<TimeOnly, TimeOnlyTypeCalciteTest.TimeOnlyTypeFixture>(fixture)
 {
 
@@ -87,7 +87,7 @@ public class TimeOnlyTypeCalciteTest(TimeOnlyTypeCalciteTest.TimeOnlyTypeFixture
 
 }
 
-public class TimeSpanTypeCalciteTest(TimeSpanTypeCalciteTest.TimeSpanTypeFixture fixture)
+public partial class TimeSpanTypeCalciteTest(TimeSpanTypeCalciteTest.TimeSpanTypeFixture fixture)
     : RelationalTypeTestBase<TimeSpan, TimeSpanTypeCalciteTest.TimeSpanTypeFixture>(fixture)
 {
 

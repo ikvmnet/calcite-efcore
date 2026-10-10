@@ -6,9 +6,9 @@ using Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities;
 using Microsoft.EntityFrameworkCore.TestUtilities;
 using Microsoft.EntityFrameworkCore.Types;
 
-namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Types.Miscellaneous;
+namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Types;
 
-public class BoolTypeCalciteTest(BoolTypeCalciteTest.BoolTypeFixture fixture)
+public partial class BoolTypeCalciteTest(BoolTypeCalciteTest.BoolTypeFixture fixture)
     : RelationalTypeTestBase<bool, BoolTypeCalciteTest.BoolTypeFixture>(fixture)
 {
 
@@ -28,7 +28,7 @@ public class BoolTypeCalciteTest(BoolTypeCalciteTest.BoolTypeFixture fixture)
 
 }
 
-public class StringTypeCalciteTest(StringTypeCalciteTest.StringTypeFixture fixture)
+public partial class StringTypeCalciteTest(StringTypeCalciteTest.StringTypeFixture fixture)
     : RelationalTypeTestBase<string, StringTypeCalciteTest.StringTypeFixture>(fixture)
 {
 
@@ -48,7 +48,7 @@ public class StringTypeCalciteTest(StringTypeCalciteTest.StringTypeFixture fixtu
 
 }
 
-public class GuidTypeCalciteTest(GuidTypeCalciteTest.GuidTypeFixture fixture)
+public partial class GuidTypeCalciteTest(GuidTypeCalciteTest.GuidTypeFixture fixture)
     : RelationalTypeTestBase<Guid, GuidTypeCalciteTest.GuidTypeFixture>(fixture)
 {
 
@@ -68,7 +68,7 @@ public class GuidTypeCalciteTest(GuidTypeCalciteTest.GuidTypeFixture fixture)
 
 }
 
-public class ByteArrayTypeCalciteTest(ByteArrayTypeCalciteTest.ByteArrayTypeFixture fixture)
+public partial class ByteArrayTypeCalciteTest(ByteArrayTypeCalciteTest.ByteArrayTypeFixture fixture)
     : RelationalTypeTestBase<byte[], ByteArrayTypeCalciteTest.ByteArrayTypeFixture>(fixture)
 {
 

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 using Xunit.Abstractions;
 
-namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query.Inheritance;
+namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query;
 
 public partial class InheritanceQueryCalciteTest(TPHInheritanceQueryCalciteFixture fixture, ITestOutputHelper testOutputHelper) :
     TPHInheritanceQueryTestBase<TPHInheritanceQueryCalciteFixture>(fixture, testOutputHelper)

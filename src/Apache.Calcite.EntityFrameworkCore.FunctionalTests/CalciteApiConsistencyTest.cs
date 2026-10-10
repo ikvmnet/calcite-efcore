@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class CalciteApiConsistencyTest(CalciteApiConsistencyTest.CalciteApiConsistencyFixture fixture)
+public partial class CalciteApiConsistencyTest(CalciteApiConsistencyTest.CalciteApiConsistencyFixture fixture)
     : ApiConsistencyTestBase<CalciteApiConsistencyTest.CalciteApiConsistencyFixture>(fixture)
 {
 

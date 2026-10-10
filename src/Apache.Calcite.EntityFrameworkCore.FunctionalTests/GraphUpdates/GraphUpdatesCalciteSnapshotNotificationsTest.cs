@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.TestUtilities;
 
-namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.GraphUpdates;
+namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class GraphUpdatesCalciteSnapshotNotificationsTest(GraphUpdatesCalciteSnapshotNotificationsTest.CalciteFixture fixture)
+public partial class GraphUpdatesCalciteSnapshotNotificationsTest(GraphUpdatesCalciteSnapshotNotificationsTest.CalciteFixture fixture)
     : GraphUpdatesCalciteTestBase<GraphUpdatesCalciteSnapshotNotificationsTest.CalciteFixture>(fixture)
 {
 

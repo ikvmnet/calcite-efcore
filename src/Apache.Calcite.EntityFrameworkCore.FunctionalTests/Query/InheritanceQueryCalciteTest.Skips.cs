@@ -4,7 +4,7 @@
 #pragma warning disable xUnit1003 // a skipped theory reports without enumerating data
 #pragma warning disable xUnit1024 // a shadowed non-virtual test hides the base slot from discovery
 
-namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query.Inheritance;
+namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query;
 
 partial class InheritanceQueryCalciteTest
 {
@@ -21,6 +21,24 @@ partial class InheritanceQueryCalciteTest
         return base.Can_query_all_birds(async);
     }
 
+    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task Can_use_is_kiwi_in_projection(bool async)
+    {
+        return base.Can_use_is_kiwi_in_projection(async);
+    }
+
+    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task Can_use_is_kiwi_with_cast(bool async)
+    {
+        return base.Can_use_is_kiwi_with_cast(async);
+    }
+
+    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task Can_use_of_type_bird(bool async)
+    {
+        return base.Can_use_of_type_bird(async);
+    }
+
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override void Casting_to_base_type_joining_with_query_type_works()
     {
@@ -28,9 +46,27 @@ partial class InheritanceQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GetType_in_hierarchy_in_leaf_type_with_sibling(bool async)
+    public override global::System.Threading.Tasks.Task GetType_in_hierarchy_in_leaf_type_with_sibling2_not_equal(bool async)
     {
-        return base.GetType_in_hierarchy_in_leaf_type_with_sibling(async);
+        return base.GetType_in_hierarchy_in_leaf_type_with_sibling2_not_equal(async);
+    }
+
+    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task Is_operator_on_result_of_FirstOrDefault(bool async)
+    {
+        return base.Is_operator_on_result_of_FirstOrDefault(async);
+    }
+
+    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task Selecting_only_base_properties_on_base_type(bool async)
+    {
+        return base.Selecting_only_base_properties_on_base_type(async);
+    }
+
+    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
+    public override global::System.Threading.Tasks.Task Selecting_only_base_properties_on_derived_type(bool async)
+    {
+        return base.Selecting_only_base_properties_on_derived_type(async);
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]

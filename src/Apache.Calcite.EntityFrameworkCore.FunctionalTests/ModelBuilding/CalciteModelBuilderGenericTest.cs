@@ -5,10 +5,10 @@ using Microsoft.EntityFrameworkCore.ModelBuilding;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.ModelBuilding;
 
-public class CalciteModelBuilderGenericTest : CalciteModelBuilderTestBase
+public partial class CalciteModelBuilderGenericTest : CalciteModelBuilderTestBase
 {
 
-    public class CalciteGenericNonRelationship(CalciteModelBuilderFixture fixture) : CalciteNonRelationship(fixture)
+    public partial class CalciteGenericNonRelationship(CalciteModelBuilderFixture fixture) : CalciteNonRelationship(fixture)
     {
 
         /// <inheritdoc />
@@ -35,7 +35,7 @@ public class CalciteModelBuilderGenericTest : CalciteModelBuilderTestBase
 
     }
 
-    public class CalciteGenericInheritance(CalciteModelBuilderFixture fixture) : CalciteInheritance(fixture)
+    public partial class CalciteGenericInheritance(CalciteModelBuilderFixture fixture) : CalciteInheritance(fixture)
     {
 
         /// <inheritdoc />
@@ -44,7 +44,7 @@ public class CalciteModelBuilderGenericTest : CalciteModelBuilderTestBase
 
     }
 
-    public class CalciteGenericOneToMany(CalciteModelBuilderFixture fixture) : CalciteOneToMany(fixture)
+    public partial class CalciteGenericOneToMany(CalciteModelBuilderFixture fixture) : CalciteOneToMany(fixture)
     {
 
         /// <inheritdoc />
@@ -53,7 +53,7 @@ public class CalciteModelBuilderGenericTest : CalciteModelBuilderTestBase
 
     }
 
-    public class CalciteGenericManyToOne(CalciteModelBuilderFixture fixture) : CalciteManyToOne(fixture)
+    public partial class CalciteGenericManyToOne(CalciteModelBuilderFixture fixture) : CalciteManyToOne(fixture)
     {
 
         /// <inheritdoc />
@@ -62,7 +62,7 @@ public class CalciteModelBuilderGenericTest : CalciteModelBuilderTestBase
 
     }
 
-    public class CalciteGenericOneToOne(CalciteModelBuilderFixture fixture) : CalciteOneToOne(fixture)
+    public partial class CalciteGenericOneToOne(CalciteModelBuilderFixture fixture) : CalciteOneToOne(fixture)
     {
 
         /// <inheritdoc />
@@ -80,7 +80,7 @@ public class CalciteModelBuilderGenericTest : CalciteModelBuilderTestBase
 
     }
 
-    public class CalciteGenericOwnedTypes(CalciteModelBuilderFixture fixture) : CalciteOwnedTypes(fixture)
+    public partial class CalciteGenericOwnedTypes(CalciteModelBuilderFixture fixture) : CalciteOwnedTypes(fixture)
     {
 
         /// <inheritdoc />

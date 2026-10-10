@@ -5,9 +5,9 @@ using Apache.Calcite.EntityFrameworkCore.FunctionalTests.TestUtilities;
 using Microsoft.EntityFrameworkCore.TestUtilities;
 using Microsoft.EntityFrameworkCore.Types;
 
-namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Types.Numeric;
+namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Types;
 
-public class ByteTypeCalciteTest(ByteTypeCalciteTest.ByteTypeFixture fixture)
+public partial class ByteTypeCalciteTest(ByteTypeCalciteTest.ByteTypeFixture fixture)
     : RelationalTypeTestBase<byte, ByteTypeCalciteTest.ByteTypeFixture>(fixture)
 {
 
@@ -27,7 +27,7 @@ public class ByteTypeCalciteTest(ByteTypeCalciteTest.ByteTypeFixture fixture)
 
 }
 
-public class ShortTypeCalciteTest(ShortTypeCalciteTest.ShortTypeFixture fixture)
+public partial class ShortTypeCalciteTest(ShortTypeCalciteTest.ShortTypeFixture fixture)
     : RelationalTypeTestBase<short, ShortTypeCalciteTest.ShortTypeFixture>(fixture)
 {
 
@@ -47,7 +47,7 @@ public class ShortTypeCalciteTest(ShortTypeCalciteTest.ShortTypeFixture fixture)
 
 }
 
-public class IntTypeCalciteTest(IntTypeCalciteTest.IntTypeFixture fixture)
+public partial class IntTypeCalciteTest(IntTypeCalciteTest.IntTypeFixture fixture)
     : RelationalTypeTestBase<int, IntTypeCalciteTest.IntTypeFixture>(fixture)
 {
 
@@ -67,7 +67,7 @@ public class IntTypeCalciteTest(IntTypeCalciteTest.IntTypeFixture fixture)
 
 }
 
-public class LongTypeCalciteTest(LongTypeCalciteTest.LongTypeFixture fixture)
+public partial class LongTypeCalciteTest(LongTypeCalciteTest.LongTypeFixture fixture)
     : RelationalTypeTestBase<long, LongTypeCalciteTest.LongTypeFixture>(fixture)
 {
 
@@ -87,7 +87,7 @@ public class LongTypeCalciteTest(LongTypeCalciteTest.LongTypeFixture fixture)
 
 }
 
-public class DecimalTypeCalciteTest(DecimalTypeCalciteTest.DecimalTypeFixture fixture)
+public partial class DecimalTypeCalciteTest(DecimalTypeCalciteTest.DecimalTypeFixture fixture)
     : RelationalTypeTestBase<decimal, DecimalTypeCalciteTest.DecimalTypeFixture>(fixture)
 {
 
@@ -107,7 +107,7 @@ public class DecimalTypeCalciteTest(DecimalTypeCalciteTest.DecimalTypeFixture fi
 
 }
 
-public class DoubleTypeCalciteTest(DoubleTypeCalciteTest.DoubleTypeFixture fixture)
+public partial class DoubleTypeCalciteTest(DoubleTypeCalciteTest.DoubleTypeFixture fixture)
     : RelationalTypeTestBase<double, DoubleTypeCalciteTest.DoubleTypeFixture>(fixture)
 {
 
@@ -127,7 +127,7 @@ public class DoubleTypeCalciteTest(DoubleTypeCalciteTest.DoubleTypeFixture fixtu
 
 }
 
-public class FloatTypeCalciteTest(FloatTypeCalciteTest.FloatTypeFixture fixture)
+public partial class FloatTypeCalciteTest(FloatTypeCalciteTest.FloatTypeFixture fixture)
     : RelationalTypeTestBase<float, FloatTypeCalciteTest.FloatTypeFixture>(fixture)
 {
 

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.TestUtilities;
 
-namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.GraphUpdates;
+namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
 public abstract class GraphUpdatesCalciteTestBase<TFixture>(TFixture fixture) : GraphUpdatesTestBase<TFixture>(fixture)
     where TFixture : GraphUpdatesCalciteTestBase<TFixture>.GraphUpdatesCalciteFixtureBase, new()

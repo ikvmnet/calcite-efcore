@@ -22,7 +22,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Metadata.Conventions
             DbSetAccessRewriter = new CalciteDbSetAccessRewritingExpressionVisitor(Dependencies.ContextType);
         }
 
-        class CalciteDbSetAccessRewritingExpressionVisitor : RelationalDbSetAccessRewritingExpressionVisitor
+        sealed class CalciteDbSetAccessRewritingExpressionVisitor : RelationalDbSetAccessRewritingExpressionVisitor
         {
 
             public CalciteDbSetAccessRewritingExpressionVisitor(Type contextType) :

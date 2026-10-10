@@ -50,6 +50,12 @@ commit messages and pull requests.
 - Tests the provider cannot yet pass are skipped by the generated `*.Skips.cs` files in
   FunctionalTests. To change them, delete the files, run the suite with a trx logger, and run
   `dotnet run --project tools/GenerateSkips -- <trx> <FunctionalTests.dll> <FunctionalTests source root>`.
+- A FunctionalTests class takes its namespace from the EF spec base it derives from, with
+  `Apache.Calcite.EntityFrameworkCore.FunctionalTests` in place of `Microsoft.EntityFrameworkCore`: a
+  `TPCGearsOfWarQueryTestBase` derivation is in `.Query`, a `GraphUpdatesTestBase` one in the root. Not
+  from its folder, and not from another provider's derivation. Fixtures follow their test class; our
+  own plumbing in `TestUtilities` is exempt. Change a namespace only alongside regenerating the skips,
+  since the skip files key on fully qualified names.
 - Before fixing FunctionalTests failures, group them with `tools\cluster-trx.ps1 -Path <trx>`.
 - If the FunctionalTests host crashes or hangs rather than failing, run it with
   `--blame-crash --blame-hang-timeout 10m` to name the test.

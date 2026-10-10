@@ -28,33 +28,9 @@ partial class NorthwindBulkUpdatesCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_with_join(bool async)
-    {
-        return base.Delete_with_join(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_with_LeftJoin(bool async)
-    {
-        return base.Delete_with_LeftJoin(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_with_LeftJoin_via_flattened_GroupJoin(bool async)
-    {
-        return base.Delete_with_LeftJoin_via_flattened_GroupJoin(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Delete_with_outer_apply(bool async)
     {
         return base.Delete_with_outer_apply(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_with_RightJoin(bool async)
-    {
-        return base.Delete_with_RightJoin(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]

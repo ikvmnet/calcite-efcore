@@ -15,10 +15,4 @@ partial class OwnedQueryCalciteTest
         return base.Can_query_indexer_property_on_owned_collection(async);
     }
 
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Preserve_includes_when_applying_skip_take_after_anonymous_type_select(bool async)
-    {
-        return base.Preserve_includes_when_applying_skip_take_after_anonymous_type_select(async);
-    }
-
 }

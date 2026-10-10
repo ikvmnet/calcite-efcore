@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.TestUtilities;
 
-namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.GraphUpdates;
+namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class GraphUpdatesCalciteChangedNotificationsTest(GraphUpdatesCalciteChangedNotificationsTest.CalciteFixture fixture)
+public partial class GraphUpdatesCalciteChangedNotificationsTest(GraphUpdatesCalciteChangedNotificationsTest.CalciteFixture fixture)
     : GraphUpdatesCalciteTestBase<GraphUpdatesCalciteChangedNotificationsTest.CalciteFixture>(fixture)
 {
 
