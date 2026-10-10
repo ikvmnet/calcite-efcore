@@ -89,8 +89,9 @@ Skip SQL text entirely: EF's `SelectExpression` is already relational algebra; b
 
 Clustered 2026-10-10 on a full run with every generated skip removed, on Calcite 1.43.0-SNAPSHOT +
 Apache.Calcite.Data 2.0.1-pre.267, after the missing spec suites were derived: **3,161 failed /
-34,585 passed / 428 skipped of 38,174** (1 h 59 min), which the regenerated skips cover as 1,723
-methods. Reference D:\efcore (11.0 head; 10.0 via `git show v10.0.5:<path>`) and D:\efcore.pg for
+34,585 passed / 428 skipped of 38,174** (1 h 59 min), which the regenerated skips covered as 1,723
+methods. Fixing the API-consistency and model-building index failures since then leaves 1,441;
+the table counts the model-building row after that fix and the rest as measured. Reference D:\efcore (11.0 head; 10.0 via `git show v10.0.5:<path>`) and D:\efcore.pg for
 how SQLite/Npgsql derive, override, and skip.
 
 Largest classes, and what is known about each:
@@ -99,7 +100,7 @@ Largest classes, and what is known about each:
 |---|---|---|
 | `GraphUpdatesCalcite*NotificationsTest` (x4) | 529 | mostly FK cascade, as for the proxy variants below; see the GraphUpdates notes |
 | `ProxyGraphUpdatesCalciteTest` (x3) | 215 | mostly FK cascade: Calcite has no constraints, so "cascade deleted in store" cannot pass |
-| `ModelBuilding.CalciteModelBuilder*Test` (x2, nested) | 304 | 258 are index counts (`Expected: 1, Actual: 0`): `CalciteConventionSetBuilder` removes `ForeignKeyIndexConvention`. Decide whether that removal is worth 258 skips, or override the asserting tests |
+| `ModelBuilding.CalciteModelBuilder*Test` (x2, nested) | 24 | every one asserts an index on the finalized model, which `CalciteIndexesNotSupportedConvention` removes. They pass only if the model keeps its indexes and the store creator skips them instead |
 | `Query.JsonQueryCalciteTest` | 144 | 52 non-constant JSON array index (Calcite's JSON path is a literal); 36 owned-collection navigations under JSON that do not translate |
 | `Query.EntitySplittingQueryCalciteTest` | 116 | not diagnosed |
 | `StoreGeneratedCalciteTest` | 110 | store-generated values; the provider generates no keys by design |

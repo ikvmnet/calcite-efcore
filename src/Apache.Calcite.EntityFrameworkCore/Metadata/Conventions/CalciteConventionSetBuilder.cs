@@ -79,10 +79,9 @@ namespace Apache.Calcite.EntityFrameworkCore.Metadata.Conventions
             conventionSet.Replace<ValueGenerationConvention>(new CalciteValueGenerationConvention(Dependencies, RelationalDependencies));
             conventionSet.Replace<QueryFilterRewritingConvention>(new CalciteQueryFilterRewritingConvention(Dependencies, RelationalDependencies));
 
-            // indexes not supported so remove conventions that might add indexes
-            conventionSet.Remove(typeof(ForeignKeyIndexConvention));
-            conventionSet.Remove(typeof(IndexAttributeConvention));
-
+            // Calcite has no indexes; the conventions that add them still run, so the model under
+            // construction looks as it would for any relational provider, and every index is
+            // removed when the model is finalized
             conventionSet.Add(new CalciteIndexesNotSupportedConvention());
 
             return conventionSet;

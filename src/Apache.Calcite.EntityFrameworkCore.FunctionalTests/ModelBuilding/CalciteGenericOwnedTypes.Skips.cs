@@ -13,12 +13,6 @@ partial class CalciteGenericOwnedTypes
 {
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override void Can_chain_owned_type_collection_configurations()
-    {
-        base.Can_chain_owned_type_collection_configurations();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override void Can_configure_one_to_many_owned_type_with_fields()
     {
         base.Can_configure_one_to_many_owned_type_with_fields();
@@ -43,21 +37,9 @@ partial class CalciteGenericOwnedTypes
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override void Can_configure_owned_type_collection_from_an_owned_type()
-    {
-        base.Can_configure_owned_type_collection_from_an_owned_type();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override void Can_configure_owned_type_collection_using_nested_closure()
     {
         base.Can_configure_owned_type_collection_using_nested_closure();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override void Shared_type_entity_types_with_FK_to_another_entity_works()
-    {
-        base.Shared_type_entity_types_with_FK_to_another_entity_works();
     }
 
 }
