@@ -22,12 +22,6 @@ partial class NorthwindMiscellaneousQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task AsQueryable_in_query_server_evals(bool async)
-    {
-        return base.AsQueryable_in_query_server_evals(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Client_code_unknown_method(bool async)
     {
         return base.Client_code_unknown_method(async);
@@ -49,12 +43,6 @@ partial class NorthwindMiscellaneousQueryCalciteTest
     public override global::System.Threading.Tasks.Task Client_code_using_instance_method_throws(bool async)
     {
         return base.Client_code_using_instance_method_throws(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Contains_with_DateTime_Date(bool async)
-    {
-        return base.Contains_with_DateTime_Date(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
@@ -82,42 +70,6 @@ partial class NorthwindMiscellaneousQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Parameter_extraction_short_circuits_1(bool async)
-    {
-        return base.Parameter_extraction_short_circuits_1(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Parameter_extraction_short_circuits_2(bool async)
-    {
-        return base.Parameter_extraction_short_circuits_2(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Parameter_extraction_short_circuits_3(bool async)
-    {
-        return base.Parameter_extraction_short_circuits_3(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_distinct_Select_with_client_bindings(bool async)
-    {
-        return base.Select_distinct_Select_with_client_bindings(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_expression_references_are_updated_correctly_with_subquery(bool async)
-    {
-        return base.Select_expression_references_are_updated_correctly_with_subquery(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_nested_collection_in_anonymous_type(bool async)
-    {
-        return base.Select_nested_collection_in_anonymous_type(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Subquery_with_navigation_inside_inline_collection(bool async)
     {
         return base.Subquery_with_navigation_inside_inline_collection(async);
@@ -133,12 +85,6 @@ partial class NorthwindMiscellaneousQueryCalciteTest
     public override global::System.Threading.Tasks.Task Take_with_single_select_many(bool async)
     {
         return base.Take_with_single_select_many(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Where_nanosecond_and_microsecond_component(bool async)
-    {
-        return base.Where_nanosecond_and_microsecond_component(async);
     }
 
 }

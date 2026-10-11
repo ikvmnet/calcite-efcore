@@ -87,16 +87,4 @@ partial class PrimitiveCollectionsQueryCalciteTest
         return base.Parameter_collection_with_type_inference_for_JsonScalarExpression();
     }
 
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Project_collection_of_datetimes_filtered()
-    {
-        return base.Project_collection_of_datetimes_filtered();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Project_multiple_collections()
-    {
-        return base.Project_multiple_collections();
-    }
-
 }

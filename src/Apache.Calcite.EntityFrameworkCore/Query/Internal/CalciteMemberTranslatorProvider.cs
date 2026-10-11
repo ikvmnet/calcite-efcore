@@ -21,6 +21,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
             AddTranslators(
             [
                 new CalciteStringMemberTranslator(sqlExpressionFactory),
+                new CalciteDateTimeMemberTranslator(sqlExpressionFactory, typeMappingSource),
+                new CalciteDateTimeOffsetMemberTranslator(sqlExpressionFactory, typeMappingSource),
+                new CalciteDateOnlyMemberTranslator(sqlExpressionFactory, typeMappingSource),
+                new CalciteTimeOnlyMemberTranslator(sqlExpressionFactory),
             ]);
         }
 

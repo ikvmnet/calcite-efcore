@@ -16,18 +16,6 @@ partial class NorthwindSelectQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Correlated_collection_after_groupby_with_complex_projection_containing_original_identifier(bool async)
-    {
-        return base.Correlated_collection_after_groupby_with_complex_projection_containing_original_identifier(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Correlated_collection_after_groupby_with_complex_projection_not_containing_original_identifier(bool async)
-    {
-        return base.Correlated_collection_after_groupby_with_complex_projection_not_containing_original_identifier(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Member_binding_after_ctor_arguments_fails_with_client_eval(bool async)
     {
         return base.Member_binding_after_ctor_arguments_fails_with_client_eval(async);
@@ -55,24 +43,6 @@ partial class NorthwindSelectQueryCalciteTest
     public override global::System.Threading.Tasks.Task Projection_when_arithmetic_mixed_subqueries(bool async)
     {
         return base.Projection_when_arithmetic_mixed_subqueries(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_nested_collection(bool async)
-    {
-        return base.Select_nested_collection(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_nested_collection_deep(bool async)
-    {
-        return base.Select_nested_collection_deep(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Select_nested_collection_deep_distinct_no_identifiers(bool async)
-    {
-        return base.Select_nested_collection_deep_distinct_no_identifiers(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]

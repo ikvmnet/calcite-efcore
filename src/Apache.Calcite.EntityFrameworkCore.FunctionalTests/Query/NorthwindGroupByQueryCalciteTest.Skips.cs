@@ -16,33 +16,9 @@ partial class NorthwindGroupByQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_aggregate_followed_another_GroupBy_aggregate(bool async)
-    {
-        return base.GroupBy_aggregate_followed_another_GroupBy_aggregate(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task GroupBy_aggregate_from_multiple_query_in_same_projection_2(bool async)
     {
         return base.GroupBy_aggregate_from_multiple_query_in_same_projection_2(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_aggregate_join_another_GroupBy_aggregate(bool async)
-    {
-        return base.GroupBy_aggregate_join_another_GroupBy_aggregate(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_anonymous_key_type_mismatch_with_aggregate(bool async)
-    {
-        return base.GroupBy_anonymous_key_type_mismatch_with_aggregate(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_complex_key_aggregate_2(bool async)
-    {
-        return base.GroupBy_complex_key_aggregate_2(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
@@ -70,57 +46,15 @@ partial class NorthwindGroupByQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_Where_Count_with_predicate(bool async)
-    {
-        return base.GroupBy_Where_Count_with_predicate(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_Where_Select_Where_Count(bool async)
-    {
-        return base.GroupBy_Where_Select_Where_Count(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_Where_Select_Where_Select_Min(bool async)
-    {
-        return base.GroupBy_Where_Select_Where_Select_Min(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task GroupBy_Where_Sum(bool async)
     {
         return base.GroupBy_Where_Sum(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_Where_Where_Count(bool async)
-    {
-        return base.GroupBy_Where_Where_Count(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task GroupBy_with_aggregate_containing_complex_where(bool async)
     {
         return base.GroupBy_with_aggregate_containing_complex_where(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_with_grouping_key_DateTime_Day(bool async)
-    {
-        return base.GroupBy_with_grouping_key_DateTime_Day(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Join_GroupBy_Aggregate_distinct_single_join(bool async)
-    {
-        return base.Join_GroupBy_Aggregate_distinct_single_join(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Where_select_function_groupby_followed_by_another_select_with_aggregates(bool async)
-    {
-        return base.Where_select_function_groupby_followed_by_another_select_with_aggregates(async);
     }
 
 }

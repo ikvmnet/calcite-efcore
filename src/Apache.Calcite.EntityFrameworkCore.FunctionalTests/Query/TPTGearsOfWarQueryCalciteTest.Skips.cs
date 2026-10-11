@@ -82,12 +82,6 @@ partial class TPTGearsOfWarQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Projecting_property_converted_to_nullable_into_member_access(bool async)
-    {
-        return base.Projecting_property_converted_to_nullable_into_member_access(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Select_StartsWith_with_null_parameter_as_argument(bool async)
     {
         return base.Select_StartsWith_with_null_parameter_as_argument(async);

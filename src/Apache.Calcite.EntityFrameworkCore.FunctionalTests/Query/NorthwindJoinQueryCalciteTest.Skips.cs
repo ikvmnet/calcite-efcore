@@ -10,12 +10,6 @@ partial class NorthwindJoinQueryCalciteTest
 {
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupJoin_aggregate_anonymous_key_selectors2(bool async)
-    {
-        return base.GroupJoin_aggregate_anonymous_key_selectors2(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task SelectMany_with_selecting_outer_entity(bool async)
     {
         return base.SelectMany_with_selecting_outer_entity(async);

@@ -16,36 +16,6 @@ partial class TimeOnlyTranslationsCalciteTest
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task AddHours()
-    {
-        return base.AddHours();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task AddMinutes()
-    {
-        return base.AddMinutes();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task FromDateTime_compared_to_constant()
-    {
-        return base.FromDateTime_compared_to_constant();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task FromDateTime_compared_to_parameter()
-    {
-        return base.FromDateTime_compared_to_parameter();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task FromDateTime_compared_to_property()
-    {
-        return base.FromDateTime_compared_to_property();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task FromTimeSpan_compared_to_parameter()
     {
         return base.FromTimeSpan_compared_to_parameter();
@@ -58,33 +28,9 @@ partial class TimeOnlyTranslationsCalciteTest
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Hour()
-    {
-        return base.Hour();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task IsBetween()
-    {
-        return base.IsBetween();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Microsecond()
     {
         return base.Microsecond();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Millisecond()
-    {
-        return base.Millisecond();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Minute()
-    {
-        return base.Minute();
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
@@ -97,12 +43,6 @@ partial class TimeOnlyTranslationsCalciteTest
     public override global::System.Threading.Tasks.Task Order_by_FromTimeSpan()
     {
         return base.Order_by_FromTimeSpan();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Second()
-    {
-        return base.Second();
     }
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
