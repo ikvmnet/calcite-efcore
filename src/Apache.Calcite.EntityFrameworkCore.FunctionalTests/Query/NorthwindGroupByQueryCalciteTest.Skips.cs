@@ -40,27 +40,9 @@ partial class NorthwindGroupByQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_anonymous_Select_LongCount(bool async)
-    {
-        return base.GroupBy_anonymous_Select_LongCount(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task GroupBy_complex_key_aggregate_2(bool async)
     {
         return base.GroupBy_complex_key_aggregate_2(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_Composite_Select_Key_LongCount(bool async)
-    {
-        return base.GroupBy_Composite_Select_Key_LongCount(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_Composite_Select_LongCount(bool async)
-    {
-        return base.GroupBy_Composite_Select_LongCount(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
@@ -82,48 +64,6 @@ partial class NorthwindGroupByQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_Property_anonymous_element_selector_LongCount(bool async)
-    {
-        return base.GroupBy_Property_anonymous_element_selector_LongCount(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_Property_scalar_element_selector_LongCount(bool async)
-    {
-        return base.GroupBy_Property_scalar_element_selector_LongCount(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_Property_Select_Key_LongCount(bool async)
-    {
-        return base.GroupBy_Property_Select_Key_LongCount(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_Property_Select_LongCount(bool async)
-    {
-        return base.GroupBy_Property_Select_LongCount(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_Property_Select_LongCount_with_nulls(bool async)
-    {
-        return base.GroupBy_Property_Select_LongCount_with_nulls(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_Property_Select_LongCount_with_predicate(bool async)
-    {
-        return base.GroupBy_Property_Select_LongCount_with_predicate(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_Select_Distinct_aggregate(bool async)
-    {
-        return base.GroupBy_Select_Distinct_aggregate(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task GroupBy_Sum_constant_cast(bool async)
     {
         return base.GroupBy_Sum_constant_cast(async);
@@ -133,12 +73,6 @@ partial class NorthwindGroupByQueryCalciteTest
     public override global::System.Threading.Tasks.Task GroupBy_Where_Count_with_predicate(bool async)
     {
         return base.GroupBy_Where_Count_with_predicate(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_Where_LongCount(bool async)
-    {
-        return base.GroupBy_Where_LongCount(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
@@ -181,24 +115,6 @@ partial class NorthwindGroupByQueryCalciteTest
     public override global::System.Threading.Tasks.Task Join_GroupBy_Aggregate_distinct_single_join(bool async)
     {
         return base.Join_GroupBy_Aggregate_distinct_single_join(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task LongCount_after_GroupBy_aggregate(bool async)
-    {
-        return base.LongCount_after_GroupBy_aggregate(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task LongCount_after_GroupBy_without_aggregate(bool async)
-    {
-        return base.LongCount_after_GroupBy_without_aggregate(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task LongCount_with_predicate_after_GroupBy_without_aggregate(bool async)
-    {
-        return base.LongCount_with_predicate_after_GroupBy_without_aggregate(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]

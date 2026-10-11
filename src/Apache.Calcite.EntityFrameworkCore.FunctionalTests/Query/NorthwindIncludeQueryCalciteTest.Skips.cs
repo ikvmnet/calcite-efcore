@@ -10,12 +10,6 @@ partial class NorthwindIncludeQueryCalciteTest
 {
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Include_collection_with_last_no_orderby(bool async)
-    {
-        return base.Include_collection_with_last_no_orderby(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Multi_level_includes_are_applied_with_skip_take(bool async)
     {
         return base.Multi_level_includes_are_applied_with_skip_take(async);

@@ -8,9 +8,9 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query;
 
-public class PrecompiledSqlPregenerationQuerySqlServerTest(PrecompiledSqlPregenerationQuerySqlServerTest.PrecompiledSqlPregenerationQueryCalciteFixture fixture, ITestOutputHelper testOutputHelper) :
+public class PrecompiledSqlPregenerationQueryCalciteTest(PrecompiledSqlPregenerationQueryCalciteTest.PrecompiledSqlPregenerationQueryCalciteFixture fixture, ITestOutputHelper testOutputHelper) :
     PrecompiledSqlPregenerationQueryRelationalTestBase(fixture, testOutputHelper),
-    IClassFixture<PrecompiledSqlPregenerationQuerySqlServerTest.PrecompiledSqlPregenerationQueryCalciteFixture>
+    IClassFixture<PrecompiledSqlPregenerationQueryCalciteTest.PrecompiledSqlPregenerationQueryCalciteFixture>
 {
 
     protected override bool AlwaysPrintGeneratedSources => false;

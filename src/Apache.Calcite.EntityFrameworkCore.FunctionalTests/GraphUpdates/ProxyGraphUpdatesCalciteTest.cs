@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.GraphUpdates;
+namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
 public partial class ProxyGraphUpdatesCalciteTest
 {

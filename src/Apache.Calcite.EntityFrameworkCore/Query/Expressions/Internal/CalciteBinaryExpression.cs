@@ -49,8 +49,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Expressions.Internal
             return Update(left, right);
         }
 
-        /// <summary>Returns a copy of this expression with the given operands.</summary>
-        public CalciteBinaryExpression Update(SqlExpression left, SqlExpression right)
+        /// <summary>
+        /// Returns a copy of this expression with the given operands.
+        /// </summary>
+        public virtual CalciteBinaryExpression Update(SqlExpression left, SqlExpression right)
         {
             return left == Left && right == Right
                 ? this

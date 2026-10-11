@@ -28,12 +28,6 @@ partial class NorthwindAggregateOperatorsQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Contains_inside_LongCount_without_GroupBy(bool async)
-    {
-        return base.Contains_inside_LongCount_without_GroupBy(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Contains_with_local_anonymous_type_array_closure(bool async)
     {
         return base.Contains_with_local_anonymous_type_array_closure(async);
@@ -43,12 +37,6 @@ partial class NorthwindAggregateOperatorsQueryCalciteTest
     public override global::System.Threading.Tasks.Task Contains_with_local_tuple_array_closure(bool async)
     {
         return base.Contains_with_local_tuple_array_closure(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Sum_over_uncorrelated_subquery(bool async)
-    {
-        return base.Sum_over_uncorrelated_subquery(async);
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]

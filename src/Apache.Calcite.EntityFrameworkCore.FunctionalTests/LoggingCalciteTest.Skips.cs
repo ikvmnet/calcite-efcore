@@ -10,12 +10,6 @@ partial class LoggingCalciteTest
 {
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override void IndexPropertiesBothMappedAndNotMappedToTable_throws_by_default()
-    {
-        base.IndexPropertiesBothMappedAndNotMappedToTable_throws_by_default();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public new void Logs_context_initialization_command_timeout()
     {
         base.Logs_context_initialization_command_timeout();
@@ -67,12 +61,6 @@ partial class LoggingCalciteTest
     public new void Logs_context_initialization_sensitive_data_logging()
     {
         base.Logs_context_initialization_sensitive_data_logging();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override void UnnamedIndexPropertiesMappedToNonOverlappingTables_throws_by_default()
-    {
-        base.UnnamedIndexPropertiesMappedToNonOverlappingTables_throws_by_default();
     }
 
 }

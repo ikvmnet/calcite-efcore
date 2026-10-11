@@ -15,16 +15,4 @@ partial class NorthwindSetOperationsQueryCalciteTest
         return base.Client_eval_Union_FirstOrDefault(async);
     }
 
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Collection_projection_after_set_operation_fails_if_distinct(bool async)
-    {
-        return base.Collection_projection_after_set_operation_fails_if_distinct(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Collection_projection_before_set_operation_fails(bool async)
-    {
-        return base.Collection_projection_before_set_operation_fails(async);
-    }
-
 }

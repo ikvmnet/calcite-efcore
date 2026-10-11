@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore.TestUtilities;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
-public class ConcurrencyDetectorDisabledCalciteTest(ConcurrencyDetectorDisabledCalciteTest.ConcurrencyDetectorSqlServerFixture fixture) :
-    ConcurrencyDetectorDisabledRelationalTestBase<ConcurrencyDetectorDisabledCalciteTest.ConcurrencyDetectorSqlServerFixture>(fixture)
+public class ConcurrencyDetectorDisabledCalciteTest(ConcurrencyDetectorDisabledCalciteTest.ConcurrencyDetectorCalciteFixture fixture) :
+    ConcurrencyDetectorDisabledRelationalTestBase<ConcurrencyDetectorDisabledCalciteTest.ConcurrencyDetectorCalciteFixture>(fixture)
 {
 
-    public class ConcurrencyDetectorSqlServerFixture : ConcurrencyDetectorFixtureBase, ITestSqlLoggerFactory
+    public class ConcurrencyDetectorCalciteFixture : ConcurrencyDetectorFixtureBase, ITestSqlLoggerFactory
     {
 
         protected override ITestStoreFactory TestStoreFactory => CalciteTestStoreFactory.Instance;

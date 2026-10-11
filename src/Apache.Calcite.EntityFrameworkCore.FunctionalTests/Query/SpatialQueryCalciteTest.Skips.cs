@@ -94,12 +94,6 @@ partial class SpatialQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Union_aggregate(bool async)
-    {
-        return base.Union_aggregate(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task WithConversion(bool async)
     {
         return base.WithConversion(async);

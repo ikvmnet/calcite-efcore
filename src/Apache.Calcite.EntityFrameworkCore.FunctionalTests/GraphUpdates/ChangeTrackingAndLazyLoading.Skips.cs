@@ -4,7 +4,7 @@
 #pragma warning disable xUnit1003 // a skipped theory reports without enumerating data
 #pragma warning disable xUnit1024 // a shadowed non-virtual test hides the base slot from discovery
 
-namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.GraphUpdates;
+namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests;
 
 partial class ProxyGraphUpdatesCalciteTest
 {
@@ -94,12 +94,6 @@ partial class ChangeTrackingAndLazyLoading
     public override global::System.Threading.Tasks.Task Save_changed_optional_one_to_one_with_alternate_key_in_store()
     {
         return base.Save_changed_optional_one_to_one_with_alternate_key_in_store();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Save_two_entity_cycle_with_lazy_loading()
-    {
-        return base.Save_two_entity_cycle_with_lazy_loading();
     }
 
 }

@@ -58,12 +58,6 @@ partial class GearsOfWarQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task GroupBy_Property_Include_Select_LongCount(bool async)
-    {
-        return base.GroupBy_Property_Include_Select_LongCount(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task GroupBy_Select_sum(bool async)
     {
         return base.GroupBy_Select_sum(async);

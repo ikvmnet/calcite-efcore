@@ -25,7 +25,7 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
         /// <summary>
         /// Creates a <see cref="CalciteBinaryExpression"/> for a Calcite-specific binary operator.
         /// </summary>
-        public CalciteBinaryExpression CalciteBinary(CalciteExpressionType operatorType, SqlExpression left, SqlExpression right, Type resultType)
+        public virtual CalciteBinaryExpression CalciteBinary(CalciteExpressionType operatorType, SqlExpression left, SqlExpression right, Type resultType)
         {
             var typeMapping = Dependencies.TypeMappingSource.FindMapping(resultType, Dependencies.Model);
             left = (SqlExpression)ApplyDefaultTypeMapping(left);

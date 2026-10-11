@@ -87,33 +87,50 @@ Skip SQL text entirely: EF's `SelectExpression` is already relational algebra; b
 
 ## Functional suite failure clusters
 
-Clustered 2026-09-16 on a full run with every generated skip removed, after the per-test isolation
-fix: **2,244 failed / 25,613 passed / 289 skipped of 28,146**, which the regenerated skips covered as
-1,250 methods. Re-measured 2026-09-17 after ordering nulls the way LINQ does: **2,103 failed /
-25,754 passed**, and 1,179 methods. The table below is from the first of those; the 141 cases the
-second recovered came off `GearsOfWarQuery` and its TPC/TPT variants (39 methods) and the
-`ComplexNavigations` family (28), so read those two rows as that much smaller. Reference D:\efcore (11.0 head; 10.0 via `git show v10.0.5:<path>`) and D:\efcore.pg
-for how SQLite/Npgsql derive, override, and skip.
+Clustered 2026-10-10 on a full run with every generated skip removed, on Calcite 1.43.0-SNAPSHOT +
+Apache.Calcite.Data 2.0.1-pre.267, after the missing spec suites were derived and the model kept
+its indexes: **2,849 failed / 34,897 passed / 428 skipped of 38,174** (2 h 56 min), which the
+regenerated skips cover as 1,411 methods. Reference D:\efcore (11.0 head; 10.0 via
+`git show v10.0.5:<path>`) and D:\efcore.pg for how SQLite/Npgsql derive, override, and skip.
 
 Largest classes, and what is known about each:
 
 | class | failures | shape |
 |---|---|---|
+| `GraphUpdatesCalcite*NotificationsTest` (x4) | 528 | mostly FK cascade, as for the proxy variants below; see the GraphUpdates notes |
+| `ProxyGraphUpdatesCalciteTest` (x3) | 215 | mostly FK cascade: Calcite has no constraints, so "cascade deleted in store" cannot pass |
+| `Query.JsonQueryCalciteTest` | 144 | 52 non-constant JSON array index (Calcite's JSON path is a literal); 36 owned-collection navigations under JSON that do not translate |
 | `Query.EntitySplittingQueryCalciteTest` | 116 | not diagnosed |
 | `StoreGeneratedCalciteTest` | 110 | store-generated values; the provider generates no keys by design |
-| `BulkUpdates.NorthwindBulkUpdatesCalciteTest` | 82 | `ExecuteUpdate`/`ExecuteDelete` SQL generation |
-| `GraphUpdates.ProxyGraphUpdatesCalciteTest` (x3) | 215 | mostly FK cascade: Calcite has no constraints, so "cascade deleted in store" cannot pass |
-| `Query.NorthwindGroupByQueryCalciteTest` | 68 | not diagnosed |
-| `Query.GearsOfWarQueryCalciteTest` and the TPC/TPT variants | 192 | not diagnosed; the three move together |
-| `Update.JsonUpdateCalciteTest` | 63 | JSON column mapping, which does not exist — see the derivations item |
+| `BulkUpdates.NorthwindBulkUpdatesCalciteTest` | 74 | `ExecuteUpdate`/`ExecuteDelete` SQL generation |
+| `Types.*TypeCalciteTest` (16 suites) | 67 | 58 `ExecuteUpdate` partial update within a JSON column, which the provider refuses |
+| `Update.JsonUpdateCalciteTest` | 63 | partial JSON updates: `JSON_SET` inserts a string, not a parsed document |
 | `TransactionCalciteTest` | 53 | the store has no transactions; these assert real ones |
+| `JsonTypesCalciteTest` | 41 | 13 JSON text differs; spatial types are not mapped inside JSON |
+| `Query.NorthwindGroupByQueryCalciteTest` | 38 | not diagnosed |
+| `Query.GearsOfWarQueryCalciteTest` and the TPC/TPT variants | 108 | not diagnosed; the three move together |
 
-Largest fingerprints not already attributed above: 648 `Assert.Equal() Failure: Values differ`
+Largest fingerprints not already attributed above: 534 `Assert.Equal() Failure: Values differ`
 (too coarse to be one cause — split it before acting), 80 `SqlParseException : Encountered <FROM>`,
-76 `The LINQ expression 'DbSet<BasicTypesEntity>() …' could not be translated`, 52 `An error
-occurred while reading a database value. The expected type was '*' but the actual value was of
-type '*'`, 38 `variable '*' of type '*' referenced from scope '*', but it is not defined`, and 28
-`SqlParseException : Lexical error`.
+76 `The LINQ expression 'DbSet<BasicTypesEntity>() …' could not be translated`, 38 `variable '*' of
+type '*' referenced from scope '*', but it is not defined`, and 28 `SqlParseException : Lexical
+error`.
+
+Smaller ones from the newly derived suites, each a real gap:
+
+- **`CalciteServiceCollectionExtensionsTest.Required_services_are_registered_with_expected_lifetimes`**:
+  the provider registers no `IHistoryRepository`.
+- **`Can_insert_when_bool_PK_in_composite_key_has_sentinel_value`** (all four GraphUpdates variants):
+  `Unable to cast object of type 'java.lang.Integer' to type 'java.lang.Boolean'` — a `bool` key
+  part with `HasDefaultValue(true)`. Not diagnosed.
+- **`NorthwindDbFunctionsQueryCalciteTest`, 6** fail executing the collation tests. The collations
+  are named `ISO-8859-1$en_US$primary`/`$tertiary`; whether Calcite accepts `COLLATE` with those
+  names in a query has not been checked.
+
+The GraphUpdates derivations omit SQLite's `HasKey("Id")` on the owned collections, and need no
+substitute: every owned-collection test passes on the snapshot variant. The two `Clearing_*_owned_collection`
+tests fail only on the notification variants, because they assign a `List<>` where those strategies
+require an `INotifyCollectionChanged` collection — the spec's problem, not the store's.
 
 The parse-error clusters are the ones the rel-tree item below would eliminate structurally rather
 than one dialect quirk at a time.
@@ -174,69 +191,31 @@ transport; until fixed, "1.43.0-SNAPSHOT" means "whatever .m2 last downloaded".
 
 ## Missing spec-test derivations
 
-Spec classes SQLite derives that we have no local class for, so they never run. Measured as
-`test/EFCore.Sqlite.FunctionalTests/**/*SqliteTest.cs` with `Sqlite` renamed to `Calcite`, minus
-the classes this project already declares — recount that way rather than trusting the number.
-Add derived classes area by area, following other providers' patterns.
-
-Recounted 2026-09-07 against `D:\efcore` at `35d954220a`: 213 SQLite classes, and the gap had
-grown past the 14 recorded here, because upstream added the JSON and table-splitting inheritance
-variants. Two names in the list are false positives — read them before deriving. The recount is by
-file name, and `StoreValueGeneration` is already covered by
-`StoreValueGenerationWithoutReturningCalciteTest`, which the file name hides.
+`CalciteComplianceTest` (EF's `RelationalComplianceTestBase`) now enforces this: it fails when the
+spec packages carry a test base this project neither derives nor lists in its `IgnoredTestBases`.
+It passes as of 2026-10-10, so the gap is exactly that list. Count it there, not by file name
+against another provider's project — those recounts kept turning up false positives.
 
 What is left, with why it is left:
 
-- **Blocked on JSON column mapping**: `JsonQuery` (below), `JsonTranslations`, `JsonTypes`,
-  `BadDataJsonDeserialization`, and the `TPC`/`TPH`/`TPT` `InheritanceJsonQuery` trio.
-- **Derived 2026-09-17**: `Spatial`, `SpatialQuery` — 157 tests that did not run before, 138
-  passing. See the spatial item below for the 19 that do not.
 - **Needs infrastructure we do not have**: `CompiledModel`, `MigrationsInfrastructure`,
-  `RuntimeMigration`, `OperatorsProcedural` (no `OperatorsData` locally).
+  `OperatorsProceduralQuery`.
+- **Asserts SQL text written by hand for the provider**: `MigrationsSqlGenerator`,
+  `UpdateSqlGenerator`.
+- **Needs store features Calcite lacks**: `FromSqlSprocQuery`, `SqlExecutor`,
+  `StoredProcedureUpdate`, `UdfDbFunction`.
 - **Blocked on the spec package, not on us**: `NavigationsBulkUpdate` and the `TPC`/`TPH`/`TPT`
-  `InheritanceTableSplittingQuery` trio. These were recorded as plain derivations not yet
-  attempted. Measured 2026-09-16: `NavigationsBulkUpdateRelationalTestBase` and the
-  `TP*InheritanceTableSplittingQueryRelationalTestBase` trio are **not in
-  `Microsoft.EntityFrameworkCore.Relational.Specification.Tests` 10.0.8**, which is what this
-  project builds against — they are 11.0-era additions carried only by the `D:\efcore` checkout at
-  head. Neither is reachable before the spec-package bump. Recount the gap against the package, not
-  against the sibling checkout.
-- `StoreValueGenerationLegacy` is a third file-name false positive: the class inside it is
-  `StoreValueGenerationWithoutReturning*`, already derived here.
+  `InheritanceTableSplittingQuery` trio are 11.0-era bases, not in
+  `Microsoft.EntityFrameworkCore.Relational.Specification.Tests` 10.0.8. They become reachable with
+  the spec-package bump, at which point the compliance test names them.
 
-Nothing on this list is reachable today. `BadData` was the last one that was, and it is derived as
-of 2026-09-16 — 8 tests, all passing. It derives nothing from the spec package: it is an
-`IClassFixture` over the Northwind fixture plus a fake `DbDataReader` behind a substituted
-`IRelationalCommandBuilderFactory`, so it needed a Calcite equivalent of that plumbing rather than a
-rename. What it covers is the materialization error path, and no query in it reaches Calcite.
-
-Two names a file-name recount calls missing are derived here under the wrong class name, which is
-why such a count cannot be trusted. `Query/Translations/Operators/MiscellaneousOperatorTranslationsCalciteTest.cs`
-declares `MiscellaneousOperatorTranslationsSqlServerTest` and
-`Query/PrecompiledSqlPregenerationQueryCalciteTest.cs` declares
-`PrecompiledSqlPregenerationQuerySqlServerTest`, both left over from the copy they were made from;
-`Query/Associations/Navigations/NavigationsMiscellaneousCalciteTest.cs` has it the other way and
-declares `OwnedNavigationsMiscellaneousCalciteTest`. All three run — xunit discovers by attribute,
-not by name — so no coverage is lost. Renaming them moves the fully qualified test names the skip
-files key on, so rename only in the change that regenerates the skips, never between runs.
-
-Derived 2026-09-07: `DataBinding`, `Serialization`, `NorthwindQueryTaggingQuery`,
-`NonLoadingNavigationsManyToManyLoad` — 414 tests that did not run before, 387 passing.
-
-The 25 skips those brought in are worth a second look, because they are not scattered. Every one
-is on the F1 fixture, in `DataBinding` and `Serialization`, and every one is a case that reads
+The skips in `DataBinding` and `Serialization` are worth a second look, because they are not
+scattered. Every one is on the F1 fixture, and every one is a case that reads
 seeded F1 rows back through a fresh context and sees an empty set (`Expected: 3, Actual: 0`, or
 `Sequence contains no elements`). The F1 cases that never read seeded rows all pass, and
 `OptimisticConcurrency` on the same fixture already carries 28 skips. That shape points at the
 store rather than at any of these suites, so it likely belongs to the test-backend item at the
 top of this file; it has not been diagnosed.
-
-`JsonQuery` is blocked rather than merely missing. `JsonQueryCalciteFixture` is already here, but
-all 438 cases fail identically before any query runs: `RelationalModelValidator` rejects
-`JsonEntityAllTypes.TestBooleanCollectionCollection` (`bool[][]`) as a nested primitive
-collection, so the model never builds. Providers that carry the suite map those owned entities to
-JSON columns, which takes the property off the primitive-collection path entirely. Deriving the
-class today buys 219 skips and no coverage — do it once JSON column mapping exists.
 
 ## A parameter collection cannot be unnested
 

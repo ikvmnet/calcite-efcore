@@ -111,9 +111,15 @@ namespace Apache.Calcite.EntityFrameworkCore.Migrations
         }
 
         /// <inheritdoc />
+        /// <remarks>
+        /// Calcite has no indexes, and an index changes nothing about what the table holds, so it is
+        /// reported like the constraints inside <see cref="CreateTableOperation"/> rather than as an
+        /// operation that could not be applied. The model keeps its indexes: every foreign key has
+        /// one by convention, and failing on those would fail any model with a relationship.
+        /// </remarks>
         protected override void Generate(CreateIndexOperation operation, IModel? model, MigrationCommandListBuilder builder, bool terminate = true)
         {
-            Dependencies.MigrationsLogger.MigrationOperationIgnoredWarning(nameof(CreateIndexOperation));
+            Dependencies.MigrationsLogger.MigrationTableFeatureIgnoredWarning("Index " + operation.Name, operation.Table);
         }
 
         /// <inheritdoc />
@@ -170,10 +176,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Migrations
             Dependencies.MigrationsLogger.MigrationOperationIgnoredWarning(nameof(DropCheckConstraintOperation));
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc cref="Generate(CreateIndexOperation, IModel?, MigrationCommandListBuilder, bool)" />
         protected override void Generate(DropIndexOperation operation, IModel? model, MigrationCommandListBuilder builder, bool terminate = true)
         {
-            Dependencies.MigrationsLogger.MigrationOperationIgnoredWarning(nameof(DropIndexOperation));
+            Dependencies.MigrationsLogger.MigrationTableFeatureIgnoredWarning("Index " + operation.Name, operation.Table ?? string.Empty);
         }
 
         /// <inheritdoc />

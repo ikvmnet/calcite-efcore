@@ -8,10 +8,10 @@ using Xunit.Abstractions;
 
 namespace Apache.Calcite.EntityFrameworkCore.FunctionalTests.Query.Translations.Operators;
 
-public class MiscellaneousOperatorTranslationsSqlServerTest : MiscellaneousOperatorTranslationsTestBase<BasicTypesQueryCalciteFixture>
+public class MiscellaneousOperatorTranslationsCalciteTest : MiscellaneousOperatorTranslationsTestBase<BasicTypesQueryCalciteFixture>
 {
 
-    public MiscellaneousOperatorTranslationsSqlServerTest(BasicTypesQueryCalciteFixture fixture, ITestOutputHelper testOutputHelper) :
+    public MiscellaneousOperatorTranslationsCalciteTest(BasicTypesQueryCalciteFixture fixture, ITestOutputHelper testOutputHelper) :
         base(fixture)
     {
         Fixture.TestSqlLoggerFactory.Clear();

@@ -28,18 +28,6 @@ partial class NorthwindKeylessEntitiesQueryCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task KeylessEntity_with_defining_query_and_correlated_collection(bool async)
-    {
-        return base.KeylessEntity_with_defining_query_and_correlated_collection(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task KeylessEntity_with_included_navs_multi_level(bool async)
-    {
-        return base.KeylessEntity_with_included_navs_multi_level(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task KeylessEntity_with_nav_defining_query(bool async)
     {
         return base.KeylessEntity_with_nav_defining_query(async);
