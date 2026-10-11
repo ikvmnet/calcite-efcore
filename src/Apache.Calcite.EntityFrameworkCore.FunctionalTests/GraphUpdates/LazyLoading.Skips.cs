@@ -96,12 +96,6 @@ partial class LazyLoading
         return base.Save_changed_optional_one_to_one_with_alternate_key_in_store();
     }
 
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Save_two_entity_cycle_with_lazy_loading()
-    {
-        return base.Save_two_entity_cycle_with_lazy_loading();
-    }
-
 }
 
 }

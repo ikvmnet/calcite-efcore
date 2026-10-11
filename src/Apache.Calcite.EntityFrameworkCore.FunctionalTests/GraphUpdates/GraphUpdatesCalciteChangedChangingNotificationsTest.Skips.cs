@@ -33,12 +33,6 @@ partial class GraphUpdatesCalciteChangedChangingNotificationsTest
         return base.Clearing_shadow_key_owned_collection_throws(async, useUpdate, addNew);
     }
 
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Notification_entities_can_have_indexes()
-    {
-        return base.Notification_entities_can_have_indexes();
-    }
-
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Optional_many_to_one_dependents_are_orphaned_in_store(global::System.Nullable<global::Microsoft.EntityFrameworkCore.ChangeTracking.CascadeTiming> cascadeDeleteTiming, global::System.Nullable<global::Microsoft.EntityFrameworkCore.ChangeTracking.CascadeTiming> deleteOrphansTiming)
     {

@@ -88,19 +88,17 @@ Skip SQL text entirely: EF's `SelectExpression` is already relational algebra; b
 ## Functional suite failure clusters
 
 Clustered 2026-10-10 on a full run with every generated skip removed, on Calcite 1.43.0-SNAPSHOT +
-Apache.Calcite.Data 2.0.1-pre.267, after the missing spec suites were derived: **3,161 failed /
-34,585 passed / 428 skipped of 38,174** (1 h 59 min), which the regenerated skips covered as 1,723
-methods. Fixing the API-consistency and model-building index failures since then leaves 1,441;
-the table counts the model-building row after that fix and the rest as measured. Reference D:\efcore (11.0 head; 10.0 via `git show v10.0.5:<path>`) and D:\efcore.pg for
-how SQLite/Npgsql derive, override, and skip.
+Apache.Calcite.Data 2.0.1-pre.267, after the missing spec suites were derived and the model kept
+its indexes: **2,849 failed / 34,897 passed / 428 skipped of 38,174** (2 h 56 min), which the
+regenerated skips cover as 1,411 methods. Reference D:\efcore (11.0 head; 10.0 via
+`git show v10.0.5:<path>`) and D:\efcore.pg for how SQLite/Npgsql derive, override, and skip.
 
 Largest classes, and what is known about each:
 
 | class | failures | shape |
 |---|---|---|
-| `GraphUpdatesCalcite*NotificationsTest` (x4) | 529 | mostly FK cascade, as for the proxy variants below; see the GraphUpdates notes |
+| `GraphUpdatesCalcite*NotificationsTest` (x4) | 528 | mostly FK cascade, as for the proxy variants below; see the GraphUpdates notes |
 | `ProxyGraphUpdatesCalciteTest` (x3) | 215 | mostly FK cascade: Calcite has no constraints, so "cascade deleted in store" cannot pass |
-| `ModelBuilding.CalciteModelBuilder*Test` (x2, nested) | 24 | every one asserts an index on the finalized model, which `CalciteIndexesNotSupportedConvention` removes. They pass only if the model keeps its indexes and the store creator skips them instead |
 | `Query.JsonQueryCalciteTest` | 144 | 52 non-constant JSON array index (Calcite's JSON path is a literal); 36 owned-collection navigations under JSON that do not translate |
 | `Query.EntitySplittingQueryCalciteTest` | 116 | not diagnosed |
 | `StoreGeneratedCalciteTest` | 110 | store-generated values; the provider generates no keys by design |
@@ -112,7 +110,7 @@ Largest classes, and what is known about each:
 | `Query.NorthwindGroupByQueryCalciteTest` | 38 | not diagnosed |
 | `Query.GearsOfWarQueryCalciteTest` and the TPC/TPT variants | 108 | not diagnosed; the three move together |
 
-Largest fingerprints not already attributed above: 792 `Assert.Equal() Failure: Values differ`
+Largest fingerprints not already attributed above: 534 `Assert.Equal() Failure: Values differ`
 (too coarse to be one cause — split it before acting), 80 `SqlParseException : Encountered <FROM>`,
 76 `The LINQ expression 'DbSet<BasicTypesEntity>() …' could not be translated`, 38 `variable '*' of
 type '*' referenced from scope '*', but it is not defined`, and 28 `SqlParseException : Lexical

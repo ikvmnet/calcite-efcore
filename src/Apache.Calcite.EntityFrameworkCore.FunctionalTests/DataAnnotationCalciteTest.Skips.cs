@@ -10,12 +10,6 @@ partial class DataAnnotationCalciteTest
 {
 
     [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override void ForeignKeyAttribute_configures_two_self_referencing_relationships()
-    {
-        base.ForeignKeyAttribute_configures_two_self_referencing_relationships();
-    }
-
-    [Xunit.ConditionalFact(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task MaxLengthAttribute_throws_while_inserting_value_longer_than_max_length()
     {
         return base.MaxLengthAttribute_throws_while_inserting_value_longer_than_max_length();
