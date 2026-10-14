@@ -27,22 +27,4 @@ partial class ComplexNavigationsQueryCalciteTest
         return base.Nested_object_constructed_from_group_key_properties(async);
     }
 
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Optional_navigation_inside_method_call_translated_to_join_keeps_original_nullability(bool async)
-    {
-        return base.Optional_navigation_inside_method_call_translated_to_join_keeps_original_nullability(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Optional_navigation_inside_nested_method_call_translated_to_join_keeps_original_nullability(bool async)
-    {
-        return base.Optional_navigation_inside_nested_method_call_translated_to_join_keeps_original_nullability(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Optional_navigation_inside_nested_method_call_translated_to_join_keeps_original_nullability_also_for_arguments(bool async)
-    {
-        return base.Optional_navigation_inside_nested_method_call_translated_to_join_keeps_original_nullability_also_for_arguments(async);
-    }
-
 }

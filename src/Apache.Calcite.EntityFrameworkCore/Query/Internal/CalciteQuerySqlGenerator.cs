@@ -581,8 +581,23 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
             { Name: "COUNT", IsBuiltIn: true } => VisitCountFunction(sqlFunctionExpression),
             { Name: "__position" } when sqlFunctionExpression.Arguments is { Count: >= 2 } => VisitPositionFunction(sqlFunctionExpression),
             { Name: "__trim_char" } when sqlFunctionExpression.Arguments is { Count: 3 } => VisitTrimCharFunction(sqlFunctionExpression),
+            { Name: "__extract" } when sqlFunctionExpression.Arguments is { Count: 2 } => VisitExtractFunction(sqlFunctionExpression),
             _ => base.VisitSqlFunction(sqlFunctionExpression),
         };
+
+        /// <summary>
+        /// Emits <c>EXTRACT(unit FROM operand)</c>. Arguments: [unit fragment, operand].
+        /// </summary>
+        Expression VisitExtractFunction(SqlFunctionExpression sqlFunctionExpression)
+        {
+            var args = sqlFunctionExpression.Arguments!;
+            Sql.Append("EXTRACT(");
+            Visit(args[0]);
+            Sql.Append(" FROM ");
+            Visit(args[1]);
+            Sql.Append(")");
+            return sqlFunctionExpression;
+        }
 
         /// <summary>
         /// Emits <c>COUNT(…)</c>, wrapped in a <c>CAST</c> to the shaped type where that is narrower.

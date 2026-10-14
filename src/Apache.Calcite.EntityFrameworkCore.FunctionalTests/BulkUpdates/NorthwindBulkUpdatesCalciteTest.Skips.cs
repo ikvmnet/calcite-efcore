@@ -16,12 +16,6 @@ partial class NorthwindBulkUpdatesCalciteTest
     }
 
     [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
-    public override global::System.Threading.Tasks.Task Delete_Where_using_navigation(bool async)
-    {
-        return base.Delete_Where_using_navigation(async);
-    }
-
-    [Xunit.ConditionalTheory(Skip = "Not yet supported by the Calcite provider; regenerate with tools/GenerateSkips after fixing.")]
     public override global::System.Threading.Tasks.Task Delete_with_cross_apply(bool async)
     {
         return base.Delete_with_cross_apply(async);

@@ -89,8 +89,9 @@ Skip SQL text entirely: EF's `SelectExpression` is already relational algebra; b
 
 Clustered 2026-10-10 on a full run with every generated skip removed, on Calcite 1.43.0-SNAPSHOT +
 Apache.Calcite.Data 2.0.1-pre.267, after the missing spec suites were derived and the model kept
-its indexes: **2,849 failed / 34,897 passed / 428 skipped of 38,174** (2 h 56 min), which the
-regenerated skips cover as 1,411 methods. Reference D:\efcore (11.0 head; 10.0 via
+its indexes: **2,849 failed / 34,897 passed / 428 skipped of 38,174**. Re-measured 2026-10-11
+after the date and time translators: **2,724 failed / 35,022 passed**, which the regenerated skips
+cover as 1,323 methods; the table is from the first run except where it says otherwise. Reference D:\efcore (11.0 head; 10.0 via
 `git show v10.0.5:<path>`) and D:\efcore.pg for how SQLite/Npgsql derive, override, and skip.
 
 Largest classes, and what is known about each:
@@ -107,7 +108,7 @@ Largest classes, and what is known about each:
 | `Update.JsonUpdateCalciteTest` | 63 | partial JSON updates: `JSON_SET` inserts a string, not a parsed document |
 | `TransactionCalciteTest` | 53 | the store has no transactions; these assert real ones |
 | `JsonTypesCalciteTest` | 41 | 13 JSON text differs; spatial types are not mapped inside JSON |
-| `Query.NorthwindGroupByQueryCalciteTest` | 38 | not diagnosed |
+| `Query.NorthwindGroupByQueryCalciteTest` | 16 (2026-10-11) | 14 statements Calcite rejects; see the GroupBy item |
 | `Query.GearsOfWarQueryCalciteTest` and the TPC/TPT variants | 108 | not diagnosed; the three move together |
 
 Largest fingerprints not already attributed above: 534 `Assert.Equal() Failure: Values differ`
@@ -116,16 +117,11 @@ Largest fingerprints not already attributed above: 534 `Assert.Equal() Failure: 
 type '*' referenced from scope '*', but it is not defined`, and 28 `SqlParseException : Lexical
 error`.
 
-Smaller ones from the newly derived suites, each a real gap:
-
-- **`CalciteServiceCollectionExtensionsTest.Required_services_are_registered_with_expected_lifetimes`**:
-  the provider registers no `IHistoryRepository`.
-- **`Can_insert_when_bool_PK_in_composite_key_has_sentinel_value`** (all four GraphUpdates variants):
-  `Unable to cast object of type 'java.lang.Integer' to type 'java.lang.Boolean'` — a `bool` key
-  part with `HasDefaultValue(true)`. Not diagnosed.
-- **`NorthwindDbFunctionsQueryCalciteTest`, 6** fail executing the collation tests. The collations
-  are named `ISO-8859-1$en_US$primary`/`$tertiary`; whether Calcite accepts `COLLATE` with those
-  names in a query has not been checked.
+The rows that are a missing provider feature rather than a store limitation each have their own item
+below: date/time translation, the migrations history repository, schema changes after creation,
+`ExecuteUpdate`/`ExecuteDelete`, JSON, entity splitting, GroupBy, the bool key sentinel, collations
+and compiled models. The rows left only here — FK cascade in the store, store-generated values,
+transactions — are what Calcite as a store cannot do, and the provider can only report them.
 
 The GraphUpdates derivations omit SQLite's `HasKey("Id")` on the owned collections, and need no
 substitute: every owned-collection test passes on the snapshot variant. The two `Clearing_*_owned_collection`
@@ -486,3 +482,123 @@ representation the layers beneath this repo have not caught up with; that one is
 scalar terminal coming back empty and could be either. Telling them apart wants a run against a
 Calcite carrying neither. The first step for any of them is a test in
 `Apache.Calcite.EntityFrameworkCore.Tests` that reproduces it.
+
+## Date and time: what is still untranslated
+
+The `DateTime`, `DateOnly`, `TimeOnly` and `DateTimeOffset` parts, `Add` methods, conversions and the
+local clock translate (`Calcite*MemberTranslator`/`Calcite*MethodTranslator` for each, over
+`CalciteSqlExpressionFactory.DatePart`/`Extract`/`TimestampAdd`; `DateTimeTranslationTests` locks
+them). Measured 2026-10-11, the four `Query.Translations.Temporal` suites went from 72 failures to 23.
+What is left:
+
+- **Everything through `TimeSpan`** (15 of the 23): `TimeSpan` has no store mapping — Calcite's
+  `INTERVAL DAY TO SECOND` is the candidate — so its parts, `DateTime.TimeOfDay`,
+  `DateTimeOffset.TimeOfDay`, `TimeOnly.FromTimeSpan`, `TimeOnly.Add(TimeSpan)`, and subtracting two
+  dates cannot translate. The mapping comes first; the translations are then `EXTRACT` over the
+  interval and `TIMESTAMPDIFF`.
+- **`DateTime.UtcNow`, `DateTimeOffset.Now` and `UtcNow`**: Calcite's `CURRENT_TIMESTAMP` and
+  `LOCALTIMESTAMP` both answer in the session time zone, and the standard library has nothing that
+  converts to UTC. Translatable only by knowing the session zone, or through a library function
+  (`CONVERT_TIMEZONE`) a connection may not load.
+- **Sub-millisecond parts** (4): `Microsecond` and `Nanosecond` translate, but the store keeps
+  milliseconds (`TIMESTAMP(3)`, `TIME(3)`), so a value with microseconds loses them on the way in.
+- **`DateTimeOffset` parts answer in UTC** (4 of the 23: `Hour`, `Minute`, `Date`, `TimeOfDay`). That
+  matches the value as the provider reads it back, offset zero; it moves with the offset-fidelity item
+  below rather than separately.
+- **A `TIMESTAMP WITH TIME ZONE` cast straight to `DATE` is wrong in Calcite**: `TIMESTAMPDIFF(DAY,
+  …)` over it counted about 1.6 billion days. The translators go through `CAST(… AS TIMESTAMP(3))`
+  first. Worth a minimal reproduction upstream.
+- **The adapter path is unproven.** These translations reach Calcite's own runtime in every test
+  here. Over an EF-backed table the adapter's `RexToLinqTranslator` has to implement `EXTRACT`,
+  `TIMESTAMPADD`, `TIMESTAMPDIFF`, `MOD` and the clock functions, or the plan falls to the bindable
+  path; no test covers that yet.
+
+## Migrations: no history repository
+
+The provider registers no `IHistoryRepository`, so nothing that reads or writes the migrations
+history works: `Database.Migrate()`, `GetAppliedMigrations()`, and the design-time migrations
+services (`DesignTimeCalciteTest.Can_get_migrations_services` fails resolving it). Only
+`EnsureCreated` creates a schema today. `CalciteServiceCollectionExtensionsTest` reports it as a
+required service with no registration.
+
+A `CalciteHistoryRepository` over `HistoryRepository` needs the history table's DDL, an existence
+check, and the insert/delete scripts, all of which Calcite's DDL and DML can express. The three
+`LoggingCalciteTest.Logs_context_initialization_migrations_*` failures (the logged options string
+differs) are likely to move with it.
+
+## Migrations: a schema cannot change after it is created
+
+Calcite's grammar has no `ALTER TABLE`, so `AddColumn`, `AlterColumn` and the other in-place changes
+are ignored with `MigrationOperationIgnoredWarning`, which throws by default. A migration that does
+more than create tables therefore cannot be applied. SQLite has the same gap for most `ALTER`s and
+closes it by rebuilding the table: create the new shape under a temporary name, copy the rows,
+drop the old table, rename. Calcite has no rename either, so a rebuild here is two copies (into a
+temporary table, then back into the recreated original). Worth doing only once the history
+repository above exists, since without it there is nothing to apply a migration through.
+
+## ExecuteUpdate and ExecuteDelete
+
+`BulkUpdates.NorthwindBulkUpdatesCalciteTest` fails 74 as of 2026-10-10: 56 are statements Calcite
+rejects (`Failed to execute Calcite statement`; unwrap with `tools\cluster-trx.ps1` before acting,
+the inner Java exception is the diagnosis), and 16 are shapes the provider does not translate,
+several through `FakeDefaultIfEmpty`, the left join a bulk operation over an optional navigation
+produces. Separately, every `ExecuteUpdate` that sets a property inside a JSON column is refused
+(73 across the type and JSON suites); that belongs to the JSON item.
+
+## JSON: what does not work yet
+
+Measured 2026-10-10 across `JsonQuery` (144), `JsonUpdate` (63), `JsonTypes` (41) and the `Types`
+suites:
+
+- **Partial updates.** Setting a sub-document or collection inside a JSON column, through
+  `SaveChanges` (48) or `ExecuteUpdate` (73), is refused: `JSON_SET` stores the value as a JSON
+  string rather than as a parsed document. A full-document write works. The fix is either a way to
+  hand `JSON_SET` a parsed value, or rewriting the whole document for a partial change.
+- **A non-constant array index** (56): `c.Collection[i]` with `i` a column or parameter cannot be
+  rendered, because Calcite's JSON path is a literal. Concatenating the path at runtime, or
+  unnesting the array with its ordinality as primitive collections already do, are the candidates.
+- **Owned collections inside JSON** (36): navigations such as `OwnedReferenceRoot →
+  OwnedCollectionLeaf` do not translate.
+- **Spatial types inside JSON** are not mapped (`JsonTypesCalciteTest`, 10 cases): the
+  NetTopologySuite mapping covers columns, not JSON properties.
+- `JsonTypesCalciteTest` also has 13 cases whose serialized text differs from what EF expects; not
+  diagnosed.
+
+## Entity splitting
+
+`Query.EntitySplittingQueryCalciteTest` fails all 116 of its failures with
+`Assert.Equal() Failure: Values differ`: queries over an entity mapped across several tables run
+but return the wrong values. Not diagnosed; one query from the suite against the fixture, compared
+with its expected rows, is the start.
+
+## GroupBy
+
+`Query.NorthwindGroupByQueryCalciteTest` fails 16 as of 2026-10-11: 14 statements Calcite rejects
+(`Failed to execute Calcite statement`; unwrap with `tools\cluster-trx.ps1` for the Java cause), and
+2 aggregates that come back as `Int32` where EF expects `Int64`, which may be the `LongCount`
+shape in the six-shapes item below. The 20 shapes that did not translate were all grouping keys or
+projections over a date member, and went with the date and time translators. Not otherwise diagnosed.
+
+## A bool key part with a default value reads back as an integer
+
+`Can_insert_when_bool_PK_in_composite_key_has_sentinel_value` fails on all four GraphUpdates
+variants with `Unable to cast object of type 'java.lang.Integer' to type 'java.lang.Boolean'`. The
+key is composite with a `bool` part configured `HasDefaultValue(true)`; somewhere the default
+reaches Calcite, or comes back, as an `INTEGER`. Not diagnosed.
+
+## Collations in a query
+
+`NorthwindDbFunctionsQueryCalciteTest` names Calcite's collations for its case-sensitivity tests
+(`ISO-8859-1$en_US$primary` and `$tertiary`), and 6 of those tests fail executing. Whether Calcite
+accepts `COLLATE` with those names, or with any name, inside a query has not been checked. If it
+does, `EF.Functions.Collate` and `UseCollation` work through the existing translation; if not,
+document the escape and leave them skipped.
+
+## Compiled models
+
+`CompiledModelTestBase` and `CompiledModelRelationalTestBase` are in `CalciteComplianceTest`'s
+ignore list, so `dotnet ef dbcontext optimize` is untested against this provider. Compiled models
+are a startup optimization rather than a store feature, so nothing in Calcite prevents them; what
+they need is that every annotation the provider puts on the model can be written out as C#. The
+ARRAY, NetTopologySuite and value-generation mappings are the likely gaps. Derive the two suites
+and see.

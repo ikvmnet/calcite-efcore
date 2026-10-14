@@ -35,6 +35,10 @@ namespace Apache.Calcite.EntityFrameworkCore.Query.Internal
                 new CalciteDoubleMethodTranslator(sqlExpressionFactory),
                 new CalciteDecimalMethodTranslator(sqlExpressionFactory),
                 new CalciteCharMethodTranslator(sqlExpressionFactory),
+                new CalciteDateTimeMethodTranslator(sqlExpressionFactory),
+                new CalciteDateTimeOffsetMethodTranslator(sqlExpressionFactory, dependencies.RelationalTypeMappingSource),
+                new CalciteDateOnlyMethodTranslator(sqlExpressionFactory, dependencies.RelationalTypeMappingSource),
+                new CalciteTimeOnlyMethodTranslator(sqlExpressionFactory, dependencies.RelationalTypeMappingSource),
             ]);
         }
 
